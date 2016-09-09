@@ -1,0 +1,37 @@
+{
+    "channels": {
+      "nightly": {
+        "version": "1.13.0-dev-20160909"
+      },
+      "stable": {
+        "version": "1.12.1"
+      },
+      "cs": {
+        "alias": "1.12-cs"
+      },
+      "1.12-cs": {
+        "version": "1.12.1-cs-rc1"
+      }
+    },
+
+    "versions": {
+      "1.12.1": {
+        "date": "2016-09-09T16:28:18.000Z",
+        "url": "https://get.docker.com/builds/Windows/x86_64/docker-1.12.1.zip",
+        "size": "16398428",
+        "sha256": "bf1aff8bc319b1df4704f326825be3b96dd4a21e6e9691af99ba2cf6391d5008"
+      },
+      "1.13.0-dev-20160909": {
+        "date": "2016-09-09T16:28:18.000Z",
+        "url": "https://binaries.dockerproject.org/windows/386/docker-1.13.0-dev.zip",
+        "size": "3646579",
+        "sha256": "644869d408e7be1b285edf73867763254e229ad2c7f1ac6b062c36aa575beb41"
+      },
+      "1.12.1-cs-rc1": {
+        "date": "2016-09-09T16:28:18.000Z",
+        "url": "https://packages.docker.com/1.12/builds/windows/amd64/docker-1.12.1-cs1-rc1.zip",
+        "size": "16442901",
+        "sha256": "d1dcbdeaff0f664672c63dc15cb672d1c5cf991d5249999975143c3b82069571"
+      }
+    }
+}
