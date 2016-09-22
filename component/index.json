@@ -4,16 +4,16 @@
         "alias": "1.12-cs"
       },
       "1.12-cs": {
-        "version": "1.12.1-cs-rc1"
+        "version": "1.12.1-cs1"
       }
     },
 
     "versions": {
-      "1.12.1-cs-rc1": {
-        "date": "2016-09-09T16:28:18.000Z",
-        "url": "https://packages.docker.com/1.12/builds/windows/amd64/docker-1.12.1-cs1-rc1.zip",
-        "size": "16442901",
-        "sha256": "d1dcbdeaff0f664672c63dc15cb672d1c5cf991d5249999975143c3b82069571"
+      "1.12.1-cs1": {
+        "date": "2016-09-22T01:26:23.000Z",
+        "url": "https://packages.docker.com/1.12/builds/windows/amd64/docker-1.12.1-cs1.zip",
+        "size": "16442088",
+        "sha256": "c6ca9755262938c9e1549665e7cc01ae9711500f45ff45ccc9a0a4fbe1e61375"
       }
     }
 }
