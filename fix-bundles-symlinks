@@ -1,0 +1,18 @@
+#!/bin/bash -e
+# fixes bundles dir by removing 'latest' symlink dir
+# and turning symlinks into files they point to
+usage() {
+  echo "usage: $(basename $0) <bundles_dir>"
+}
+[ $# -lt 1 ] && usage && exit 1
+[ ! -d "$1" ] && echo "error: $1 is not a dir" && usage && exit 2
+rm -rf "$1/latest"
+find "$1" -mindepth 2 -type l -print0 | while read -d $'\0' f ; do
+  echo "found link $f -> $(readlink "$f")"
+  target="$( dirname "$f" )/$( readlink "$f" )"
+  if [[ -e "$target" ]] ; then
+    [[ -d "$target" ]] && CP_FLAGS="-R" && RM_FLAGS="-r"
+    mv "$f" "$f.lnk" && cp $CP_FLAGS "$target" "$f" && rm $RM_FLAGS "$f.lnk"
+  fi 
+  echo "Realized symlink for: $f -> $target"
+done
