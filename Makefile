@@ -8,37 +8,37 @@ binary:
 	docker pull $(DOCKER_BUILD_IMG)
 	docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) \
 		$(DOCKER_BUILD_IMG) hack/make.sh binary
-	. fix-bundles-symlinks bundles
+	./fix-bundles-symlinks bundles
 
 binary-experimental:
 	docker pull $(DOCKER_BUILD_IMG)
 	docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_EXPERIMENTAL) -e DOCKER_EXPERIMENTAL=1 \
 		$(DOCKER_BUILD_IMG) hack/make.sh binary
-	. fix-bundles-symlinks bundles-experimental
+	./fix-bundles-symlinks bundles-experimental
 
 dynbinary:
 	docker pull $(DOCKER_BUILD_IMG)
 	docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) \
 		$(DOCKER_BUILD_IMG) hack/make.sh dynbinary
-	. fix-bundles-symlinks bundles
+	./fix-bundles-symlinks bundles
 
 dynbinary-experimental:
 	docker pull $(DOCKER_BUILD_IMG)
 	docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_EXPERIMENTAL) -e DOCKER_EXPERIMENTAL=1 \
 		$(DOCKER_BUILD_IMG) hack/make.sh dynbinary
-	. fix-bundles-symlinks bundles-experimental
+	./fix-bundles-symlinks bundles-experimental
 
 cross:
 	docker pull $(DOCKER_BUILD_IMG)
 	docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -e KEEPBUNDLE=1 \
 		$(DOCKER_BUILD_IMG) hack/make.sh cross
-	. fix-bundles-symlinks bundles
+	./fix-bundles-symlinks bundles
 
 cross-experimental:
 	docker pull $(DOCKER_BUILD_IMG)
 	docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_EXPERIMENTAL) -e KEEPBUNDLE=1 -e DOCKER_EXPERIMENTAL=1 \
 		$(DOCKER_BUILD_IMG) hack/make.sh cross
-	. fix-bundles-symlinks bundles-experimental
+	./fix-bundles-symlinks bundles-experimental
 
 tgz:
 	docker pull $(DOCKER_BUILD_IMG)
