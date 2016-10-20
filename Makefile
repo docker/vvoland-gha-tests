@@ -1,3 +1,4 @@
+SHELL:=/bin/bash
 DOCKER_BUILD_IMG:=$(DOCKER_REPO):$(GIT_REF)
 CONTAINER_NAME:=$(BUILD_TAG)-$(EXECUTOR_NUMBER)
 VOL_MNT_STABLE:=$(WORKSPACE)/bundles:/go/src/github.com/docker/docker/bundles
