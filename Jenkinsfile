@@ -52,6 +52,7 @@ def build_cross_dynbinary_steps = [
   'build-dynbinary': {
     stage(name: 'build dynbinary') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         withChownWorkspace(sh('make dynbinary'))
         stash(name: 'bundles-dynbinary', includes: 'bundles/*/dynbinary*/**')
       }
@@ -60,6 +61,7 @@ def build_cross_dynbinary_steps = [
  'build-dynbinary-experimental': {
     stage(name: 'build dynbinary experimental') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         withChownWorkspace(sh('make dynbinary-experimental'))
         stash(name: 'bundles-experimental-dynbinary', includes: 'bundles-experimental/*/dynbinary*/**')
       }
@@ -68,6 +70,7 @@ def build_cross_dynbinary_steps = [
   'build-cross': {
     stage(name: 'build cross') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-binary'
         withChownWorkspace(sh('make cross'))
         stash(name: 'bundles-cross', includes: 'bundles/*/cross/**')
@@ -77,6 +80,7 @@ def build_cross_dynbinary_steps = [
   'build-cross-experimental': {
     stage(name: 'build cross experimental') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-experimental-binary'
         withChownWorkspace(sh('make cross-experimental'))
         stash(name: 'bundles-experimental-cross', includes: 'bundles-experimental/*/cross/**')
@@ -89,6 +93,7 @@ def build_package_steps = [
   'build-tgz': {
     stage(name: 'build tgz') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-binary'
         unstash 'bundles-cross'
         withChownWorkspace(sh('make tgz'))
@@ -99,6 +104,7 @@ def build_package_steps = [
   'build-tgz-experimental': {
     stage(name: 'build tgz experimental') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-experimental-binary'
         unstash 'bundles-experimental-cross'
         withChownWorkspace(sh('make tgz-experimental'))
@@ -109,6 +115,7 @@ def build_package_steps = [
   'build-deb': {
     stage(name: 'build deb') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-binary'
         unstash 'bundles-dynbinary'
         withChownWorkspace(sh('make deb'))
@@ -119,6 +126,7 @@ def build_package_steps = [
   'build-deb-experimental': {
     stage(name: 'build deb experimental') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-experimental-binary'
         unstash 'bundles-experimental-dynbinary'
         withChownWorkspace(sh('make deb-experimental'))
@@ -129,6 +137,7 @@ def build_package_steps = [
   'build-ubuntu': {
     stage(name: 'build ubuntu') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-binary'
         unstash 'bundles-dynbinary'
         withChownWorkspace(sh('make ubuntu'))
@@ -139,6 +148,7 @@ def build_package_steps = [
   'build-ubuntu-experimental': {
     stage(name: 'build ubuntu experimental') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-experimental-binary'
         unstash 'bundles-experimental-dynbinary'
         withChownWorkspace(sh('make ubuntu-experimental'))
@@ -149,6 +159,7 @@ def build_package_steps = [
   'build-fedora': {
     stage(name: 'build fedora') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-binary'
         unstash 'bundles-dynbinary'
         withChownWorkspace(sh('make fedora'))
@@ -159,6 +170,7 @@ def build_package_steps = [
   'build-fedora-experimental': {
     stage(name: 'build fedora experimental') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-experimental-binary'
         unstash 'bundles-experimental-dynbinary'
         withChownWorkspace(sh('make fedora-experimental'))
@@ -169,6 +181,7 @@ def build_package_steps = [
   'build-centos': {
     stage(name: 'build centos') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-binary'
         unstash 'bundles-dynbinary'
         withChownWorkspace(sh('make centos'))
@@ -179,6 +192,7 @@ def build_package_steps = [
   'build-centos-experimental': {
     stage(name: 'build centos experimental') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-experimental-binary'
         unstash 'bundles-experimental-dynbinary'
         withChownWorkspace(sh('make centos-experimental'))
@@ -189,6 +203,7 @@ def build_package_steps = [
   'build-oraclelinux': {
     stage(name: 'build oraclelinux') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-binary'
         unstash 'bundles-dynbinary'
         withChownWorkspace(sh('make oraclelinux'))
@@ -199,6 +214,7 @@ def build_package_steps = [
   'build-oraclelinux-experimental': {
     stage(name: 'build oraclelinux experimental') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-experimental-binary'
         unstash 'bundles-experimental-dynbinary'
         withChownWorkspace(sh('make oraclelinux-experimental'))
@@ -209,6 +225,7 @@ def build_package_steps = [
   'build-opensuse': {
     stage(name: 'build opensuse') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-binary'
         unstash 'bundles-dynbinary'
         withChownWorkspace(sh('make opensuse'))
@@ -219,6 +236,7 @@ def build_package_steps = [
   'build-opensuse-experimental': {
     stage(name: 'build opensuse experimental') {
       wrappedNode(label: 'docker && ubuntu') {
+        checkout scm
         unstash 'bundles-experimental-binary'
         unstash 'bundles-experimental-dynbinary'
         withChownWorkspace(sh('make opensuse-experimental'))
