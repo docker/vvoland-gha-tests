@@ -27,21 +27,15 @@ properties(
   ]
 )
 
-checkout(
-  [
-    $class: 'GitSCM',
-    branches: [[name: '*/docker-engine-build']],
-    doGenerateSubmoduleConfigurations: false,
-    extensions: [],
-    submoduleCfg: [],
-    userRemoteConfigs: [[credentialsId: 'docker-jenkins.github.ssh', url: 'git@github.com:andrewhsu/release.git']]
-  ]
-)
+def gitCheckout() {
+  git branch: 'docker-engine-build', credentialsId: 'docker-jenkins.github.ssh', url: 'git@github.com:andrewhsu/release.git'
+}
 
 def build_binary_steps = [
   'build-binary': {
     stage(name: 'build binary') {
       wrappedNode(label: 'docker && ubuntu') {
+        gitCheckout()
         withChownWorkspace(sh('make binary'))
         stash(name: 'bundles-binary', includes: 'bundles/*/binary*/**')
       }
@@ -50,6 +44,7 @@ def build_binary_steps = [
   'build-binary-experimental': {
     stage(name: 'build binary experimental') {
       wrappedNode(label: 'docker && ubuntu') {
+        git branch: 'docker-engine-build', credentialsId: 'docker-jenkins.github.ssh', url: 'git@github.com:andrewhsu/release.git'
         withChownWorkspace(sh('make binary-experimental'))
         stash(name: 'bundles-experimental-binary', includes: 'bundles-experimental/*/binary*/**')
       }
