@@ -27,6 +27,17 @@ properties(
   ]
 )
 
+checkout(
+  [
+    $class: 'GitSCM',
+    branches: [[name: '*/docker-engine-build']],
+    doGenerateSubmoduleConfigurations: false,
+    extensions: [],
+    submoduleCfg: [],
+    userRemoteConfigs: [[credentialsId: 'docker-jenkins.github.ssh', url: 'git@github.com:andrewhsu/release.git']]
+  ]
+)
+
 def build_binary_steps = [
   'build-binary': {
     stage(name: 'build binary') {
