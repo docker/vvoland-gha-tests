@@ -4,8 +4,8 @@ properties(
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '5')),
     parameters(
       [
-        string(defaultValue: 'bb80604a0b200140a440675348c848a137a1b2e2', description: '', name: 'GIT_REF'),
-        string(defaultValue: 'dockerbuildbot/andrewhsu-docker-dev', description: '', name: 'DOCKER_REPO'),
+        string(defaultValue: '', description: '', name: 'GIT_REF'),
+        string(defaultValue: 'dockerbuildbot/docker-dev', description: '', name: 'DOCKER_REPO'),
       ]
     )
   ]
