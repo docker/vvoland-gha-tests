@@ -191,11 +191,17 @@ def build_package_steps = [
 ]
 
 stage(name: 'build binary steps') {
-  parallel(build_binary_steps)
+  timeout(time: 1, unit: 'HOURS') {
+    parallel(build_binary_steps)
+  }
 }
 stage(name: 'build cross dynbinary steps') {
-  parallel(build_cross_dynbinary_steps)
+  timeout(time: 1, unit: 'HOURS') {
+    parallel(build_cross_dynbinary_steps)
+  }
 }
 stage(name: 'build package steps') {
-  parallel(build_package_steps)
+  timeout(time: 2, unit: 'HOURS') {
+    parallel(build_package_steps)
+  }
 }
