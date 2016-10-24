@@ -1,5 +1,5 @@
 SHELL:=/bin/bash
-DOCKER_BUILD_IMG:=$(DOCKER_REPO):$(GIT_REF)
+DOCKER_BUILD_IMG:=$(DOCKER_DEV_IMG):$(DOCKER_DEV_TAG)
 CONTAINER_NAME:=$(BUILD_TAG)-$(EXECUTOR_NUMBER)
 VOL_MNT_STABLE:=$(WORKSPACE)/bundles:/go/src/github.com/docker/docker/bundles
 VOL_MNT_EXPERIMENTAL:=$(WORKSPACE)/bundles-experimental:/go/src/github.com/docker/docker/bundles
