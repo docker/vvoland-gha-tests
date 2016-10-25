@@ -1,22 +1,32 @@
 #!groovy
 properties(
   [
-    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '5')),
-    parameters(
-      [
-        string(defaultValue: 'dockerbuildbot/docker', description: 'docker image used to build artifacts', name: 'DOCKER_DEV_IMG'),
-        string(defaultValue: 'latest', description: 'tag of docker image DOCKER_DEV_IMG', name: 'DOCKER_DEV_TAG')
-      ]
-    )
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '5'))
   ]
 )
+
+def dockerBuildImgDigest
+
+def build_docker_dev_steps = [
+  'build-docker-dev': {
+    wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
+      checkout scm
+      def commitSHA1 = sh(returnStdout: true, script: 'git ls-remote https://github.com/docker/docker.git 1.12.x | awk \'{print$1;exit}\'').trim()
+      if(0 != sh(returnStatus: true, script: "docker pull dockerbuildbot/docker:${commitSHA1}")) {
+        withChownWorkspace { sh("make COMMIT_SHA1=${commitSHA1} docker-dev") }
+      }
+      dockerBuildImgDigest = sh(returnStdout: true, script: "docker inspect -f '{{ index .RepoDigests 0 }}' dockerbuildbot/docker:${commitSHA1}").trim()
+    }
+  }
+]
 
 def build_binary_steps = [
   'build-binary': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
       deleteDir()
       checkout scm
-      withChownWorkspace { sh('make binary') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} binary") }
       stash(name: 'bundles-binary', includes: 'bundles/*/binary*/**')
     }
   },
@@ -24,7 +34,7 @@ def build_binary_steps = [
     wrappedNode(label: 'docker && ubuntu && aufs') {
       deleteDir()
       checkout scm
-      withChownWorkspace { sh('make binary-experimental') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} binary-experimental") }
       stash(name: 'bundles-experimental-binary', includes: 'bundles-experimental/*/binary*/**')
     }
   }
@@ -35,7 +45,7 @@ def build_cross_dynbinary_steps = [
     wrappedNode(label: 'docker && ubuntu && aufs') {
       deleteDir()
       checkout scm
-      withChownWorkspace { sh('make dynbinary') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} dynbinary") }
       stash(name: 'bundles-dynbinary', includes: 'bundles/*/dynbinary*/**')
     }
   },
@@ -43,7 +53,7 @@ def build_cross_dynbinary_steps = [
     wrappedNode(label: 'docker && ubuntu && aufs') {
       deleteDir()
       checkout scm
-      withChownWorkspace { sh('make dynbinary-experimental') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} dynbinary-experimental") }
       stash(name: 'bundles-experimental-dynbinary', includes: 'bundles-experimental/*/dynbinary*/**')
     }
   },
@@ -52,7 +62,7 @@ def build_cross_dynbinary_steps = [
       deleteDir()
       checkout scm
       unstash 'bundles-binary'
-      withChownWorkspace { sh('make cross') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} cross") }
       stash(name: 'bundles-cross', includes: 'bundles/*/cross/**')
     }
   },
@@ -61,7 +71,7 @@ def build_cross_dynbinary_steps = [
       deleteDir()
       checkout scm
       unstash 'bundles-experimental-binary'
-      withChownWorkspace { sh('make cross-experimental') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} cross-experimental") }
       stash(name: 'bundles-experimental-cross', includes: 'bundles-experimental/*/cross/**')
     }
   }
@@ -74,7 +84,7 @@ def build_package_steps = [
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-cross'
-      withChownWorkspace { sh('make tgz') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} tgz") }
       archiveArtifacts 'bundles/*/tgz/**'
     }
   },
@@ -84,7 +94,7 @@ def build_package_steps = [
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-cross'
-      withChownWorkspace { sh('make tgz-experimental') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} tgz-experimental") }
       archiveArtifacts 'bundles-experimental/*/tgz/**'
     }
   },
@@ -94,7 +104,7 @@ def build_package_steps = [
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-dynbinary'
-      withChownWorkspace { sh('make deb') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} deb") }
       archiveArtifacts 'bundles/*/build-deb/**'
     }
   },
@@ -104,7 +114,7 @@ def build_package_steps = [
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-dynbinary'
-      withChownWorkspace { sh('make deb-experimental') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} deb-experimental") }
       archiveArtifacts 'bundles-experimental/*/build-deb/**'
     }
   },
@@ -114,7 +124,7 @@ def build_package_steps = [
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-dynbinary'
-      withChownWorkspace { sh('make ubuntu') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} ubuntu") }
       archiveArtifacts 'bundles/*/build-deb/**'
     }
   },
@@ -124,7 +134,7 @@ def build_package_steps = [
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-dynbinary'
-      withChownWorkspace { sh('make ubuntu-experimental') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} ubuntu-experimental") }
       archiveArtifacts 'bundles-experimental/*/build-deb/**'
     }
   },
@@ -134,7 +144,7 @@ def build_package_steps = [
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-dynbinary'
-      withChownWorkspace { sh('make fedora') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} fedora") }
       archiveArtifacts 'bundles/*/build-rpm/**'
     }
   },
@@ -144,7 +154,7 @@ def build_package_steps = [
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-dynbinary'
-      withChownWorkspace { sh('make fedora-experimental') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} fedora-experimental") }
       archiveArtifacts 'bundles-experimental/*/build-rpm/**'
     }
   },
@@ -154,7 +164,7 @@ def build_package_steps = [
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-dynbinary'
-      withChownWorkspace { sh('make centos') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} centos") }
       archiveArtifacts 'bundles/*/build-rpm/**'
     }
   },
@@ -164,7 +174,7 @@ def build_package_steps = [
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-dynbinary'
-      withChownWorkspace { sh('make centos-experimental') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} centos-experimental") }
       archiveArtifacts 'bundles-experimental/*/build-rpm/**'
     }
   },
@@ -175,7 +185,7 @@ def build_package_steps = [
         checkout scm
         unstash 'bundles-binary'
         unstash 'bundles-dynbinary'
-        withChownWorkspace { sh('make oraclelinux') }
+        withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} oraclelinux") }
         archiveArtifacts 'bundles/*/build-rpm/**'
       }
     }
@@ -187,7 +197,7 @@ def build_package_steps = [
         checkout scm
         unstash 'bundles-experimental-binary'
         unstash 'bundles-experimental-dynbinary'
-        withChownWorkspace { sh('make oraclelinux-experimental') }
+        withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} oraclelinux-experimental") }
         archiveArtifacts 'bundles-experimental/*/build-rpm/**'
       }
     }
@@ -198,7 +208,7 @@ def build_package_steps = [
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-dynbinary'
-      withChownWorkspace { sh('make opensuse') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} opensuse") }
       archiveArtifacts 'bundles/*/build-rpm/**'
     }
   },
@@ -208,12 +218,17 @@ def build_package_steps = [
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-dynbinary'
-      withChownWorkspace { sh('make opensuse-experimental') }
+      withChownWorkspace { sh("make DOCKER_BUILD_IMG=${dockerBuildImgDigest} opensuse-experimental") }
       archiveArtifacts 'bundles-experimental/*/build-rpm/**'
     }
   }
 ]
 
+stage(name: 'build docker-dev steps') {
+  timeout(time: 1, unit: 'HOURS') {
+    parallel(build_docker_dev_steps)
+  }
+}
 stage(name: 'build binary steps') {
   timeout(time: 1, unit: 'HOURS') {
     parallel(build_binary_steps)
