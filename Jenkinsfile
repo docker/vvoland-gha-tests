@@ -14,6 +14,7 @@ properties(
 def build_binary_steps = [
   'build-binary': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       withChownWorkspace { sh('make binary') }
       stash(name: 'bundles-binary', includes: 'bundles/*/binary*/**')
@@ -21,6 +22,7 @@ def build_binary_steps = [
   },
   'build-binary-experimental': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       withChownWorkspace { sh('make binary-experimental') }
       stash(name: 'bundles-experimental-binary', includes: 'bundles-experimental/*/binary*/**')
@@ -31,6 +33,7 @@ def build_binary_steps = [
 def build_cross_dynbinary_steps = [
   'build-dynbinary': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       withChownWorkspace { sh('make dynbinary') }
       stash(name: 'bundles-dynbinary', includes: 'bundles/*/dynbinary*/**')
@@ -38,6 +41,7 @@ def build_cross_dynbinary_steps = [
   },
  'build-dynbinary-experimental': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       withChownWorkspace { sh('make dynbinary-experimental') }
       stash(name: 'bundles-experimental-dynbinary', includes: 'bundles-experimental/*/dynbinary*/**')
@@ -45,6 +49,7 @@ def build_cross_dynbinary_steps = [
   },
   'build-cross': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-binary'
       withChownWorkspace { sh('make cross') }
@@ -53,6 +58,7 @@ def build_cross_dynbinary_steps = [
   },
   'build-cross-experimental': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-experimental-binary'
       withChownWorkspace { sh('make cross-experimental') }
@@ -64,6 +70,7 @@ def build_cross_dynbinary_steps = [
 def build_package_steps = [
   'build-tgz': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-cross'
@@ -73,6 +80,7 @@ def build_package_steps = [
   },
   'build-tgz-experimental': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-cross'
@@ -82,6 +90,7 @@ def build_package_steps = [
   },
   'build-deb': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-dynbinary'
@@ -91,6 +100,7 @@ def build_package_steps = [
   },
   'build-deb-experimental': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-dynbinary'
@@ -100,6 +110,7 @@ def build_package_steps = [
   },
   'build-ubuntu': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-dynbinary'
@@ -109,6 +120,7 @@ def build_package_steps = [
   },
   'build-ubuntu-experimental': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-dynbinary'
@@ -118,6 +130,7 @@ def build_package_steps = [
   },
   'build-fedora': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-dynbinary'
@@ -127,6 +140,7 @@ def build_package_steps = [
   },
   'build-fedora-experimental': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-dynbinary'
@@ -136,6 +150,7 @@ def build_package_steps = [
   },
   'build-centos': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-dynbinary'
@@ -145,6 +160,7 @@ def build_package_steps = [
   },
   'build-centos-experimental': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-dynbinary'
@@ -154,6 +170,7 @@ def build_package_steps = [
   },
   'build-oraclelinux': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-dynbinary'
@@ -163,6 +180,7 @@ def build_package_steps = [
   },
   'build-oraclelinux-experimental': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-dynbinary'
@@ -172,6 +190,7 @@ def build_package_steps = [
   },
   'build-opensuse': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-binary'
       unstash 'bundles-dynbinary'
@@ -181,6 +200,7 @@ def build_package_steps = [
   },
   'build-opensuse-experimental': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
+      deleteDir()
       checkout scm
       unstash 'bundles-experimental-binary'
       unstash 'bundles-experimental-dynbinary'
