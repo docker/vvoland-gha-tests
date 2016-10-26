@@ -170,22 +170,26 @@ def build_package_steps = [
   },
   'build-oraclelinux': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
-      deleteDir()
-      checkout scm
-      unstash 'bundles-binary'
-      unstash 'bundles-dynbinary'
-      withChownWorkspace { sh('make oraclelinux') }
-      archiveArtifacts 'bundles/*/build-rpm/**'
+      retry(2) {
+        deleteDir()
+        checkout scm
+        unstash 'bundles-binary'
+        unstash 'bundles-dynbinary'
+        withChownWorkspace { sh('make oraclelinux') }
+        archiveArtifacts 'bundles/*/build-rpm/**'
+      }
     }
   },
   'build-oraclelinux-experimental': {
     wrappedNode(label: 'docker && ubuntu && aufs') {
-      deleteDir()
-      checkout scm
-      unstash 'bundles-experimental-binary'
-      unstash 'bundles-experimental-dynbinary'
-      withChownWorkspace { sh('make oraclelinux-experimental') }
-      archiveArtifacts 'bundles-experimental/*/build-rpm/**'
+      retry(2) {
+        deleteDir()
+        checkout scm
+        unstash 'bundles-experimental-binary'
+        unstash 'bundles-experimental-dynbinary'
+        withChownWorkspace { sh('make oraclelinux-experimental') }
+        archiveArtifacts 'bundles-experimental/*/build-rpm/**'
+      }
     }
   },
   'build-opensuse': {
