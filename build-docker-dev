@@ -33,7 +33,7 @@ then
   BUILD_TAG=${BUILD_TAG:-tmp}
   EXECUTOR_NUMBER=${EXECUTOR_NUMBER:-0}
   TMP_IMG=${TMP_IMG:-`echo $BUILD_TAG-$EXECUTOR_NUMBER | tr A-Z a-z`}
-  docker build --build-arg APT_MIRROR=deb.debian.org -t "$TMP_IMG" -f docker/Dockerfile docker
+  make -C docker DOCKER_BUILD_ARGS='--build-arg=APT_MIRROR=deb.debian.org' DOCKER_IMAGE="$TMP_IMG" build
   docker tag "$TMP_IMG" "$DOCKER_DEV_IMG"
   docker push "$DOCKER_DEV_IMG"
   rm -r -f docker
