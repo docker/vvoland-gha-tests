@@ -8,7 +8,7 @@ def build_docker_dev_steps = [
       checkout scm
       withChownWorkspace {
         sh("make docker-dev-digest.txt")
-        dockerBuildImgDigest = readFile('docker-dev-digest.txt')
+        dockerBuildImgDigest = readFile('docker-dev-digest.txt').trim()
       }
     }
   }
