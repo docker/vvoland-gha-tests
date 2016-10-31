@@ -1,10 +1,4 @@
 #!groovy
-properties(
-  [
-    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '5'))
-  ]
-)
-
 def dockerBuildImgDigest
 
 def build_docker_dev_steps = [
