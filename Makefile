@@ -1,21 +1,11 @@
 SHELL:=/bin/bash
-DOCKER_DEV_IMG:=dockerbuildbot/docker
-DOCKER_DEV_TAG:=latest
-DOCKER_BUILD_IMG:=$(DOCKER_DEV_IMG):$(DOCKER_DEV_TAG)
+DOCKER_BUILD_IMG:=dockerbuildbot/docker@sha256:aaabbbccc
 CONTAINER_NAME:=$(BUILD_TAG)-$(EXECUTOR_NUMBER)
 VOL_MNT_STABLE:=$(WORKSPACE)/bundles:/go/src/github.com/docker/docker/bundles
 VOL_MNT_EXPERIMENTAL:=$(WORKSPACE)/bundles-experimental:/go/src/github.com/docker/docker/bundles
-TMP_BUILD_IMG:=$(shell echo $(BUILD_TAG)-$(EXECUTOR_NUMBER) | tr A-Z a-z)
-CUR_BRANCH=1.12.x
-SOURCE_REPO:=https://github.com/docker/docker.git
 
-docker-dev:
-	git clone -b "$(CUR_BRANCH)" "$(SOURCE_REPO)" docker
-	git -C docker checkout "$(COMMIT_SHA1)"
-	docker build --build-arg APT_MIRROR=deb.debian.org -t "$(TMP_BUILD_IMG)" -f docker/Dockerfile docker
-	docker tag "$(TMP_BUILD_IMG)" "$(DOCKER_DEV_IMG):$(COMMIT_SHA1)"
-	docker push "$(DOCKER_DEV_IMG):$(COMMIT_SHA1)"
-	docker rmi "$(TMP_BUILD_IMG)"
+docker-dev-digest.txt: build-docker-dev
+	./$<
 
 binary:
 	docker pull $(DOCKER_BUILD_IMG)

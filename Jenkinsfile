@@ -12,11 +12,10 @@ def build_docker_dev_steps = [
     wrappedNode(label: 'docker && ubuntu && aufs') {
       deleteDir()
       checkout scm
-      def commitSHA1 = sh(returnStdout: true, script: 'git ls-remote https://github.com/docker/docker.git 1.12.x | awk \'{print$1;exit}\'').trim()
-      if(0 != sh(returnStatus: true, script: "docker pull dockerbuildbot/docker:${commitSHA1}")) {
-        withChownWorkspace { sh("make COMMIT_SHA1=${commitSHA1} docker-dev") }
+      withChownWorkspace {
+        sh("make docker-dev-digest.txt")
+        dockerBuildImgDigest = sh(returnStdout: true, script: "awk '{print\$1;exit}' docker-dev-digest.txt").trim()
       }
-      dockerBuildImgDigest = sh(returnStdout: true, script: "docker inspect -f '{{ index .RepoDigests 0 }}' dockerbuildbot/docker:${commitSHA1}").trim()
     }
   }
 ]
