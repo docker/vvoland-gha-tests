@@ -1,8 +1,11 @@
 SHELL:=/bin/bash
-DOCKER_BUILD_IMG:=$(DOCKER_DEV_IMG):$(DOCKER_DEV_TAG)
+DOCKER_BUILD_IMG:='' # Jenkinsfile should populate this var with contents of docker-dev-digest.txt
 CONTAINER_NAME:=$(BUILD_TAG)-$(EXECUTOR_NUMBER)
 VOL_MNT_STABLE:=$(WORKSPACE)/bundles:/go/src/github.com/docker/docker/bundles
 VOL_MNT_EXPERIMENTAL:=$(WORKSPACE)/bundles-experimental:/go/src/github.com/docker/docker/bundles
+
+docker-dev-digest.txt: build-docker-dev
+	./$<
 
 binary:
 	docker pull $(DOCKER_BUILD_IMG)
