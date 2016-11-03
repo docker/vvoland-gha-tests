@@ -12,8 +12,13 @@ properties(
 
 this.dockerBuildImgDigest = ""
 
-def dockerBuildStep(Closure body) {
-  wrappedNode(label: 'docker && ubuntu && aufs', cleanWorkspace: true) {
+def dockerBuildStep = { Map args=[:], Closure body=null ->
+  if (args instanceof Closure) {
+    body = args
+    args = [:]
+  }
+
+  wrappedNode(label: args.get('label', 'docker && ubuntu && aufs'), cleanWorkspace: true) {
     withChownWorkspace {
       withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest}"]) {
         checkout scm
