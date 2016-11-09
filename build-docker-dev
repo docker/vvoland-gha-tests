@@ -16,10 +16,13 @@ DOCKER_COMMIT=`git ls-remote $DOCKER_REPO $DOCKER_BRANCH | awk '{print$1;exit}'`
 DOCKER_DEV_IMG_NAME=${DOCKER_DEV_IMG_NAME:-'dockerbuildbot/docker'}
 
 # Suffix for arch-specific images
-if [ -z "$ARCH" ] || [ "$ARCH" = "amd64" ]; then
+ARCH=${ARCH:-"amd64"}
+if [ "$ARCH" = "amd64" ]; then
     ARCH_SUFFIX=""
+    DOCKER_BUILD_ARGS='--build-arg=APT_MIRROR=deb.debian.org'
 else
     ARCH_SUFFIX="-${ARCH}"
+    DOCKER_BUILD_ARGS=""
 fi
 
 # full docker image name to push docker-dev to
@@ -41,7 +44,7 @@ then
   BUILD_TAG=${BUILD_TAG:-tmp}
   EXECUTOR_NUMBER=${EXECUTOR_NUMBER:-0}
   TMP_IMG=${TMP_IMG:-`echo $BUILD_TAG-$EXECUTOR_NUMBER | tr A-Z a-z`}
-  make -C docker DOCKER_BUILD_ARGS='--build-arg=APT_MIRROR=deb.debian.org' DOCKER_IMAGE="$TMP_IMG" build
+  make -C docker DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS}" DOCKER_IMAGE="$TMP_IMG" build
   docker tag "$TMP_IMG" "$DOCKER_DEV_IMG"
   docker push "$DOCKER_DEV_IMG"
   rm -r -f docker
