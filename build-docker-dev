@@ -52,4 +52,8 @@ then
 else
   echo "found $DOCKER_DEV_IMG, skip building"
 fi
-docker inspect -f '{{ index .RepoDigests 0 }}' "$DOCKER_DEV_IMG" > docker-dev-digest.txt
+if ! docker inspect -f '{{ index .RepoDigests 0 }}' "$DOCKER_DEV_IMG" > docker-dev-digest.txt ; then
+    # Fallback in case a digest wasn't set.
+    # XXX: why wasn't a digest set? (when building armhf image)
+    echo "$DOCKER_DEV_IMG" > docker-dev-digest.txt
+fi
