@@ -10,7 +10,7 @@ properties(
   ]
 )
 
-this.dockerBuildImgDigest = ""
+this.dockerBuildImgDigest = [amd64: "", armhf: ""]
 
 def dockerBuildStep = { Map args=[:], Closure body=null ->
   // Work around groovy closure issues
@@ -21,10 +21,12 @@ def dockerBuildStep = { Map args=[:], Closure body=null ->
     theArgs = [:]
   }
 
+  def arch = theArgs.arch ?: "amd64"
+
   { ->
-    wrappedNode(label: theArgs.get('label', 'docker && ubuntu && aufs'), cleanWorkspace: true) {
+    wrappedNode(label: theArgs.get('label', 'docker && aufs'), cleanWorkspace: true) {
       withChownWorkspace {
-        withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest}"]) {
+        withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest[arch]}", "ARCH=${arch}"]) {
           checkout scm
           if (theBody) {
             theBody.call()
@@ -38,7 +40,11 @@ def dockerBuildStep = { Map args=[:], Closure body=null ->
 def build_docker_dev_steps = [
   'build-docker-dev': dockerBuildStep { ->
     sh("make docker-dev-digest.txt")
-    this.dockerBuildImgDigest = readFile('docker-dev-digest.txt').trim()
+    this.dockerBuildImgDigest["amd64"] = readFile('docker-dev-digest.txt').trim()
+  },
+  'build-docker-dev-arm': dockerBuildStep(label: "arm", arch: "armhf") { ->
+    sh("make docker-dev-digest.txt")
+    this.dockerBuildImgDigest["armhf"] = readFile('docker-dev-digest.txt').trim()
   }
 ]
 
