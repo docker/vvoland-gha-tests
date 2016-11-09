@@ -15,8 +15,15 @@ DOCKER_COMMIT=`git ls-remote $DOCKER_REPO $DOCKER_BRANCH | awk '{print$1;exit}'`
 # docker image name to push docker-dev to
 DOCKER_DEV_IMG_NAME=${DOCKER_DEV_IMG_NAME:-'dockerbuildbot/docker'}
 
+# Suffix for arch-specific images
+if [ -z "$ARCH" ] || [ "$ARCH" = "amd64" ]; then
+    ARCH_SUFFIX=""
+else
+    ARCH_SUFFIX="-${ARCH}"
+fi
+
 # full docker image name to push docker-dev to
-DOCKER_DEV_IMG=${DOCKER_DEV_IMG:-"$DOCKER_DEV_IMG_NAME:$DOCKER_COMMIT"}
+DOCKER_DEV_IMG=${DOCKER_DEV_IMG:-"${DOCKER_DEV_IMG_NAME}:${DOCKER_COMMIT}${ARCH_SUFFIX}"}
 
 # sanity check
 [ -z "$DOCKER_COMMIT" ] && echo "commit not found for repo $DOCKER_REPO branch $DOCKER_BRANCH" && exit 1
