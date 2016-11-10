@@ -56,6 +56,14 @@ def build_binary_steps = [
   'build-binary-experimental': dockerBuildStep { ->
     sh("make binary-experimental")
     stash(name: 'bundles-experimental-binary', includes: 'bundles-experimental/*/binary*/**')
+  },
+  'build-binary-arm': dockerBuildStep(label: "arm", arch: "armhf") { ->
+    sh("make binary")
+    stash(name: 'bundles-binary-arm', includes: 'bundles/*/binary*/**')
+  },
+  'build-binary-experimental-arm': dockerBuildStep(label: "arm", arch: "armhf") { ->
+    sh("make binary-experimental")
+    stash(name: 'bundles-experimental-binary-arm', includes: 'bundles-experimental/*/binary*/**')
   }
 ]
 
@@ -64,9 +72,17 @@ def build_cross_dynbinary_steps = [
     sh("make dynbinary")
     stash(name: 'bundles-dynbinary', includes: 'bundles/*/dynbinary*/**')
   },
- 'build-dynbinary-experimental': dockerBuildStep { ->
+  'build-dynbinary-experimental': dockerBuildStep { ->
     sh("make dynbinary-experimental")
     stash(name: 'bundles-experimental-dynbinary', includes: 'bundles-experimental/*/dynbinary*/**')
+  },
+  'build-dynbinary-arm': dockerBuildStep { ->
+    sh("make dynbinary")
+    stash(name: 'bundles-dynbinary-arm', includes: 'bundles/*/dynbinary*/**')
+  },
+  'build-dynbinary-experimental-arm': dockerBuildStep { ->
+    sh("make dynbinary-experimental")
+    stash(name: 'bundles-experimental-dynbinary-arm', includes: 'bundles-experimental/*/dynbinary*/**')
   },
   'build-cross': dockerBuildStep { ->
     unstash 'bundles-binary'
@@ -100,9 +116,8 @@ def build_package_steps = [
     archiveArtifacts 'bundles/*/build-deb/**'
   },
   'build-deb-arm': dockerBuildStep(label: "arm", arch: "armhf") {
-    unstash 'bundles-binary'
-    unstash 'bundles-dynbinary'
-    unstash 'bundles-cross'
+    unstash 'bundles-binary-arm'
+    unstash 'bundles-dynbinary-arm'
     sh("make deb-arm")
     archiveArtifacts 'bundles/*/build-deb/**'
   },
@@ -113,9 +128,8 @@ def build_package_steps = [
     archiveArtifacts 'bundles-experimental/*/build-deb/**'
   },
   'build-deb-experimental-arm': dockerBuildStep(label: "arm", arch: "armhf") {
-    unstash 'bundles-experimental-binary'
-    unstash 'bundles-experimental-dynbinary'
-    unstash 'bundles-experimental-cross'
+    unstash 'bundles-experimental-binary-arm'
+    unstash 'bundles-experimental-dynbinary-arm'
     sh("make deb-experimental-arm")
     archiveArtifacts 'bundles-experimental/*/build-deb/**'
   },
