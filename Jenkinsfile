@@ -99,10 +99,24 @@ def build_package_steps = [
     sh("make deb")
     archiveArtifacts 'bundles/*/build-deb/**'
   },
+  'build-deb-arm': dockerBuildStep(label: "arm", arch: "armhf") {
+    unstash 'bundles-binary'
+    unstash 'bundles-dynbinary'
+    unstash 'bundles-cross'
+    sh("make deb-arm")
+    archiveArtifacts 'bundles/*/build-deb/**'
+  },
   'build-deb-experimental': dockerBuildStep {
     unstash 'bundles-experimental-binary'
     unstash 'bundles-experimental-dynbinary'
     sh("make deb-experimental")
+    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+  },
+  'build-deb-experimental-arm': dockerBuildStep(label: "arm", arch: "armhf") {
+    unstash 'bundles-experimental-binary'
+    unstash 'bundles-experimental-dynbinary'
+    unstash 'bundles-experimental-cross'
+    sh("make deb-experimental-arm")
     archiveArtifacts 'bundles-experimental/*/build-deb/**'
   },
   'build-ubuntu': dockerBuildStep {
