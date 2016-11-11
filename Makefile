@@ -73,7 +73,7 @@ ubuntu:
 	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -e KEEPBUNDLE=1 \
 		-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
-		-e "DOCKER_BUILD_PKGS=ubuntu-precise ubuntu-trusty ubuntu-wily ubuntu-xenial" \
+		-e "DOCKER_BUILD_PKGS=ubuntu-precise ubuntu-trusty ubuntu-wily ubuntu-xenial ubuntu-yakkety" \
 		$(DOCKER_BUILD_IMG) hack/make.sh build-deb
 	$(RM) -r "$(WORKSPACE)/bundles/latest"
 
@@ -81,7 +81,7 @@ ubuntu-experimental:
 	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_EXPERIMENTAL) -e KEEPBUNDLE=1 -e DOCKER_EXPERIMENTAL=1 \
 		-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
-		-e "DOCKER_BUILD_PKGS=ubuntu-precise ubuntu-trusty ubuntu-wily ubuntu-xenial" \
+		-e "DOCKER_BUILD_PKGS=ubuntu-precise ubuntu-trusty ubuntu-wily ubuntu-xenial ubuntu-yakkety" \
 		$(DOCKER_BUILD_IMG) hack/make.sh build-deb
 	$(RM) -r "$(WORKSPACE)/bundles-experimental/latest"
 
