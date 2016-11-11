@@ -6,8 +6,8 @@ set -o pipefail
 # repo to build docker-dev img from
 DOCKER_REPO=${DOCKER_REPO:-'https://github.com/docker/docker.git'}
 
-# get the branch name from a jenkins git checkout which is not attached to a branch
-DOCKER_BRANCH=${CHANGE_TARGET:-`git rev-parse HEAD | git branch -r --contains | sed s/.*origin.//`}
+# get the branch name from assumed jenkins env var
+DOCKER_BRANCH=${CHANGE_TARGET:-$BRANCH_NAME}
 
 # get the git commit hash of the git repo and branch
 DOCKER_COMMIT=`git ls-remote $DOCKER_REPO $DOCKER_BRANCH | awk '{print$1;exit}'`
