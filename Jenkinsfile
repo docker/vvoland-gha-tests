@@ -116,7 +116,7 @@ def build_package_steps = [
   'build-fedora': dockerBuildStep {
     unstash 'bundles-binary'
     unstash 'bundles-dynbinary'
-    sh("make fedora")
+    retry(2) { sh("make fedora") }
     archiveArtifacts 'bundles/*/build-rpm/**'
   },
   'build-fedora-experimental': dockerBuildStep {
