@@ -65,7 +65,7 @@ deb-arm:
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -e KEEPBUNDLE=1 \
 			-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
 			-e "DOCKER_BUILD_PKGS=debian-jessie raspbian-jessie ubuntu-trusty" \
-			-e "DOCKER_BUILD_ARGS=--build-arg=APT_MIRROR=ftp.us.debian.org" \
+			-e "DOCKER_BUILD_ARGS=--build-arg=APT_MIRROR=ftp.fr.debian.org" \
 		$(DOCKER_BUILD_IMG) hack/make.sh build-deb
 	$(RM) -r "$(WORKSPACE)/bundles/latest"
 
@@ -83,7 +83,7 @@ deb-experimental-arm:
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_EXPERIMENTAL) -e KEEPBUNDLE=1 -e DOCKER_EXPERIMENTAL=1 \
 			-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
 			-e "DOCKER_BUILD_PKGS=debian-jessie raspbian-jessie ubuntu-trusty" \
-			-e "DOCKER_BUILD_ARGS=--build-arg=APT_MIRROR=ftp.us.debian.org" \
+			-e "DOCKER_BUILD_ARGS=--build-arg=APT_MIRROR=ftp.fr.debian.org" \
 			$(DOCKER_BUILD_IMG) hack/make.sh build-deb
 	$(RM) -r "$(WORKSPACE)/bundles-experimental/latest"
 
