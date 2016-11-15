@@ -171,7 +171,7 @@ def build_arm_steps = [
   },
   'build-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary-experimental")
-    sh("make deb-experimental-arm")
+    sh("make deb-arm-experimental")
     archiveArtifacts 'bundles-experimental/*/build-deb/**'
   },
 ]
