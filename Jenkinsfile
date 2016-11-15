@@ -164,32 +164,32 @@ def build_package_steps = [
 ]
 
 def build_arm_steps = [
-  'build-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-debian-jessie-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm")
     archiveArtifacts 'bundles/*/build-deb/**'
   },
-  'build-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-raspbian-jessie-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm")
     archiveArtifacts 'bundles/*/build-deb/**'
   },
-  'build-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-ubuntu-trusty-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=ubuntu-trusty deb-arm")
     archiveArtifacts 'bundles/*/build-deb/**'
   },
-  'build-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-debian-jessie-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm-experimental")
     archiveArtifacts 'bundles-experimental/*/build-deb/**'
   },
-  'build-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-raspbian-jessie-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm-experimental")
     archiveArtifacts 'bundles-experimental/*/build-deb/**'
   },
-  'build-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-ubuntu-trusty-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=ubuntu-trusty deb-arm-experimental")
     archiveArtifacts 'bundles-experimental/*/build-deb/**'
