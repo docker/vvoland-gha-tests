@@ -163,6 +163,21 @@ def build_package_steps = [
   }
 ]
 
+def build_arm_steps = [
+  'build-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+    sh("make binary")
+    sh("make dynbinary")
+    sh("make deb-arm")
+    archiveArtifacts 'bundles/*/build-deb/**'
+  },
+  'build-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+    sh("make binary-experimental")
+    sh("make dynbinary-experimental")
+    sh("make deb-experimental-arm")
+    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+  },
+]
+
 parallel(
   'amd64': { ->
     stage(name: 'build docker-dev steps') {
@@ -196,17 +211,8 @@ parallel(
       }
     }
     stage("build all arm") {
-      timeout(time: 2, unit: 'HOURS') {
-        dockerBuildStep(label: 'arm', arch: 'armhf') {
-          sh("make binary")
-          sh("make dynbinary")
-          sh("make binary-experimental")
-          sh("make dynbinary-experimental")
-          sh("make deb-arm")
-          sh("make deb-experimental-arm")
-          archiveArtifacts 'bundles-experimental/*/build-deb/**'
-          archiveArtifacts 'bundles/*/build-deb/**'
-        }.call()
+      timeout(time: 3, unit: 'HOURS') {
+        parallel(build_arm_steps)
       }
     }
   }
