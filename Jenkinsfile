@@ -166,13 +166,11 @@ def build_package_steps = [
 def build_arm_steps = [
   'build-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary")
-    sh("make dynbinary")
     sh("make deb-arm")
     archiveArtifacts 'bundles/*/build-deb/**'
   },
   'build-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary-experimental")
-    sh("make dynbinary-experimental")
     sh("make deb-experimental-arm")
     archiveArtifacts 'bundles-experimental/*/build-deb/**'
   },
