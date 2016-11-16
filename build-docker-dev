@@ -15,8 +15,18 @@ DOCKER_COMMIT=`git ls-remote $DOCKER_REPO $DOCKER_BRANCH | awk '{print$1;exit}'`
 # docker image name to push docker-dev to
 DOCKER_DEV_IMG_NAME=${DOCKER_DEV_IMG_NAME:-'dockerbuildbot/docker'}
 
+# Suffix for arch-specific images
+ARCH=${ARCH:-"amd64"}
+if [ "$ARCH" = "amd64" ]; then
+    ARCH_SUFFIX=""
+    DOCKER_BUILD_ARGS='--build-arg=APT_MIRROR=deb.debian.org'
+else
+    ARCH_SUFFIX="-${ARCH}"
+    DOCKER_BUILD_ARGS=""
+fi
+
 # full docker image name to push docker-dev to
-DOCKER_DEV_IMG=${DOCKER_DEV_IMG:-"$DOCKER_DEV_IMG_NAME:$DOCKER_COMMIT"}
+DOCKER_DEV_IMG=${DOCKER_DEV_IMG:-"${DOCKER_DEV_IMG_NAME}:${DOCKER_COMMIT}${ARCH_SUFFIX}"}
 
 # sanity check
 [ -z "$DOCKER_COMMIT" ] && echo "commit not found for repo $DOCKER_REPO branch $DOCKER_BRANCH" && exit 1
@@ -34,7 +44,7 @@ then
   BUILD_TAG=${BUILD_TAG:-tmp}
   EXECUTOR_NUMBER=${EXECUTOR_NUMBER:-0}
   TMP_IMG=${TMP_IMG:-`echo $BUILD_TAG-$EXECUTOR_NUMBER | tr A-Z a-z`}
-  make -C docker DOCKER_BUILD_ARGS='--build-arg=APT_MIRROR=deb.debian.org' DOCKER_IMAGE="$TMP_IMG" build
+  make -C docker DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS}" DOCKER_IMAGE="$TMP_IMG" build
   docker tag "$TMP_IMG" "$DOCKER_DEV_IMG"
   docker push "$DOCKER_DEV_IMG"
   rm -r -f docker
@@ -42,4 +52,8 @@ then
 else
   echo "found $DOCKER_DEV_IMG, skip building"
 fi
-docker inspect -f '{{ index .RepoDigests 0 }}' "$DOCKER_DEV_IMG" > docker-dev-digest.txt
+if ! docker inspect -f '{{ index .RepoDigests 0 }}' "$DOCKER_DEV_IMG" > docker-dev-digest.txt ; then
+    # Fallback in case a digest wasn't set.
+    # XXX: why wasn't a digest set? (when building armhf image)
+    echo "$DOCKER_DEV_IMG" > docker-dev-digest.txt
+fi

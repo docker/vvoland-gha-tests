@@ -10,7 +10,7 @@ properties(
   ]
 )
 
-this.dockerBuildImgDigest = ""
+this.dockerBuildImgDigest = [amd64: "", armhf: ""]
 
 def dockerBuildStep = { Map args=[:], Closure body=null ->
   // Work around groovy closure issues
@@ -21,10 +21,12 @@ def dockerBuildStep = { Map args=[:], Closure body=null ->
     theArgs = [:]
   }
 
+  def arch = theArgs.arch ?: "amd64"
+
   { ->
-    wrappedNode(label: theArgs.get('label', 'docker && ubuntu && aufs'), cleanWorkspace: true) {
+    wrappedNode(label: theArgs.get('label', 'docker && aufs'), cleanWorkspace: true) {
       withChownWorkspace {
-        withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest}"]) {
+        withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest[arch]}", "ARCH=${arch}"]) {
           checkout scm
           if (theBody) {
             theBody.call()
@@ -38,8 +40,8 @@ def dockerBuildStep = { Map args=[:], Closure body=null ->
 def build_docker_dev_steps = [
   'build-docker-dev': dockerBuildStep { ->
     sh("make docker-dev-digest.txt")
-    this.dockerBuildImgDigest = readFile('docker-dev-digest.txt').trim()
-  }
+    this.dockerBuildImgDigest["amd64"] = readFile('docker-dev-digest.txt').trim()
+  },
 ]
 
 def build_binary_steps = [
@@ -50,7 +52,7 @@ def build_binary_steps = [
   'build-binary-experimental': dockerBuildStep { ->
     sh("make binary-experimental")
     stash(name: 'bundles-experimental-binary', includes: 'bundles-experimental/*/binary*/**')
-  }
+  },
 ]
 
 def build_cross_dynbinary_steps = [
@@ -58,7 +60,7 @@ def build_cross_dynbinary_steps = [
     sh("make dynbinary")
     stash(name: 'bundles-dynbinary', includes: 'bundles/*/dynbinary*/**')
   },
- 'build-dynbinary-experimental': dockerBuildStep { ->
+  'build-dynbinary-experimental': dockerBuildStep { ->
     sh("make dynbinary-experimental")
     stash(name: 'bundles-experimental-dynbinary', includes: 'bundles-experimental/*/dynbinary*/**')
   },
@@ -114,7 +116,7 @@ def build_package_steps = [
   'build-fedora': dockerBuildStep {
     unstash 'bundles-binary'
     unstash 'bundles-dynbinary'
-    sh("make fedora")
+    retry(2) { sh("make fedora") }
     archiveArtifacts 'bundles/*/build-rpm/**'
   },
   'build-fedora-experimental': dockerBuildStep {
@@ -161,23 +163,75 @@ def build_package_steps = [
   }
 ]
 
-stage(name: 'build docker-dev steps') {
-  timeout(time: 1, unit: 'HOURS') {
-    parallel(build_docker_dev_steps)
+def build_arm_steps = [
+  'build-debian-jessie-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+    sh("make binary")
+    sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm")
+    archiveArtifacts 'bundles/*/build-deb/**'
+  },
+  'build-raspbian-jessie-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+    sh("make binary")
+    sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm")
+    archiveArtifacts 'bundles/*/build-deb/**'
+  },
+  'build-ubuntu-trusty-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+    sh("make binary")
+    sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm")
+    archiveArtifacts 'bundles/*/build-deb/**'
+  },
+  'build-debian-jessie-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+    sh("make binary-experimental")
+    sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm-experimental")
+    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+  },
+  'build-raspbian-jessie-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+    sh("make binary-experimental")
+    sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm-experimental")
+    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+  },
+  'build-ubuntu-trusty-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+    sh("make binary-experimental")
+    sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm-experimental")
+    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+  },
+]
+
+parallel(
+  'amd64': { ->
+    stage(name: 'build docker-dev steps') {
+      timeout(time: 1, unit: 'HOURS') {
+        parallel(build_docker_dev_steps)
+      }
+    }
+    stage(name: 'build binary steps') {
+      timeout(time: 1, unit: 'HOURS') {
+        parallel(build_binary_steps)
+      }
+    }
+    stage(name: 'build cross dynbinary steps') {
+      timeout(time: 1, unit: 'HOURS') {
+        parallel(build_cross_dynbinary_steps)
+      }
+    }
+    stage(name: 'build package steps') {
+      timeout(time: 2, unit: 'HOURS') {
+        parallel(build_package_steps)
+      }
+    }
+  },
+  'arm': { ->
+    stage("build docker-dev arm") {
+      timeout(time: 1, unit: 'HOURS') {
+        dockerBuildStep(label: 'arm', arch: 'armhf') {
+          sh("make docker-dev-digest.txt")
+          this.dockerBuildImgDigest["armhf"] = readFile('docker-dev-digest.txt').trim()
+        }.call()
+      }
+    }
+    stage("build all arm") {
+      timeout(time: 3, unit: 'HOURS') {
+        parallel(build_arm_steps)
+      }
+    }
   }
-}
-stage(name: 'build binary steps') {
-  timeout(time: 1, unit: 'HOURS') {
-    parallel(build_binary_steps)
-  }
-}
-stage(name: 'build cross dynbinary steps') {
-  timeout(time: 1, unit: 'HOURS') {
-    parallel(build_cross_dynbinary_steps)
-  }
-}
-stage(name: 'build package steps') {
-  timeout(time: 2, unit: 'HOURS') {
-    parallel(build_package_steps)
-  }
-}
+)
