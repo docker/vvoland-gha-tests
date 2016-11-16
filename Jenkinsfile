@@ -176,7 +176,7 @@ def build_arm_steps = [
   },
   'build-ubuntu-trusty-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary")
-    sh("make DOCKER_BUILD_PKGS=ubuntu-trusty deb-arm")
+    sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm")
     archiveArtifacts 'bundles/*/build-deb/**'
   },
   'build-debian-jessie-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
@@ -191,7 +191,7 @@ def build_arm_steps = [
   },
   'build-ubuntu-trusty-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary-experimental")
-    sh("make DOCKER_BUILD_PKGS=ubuntu-trusty deb-arm-experimental")
+    sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm-experimental")
     archiveArtifacts 'bundles-experimental/*/build-deb/**'
   },
 ]

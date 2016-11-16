@@ -70,12 +70,28 @@ deb-arm:
 		$(DOCKER_BUILD_IMG) hack/make.sh build-deb
 	$(RM) -r "$(WORKSPACE)/bundles/latest"
 
+ubuntu-arm:
+	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
+		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -e KEEPBUNDLE=1 \
+			-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
+			-e "DOCKER_BUILD_PKGS" \
+		$(DOCKER_BUILD_IMG) hack/make.sh build-deb
+	$(RM) -r "$(WORKSPACE)/bundles/latest"
+
 deb-experimental:
 	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_EXPERIMENTAL) -e KEEPBUNDLE=1 -e DOCKER_EXPERIMENTAL=1 \
 			-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
 			-e "DOCKER_BUILD_PKGS=debian-jessie debian-stretch debian-wheezy" \
 			-e "DOCKER_BUILD_ARGS=--build-arg=APT_MIRROR=ftp.us.debian.org" \
+			$(DOCKER_BUILD_IMG) hack/make.sh build-deb
+	$(RM) -r "$(WORKSPACE)/bundles-experimental/latest"
+
+ubuntu-arm-experimental:
+	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
+		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_EXPERIMENTAL) -e KEEPBUNDLE=1 -e DOCKER_EXPERIMENTAL=1 \
+			-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
+			-e "DOCKER_BUILD_PKGS" \
 			$(DOCKER_BUILD_IMG) hack/make.sh build-deb
 	$(RM) -r "$(WORKSPACE)/bundles-experimental/latest"
 
