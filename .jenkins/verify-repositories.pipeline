@@ -1,0 +1,102 @@
+#!groovy
+
+// Given yum or apt repo location, package version, and git commit hash.
+// When package version is installed.
+// Then docker version should have git commit hash.
+
+def allTestSteps = [failFast: false]
+def allImagesAmd64Str = [
+  "fedora:21",
+  "fedora:22",
+  "fedora:23",
+  "fedora:24",
+  "centos:7",
+  "oraclelinux:6",
+
+  "dockerqa/curl:debian-jessie",
+  "dockerqa/curl:debian-stretch",
+  "dockerqa/curl:ubuntu-precise",
+  "dockerqa/curl:ubuntu-trusty",
+  "dockerqa/curl:ubuntu-xenial",
+  "dockerqa/curl:ubuntu-wily",
+].join(" ")
+
+properties([
+  parameters([
+    string(name: "INSTALL_SCRIPT_URL", defaultValue: "https://get.docker.com", description: "URL where the install script is located"),
+    string(name: "INSTALL_CHANNEL", defaultValue: "main", description: "repository channel to install from (usually one of: main, test, experimental)"),
+    string(name: "EXPECTED_VERSION", defaultValue: "", description: "The version expected from `docker --version`"),
+    string(name: "EXPECTED_REVISION", defaultValue: "", description: "The commit SHA expected from `docker --version`. Optional."),
+    string(name: "TEST_IMAGES", defaultValue: allImagesAmd64Str, description: "Images to create containers from to test install script"),
+  ])
+])
+
+def updateTestStepsAmd64(Map testSteps) {
+  def imageNames = new ArrayList(Arrays.asList((env.TEST_IMAGES ?: allImagesAmd64Str).split()))
+  for (String imageName in imageNames) {
+    testSteps["arch=amd64 image=${imageName}"] = this.testInstallStep("amd64", imageName)
+  }
+}
+
+@NonCPS
+def installScript(String imageName, String installScriptUrl, String installChannel, boolean silent) {
+  def silentStr = silent ? ">/dev/null 2>&1" : ""
+  def repoStr = installChannel ?: "main"
+  return """docker run --rm -i "${imageName}" bash -c 'curl -s "${installScriptUrl}" | repo="${repoStr}" sh ${silentStr}; docker --version'"""
+}
+
+def testInstallStep(String arch, String imageName) {
+  def theImage = imageName
+  return { ->
+    wrappedNode(label: "linux && ${arch}") {
+      def stageName = "arch=${arch} image=${theImage}"
+      stage(stageName) {
+        def stdout = ""
+        try {
+          sh(script: "docker pull '${theImage}' >/dev/null")
+          retry(3) {
+            stdout = sh(script: installScript(theImage, env.INSTALL_SCRIPT_URL, env.INSTALL_CHANNEL, true), returnStdout: true)
+            def versionString = stdout.trim().split("\n").last()
+            if (versionString ==~ /^Docker version (.+?), build ([a-f0-9]+)$/) {
+              def m = versionString =~ /^Docker version (.+?), build ([a-f0-9]+)$/
+              def versionMatches = false
+              def revisionMatches = false
+
+              if (!env.EXPECTED_VERSION) {
+                versionMatches = true
+              } else {
+                versionMatches = m[0][1] == env.EXPECTED_VERSION
+              }
+
+              if (!env.EXPECTED_REVISION) {
+                revisionMatches = true
+              } else {
+                revisionMatches = m[0][2] == env.EXPECTED_REVISION
+              }
+
+              if (!versionMatches || !revisionMatches) {
+                echo("${stageName}: Expected (${env.EXPECTED_VERSION}, ${env.EXPECTED_REVISION}) but got (${m[0][1]}, ${m[0][2]})")
+                throw new Exception("Failed")
+              }
+            } else {
+              echo("${stageName}: No version string found: ${stdout}")
+              throw new Exception("Failed")
+            }
+          }
+        } catch (Exception exc) {
+          currentBuild.result = 'UNSTABLE'
+          // Run it one more time, this time don't silence the installer script.
+          try {
+            stdout = sh(script: installScript(theImage, env.INSTALL_SCRIPT_URL, env.INSTALL_CHANNEL, false), returnStdout: true)
+          } catch (Exception exc2) {
+            echo "${stageName}: Continuing after exception: ${exc2}"
+          }
+        }
+        echo stdout.trim().split("\n").last()
+      }
+    }
+  }
+}
+
+wrappedNode(label: null) { updateTestStepsAmd64(allTestSteps) }
+parallel(allTestSteps)
