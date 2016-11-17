@@ -4,6 +4,11 @@ CONTAINER_NAME:=$(BUILD_TAG)-$(EXECUTOR_NUMBER)
 VOL_MNT_STABLE:=$(WORKSPACE)/bundles:/go/src/github.com/docker/docker/bundles
 VOL_MNT_EXPERIMENTAL:=$(WORKSPACE)/bundles-experimental:/go/src/github.com/docker/docker/bundles
 DOCKER_BUILD_PKGS?='' # if left empty, hack/make.sh will build all packages
+VOL_MNT_REPOS:=/volumes/repos:/volumes/repos
+VOL_MNT_GPG:=$(HOME)/.gnupg:/root/.gnupg
+
+foos:
+	echo $(EDITOR)
 
 docker-dev-digest.txt: build-docker-dev
 	./$<
@@ -183,3 +188,67 @@ opensuse-experimental:
 		-e "DOCKER_BUILD_PKGS=opensuse-13.2" \
 		$(DOCKER_BUILD_IMG) hack/make.sh build-rpm
 	$(RM) -r "$(WORKSPACE)/bundles-experimental/latest"
+
+dryrun-sync-repos-from-staging-to-local:
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --dryrun --delete --acl public-read s3://apt-staging.dockerproject.org/ /volumes/repos/apt/
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --dryrun --delete --acl public-read s3://yum-staging.dockerproject.org/ /volumes/repos/yum/
+
+dryrun-sync-repos-from-local-to-staging:
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --dryrun --delete --acl public-read /volumes/repos/apt/ s3://apt-staging.dockerproject.org/
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --dryrun --delete --acl public-read /volumes/repos/yum/ s3://yum-staging.dockerproject.org/
+
+dryrun-sync-repos-from-staging-to-prod:
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --dryrun --delete --acl public-read s3://apt-staging.dockerproject.org/ s3://apt.dockerproject.org/
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --dryrun --delete --acl public-read s3://yum-staging.dockerproject.org/ s3://yum.dockerproject.org/
+
+dryrun-sync-repos-from-prod-to-staging:
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --dryrun --delete --acl public-read s3://apt.dockerproject.org/ s3://apt-staging.dockerproject.org/
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --dryrun --delete --acl public-read s3://yum.dockerproject.org/ s3://yum-staging.dockerproject.org/
+
+sync-repos-from-staging-to-local:
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --delete --acl public-read s3://apt-staging.dockerproject.org/ /volumes/repos/apt/
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --delete --acl public-read s3://yum-staging.dockerproject.org/ /volumes/repos/yum/
+
+sync-repos-from-local-to-staging:
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --delete --acl public-read /volumes/repos/apt/ s3://apt-staging.dockerproject.org/
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --delete --acl public-read /volumes/repos/yum/ s3://yum-staging.dockerproject.org/
+
+sync-repos-from-staging-to-prod:
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --delete --acl public-read s3://apt-staging.dockerproject.org/ s3://apt.dockerproject.org/
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --delete --acl public-read s3://yum-staging.dockerproject.org/ s3://yum.dockerproject.org/
+
+sync-repos-from-prod-to-staging:
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --delete --acl public-read s3://apt.dockerproject.org/ s3://apt-staging.dockerproject.org/
+	docker run --rm --name $(CONTAINER_NAME) -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -v $(VOL_MNT_REPOS) \
+		anigeo/awscli s3 sync --delete --acl public-read s3://yum.dockerproject.org/ s3://yum-staging.dockerproject.org/
+
+prep-gpg:
+	gpg -k 2C52609D || gpg --import $(RELEASEDOCKER_SECRET_GPG_KEY_FILE)
+	gpg --import-ownertrust $(RELEASEDOCKER_OWNERTRUST_GPG_TXT_FILE)
+
+gen-index:
+	docker run --rm --privileged --name $(CONTAINER_NAME) \
+		-v $(VOL_MNT_REPOS) -v $(VOL_MNT_STABLE) -v $(VOL_MNT_GPG) \
+		-e DOCKER_RELEASE_DIR=/volumes/repos -e GPG_PASSPHRASE -e KEEPBUNDLE=1 \
+		$(DOCKER_BUILD_IMG) hack/make.sh release-deb release-rpm sign-repos generate-index-listing
+
+gen-index-experimental:
+	docker run --rm --privileged --name $(CONTAINER_NAME) \
+		-v $(VOL_MNT_REPOS) -v $(VOL_MNT_EXPERIMENTAL) -v $(VOL_MNT_GPG) \
+		-e DOCKER_RELEASE_DIR=/volumes/repos -e GPG_PASSPHRASE -e KEEPBUNDLE=1 -e DOCKER_EXPERIMENTAL=1 \
+		$(DOCKER_BUILD_IMG) hack/make.sh release-deb release-rpm sign-repos generate-index-listing
