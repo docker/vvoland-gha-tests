@@ -235,3 +235,21 @@ parallel(
     }
   }
 )
+
+// TODO: populate parameters with correct values for what we just published
+echo "Starting verification build"
+def verifyBuild = build(
+    job: 'docker-task-verify-linux-install',
+    propagate: false,
+    parameters: [
+        string(name: 'INSTALL_SCRIPT_URL', value: 'https://get.docker.com'),
+        string(name: 'INSTALL_CHANNEL', value: 'main'),
+        string(name: 'EXPECTED_VERSION', value: ''),
+        string(name: 'EXPECTED_REVISION', value: ''),
+    ]
+)
+echo "Finished verification build"
+
+if (verifyBuild.result != "SUCCESS") {
+  currentBuild.result = 'UNSTABLE'
+}
