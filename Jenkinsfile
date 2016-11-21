@@ -81,85 +81,85 @@ def build_package_steps = [
     unstash 'bundles-binary'
     unstash 'bundles-cross'
     sh("make tgz")
-    archiveArtifacts 'bundles/*/tgz/**'
+    stash(name: 'bundles-tgz', includes: 'bundles/*/tgz/**')
   },
   'build-tgz-experimental': dockerBuildStep {
     unstash 'bundles-experimental-binary'
     unstash 'bundles-experimental-cross'
     sh("make tgz-experimental")
-    archiveArtifacts 'bundles-experimental/*/tgz/**'
+    stash(name: 'bundles-tgz-experimental', includes: 'bundles-experimental/*/tgz/**')
   },
   'build-deb': dockerBuildStep {
     unstash 'bundles-binary'
     unstash 'bundles-dynbinary'
     sh("make deb")
-    archiveArtifacts 'bundles/*/build-deb/**'
+    stash(name: 'bundles-deb', includes: 'bundles/*/build-deb/**')
   },
   'build-deb-experimental': dockerBuildStep {
     unstash 'bundles-experimental-binary'
     unstash 'bundles-experimental-dynbinary'
     sh("make deb-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+    stash(name: 'bundles-deb-experimental', includes: 'bundles-experimental/*/build-deb/**')
   },
   'build-ubuntu': dockerBuildStep {
     unstash 'bundles-binary'
     unstash 'bundles-dynbinary'
     sh("make ubuntu")
-    archiveArtifacts 'bundles/*/build-deb/**'
+    stash(name: 'bundles-ubuntu', includes: 'bundles/*/build-deb/**')
   },
   'build-ubuntu-experimental': dockerBuildStep {
     unstash 'bundles-experimental-binary'
     unstash 'bundles-experimental-dynbinary'
     sh("make ubuntu-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+    stash(name: 'bundles-ubuntu-experimental', includes: 'bundles-experimental/*/build-deb/**')
   },
   'build-fedora': dockerBuildStep {
     unstash 'bundles-binary'
     unstash 'bundles-dynbinary'
     retry(2) { sh("make fedora") }
-    archiveArtifacts 'bundles/*/build-rpm/**'
+    stash(name: 'bundles-fedora', includes: 'bundles/*/build-rpm/**')
   },
   'build-fedora-experimental': dockerBuildStep {
     unstash 'bundles-experimental-binary'
     unstash 'bundles-experimental-dynbinary'
     sh("make fedora-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-rpm/**'
+    stash(name: 'bundles-fedora-experimental', includes: 'bundles-experimental/*/build-rpm/**')
   },
   'build-centos': dockerBuildStep {
     unstash 'bundles-binary'
     unstash 'bundles-dynbinary'
     sh("make centos")
-    archiveArtifacts 'bundles/*/build-rpm/**'
+    stash(name: 'bundles-centos', includes: 'bundles/*/build-rpm/**')
   },
   'build-centos-experimental': dockerBuildStep {
     unstash 'bundles-experimental-binary'
     unstash 'bundles-experimental-dynbinary'
     sh("make centos-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-rpm/**'
+    stash(name: 'bundles-centos-experimental', includes: 'bundles-experimental/*/build-rpm/**')
   },
   'build-oraclelinux': dockerBuildStep {
     unstash 'bundles-binary'
     unstash 'bundles-dynbinary'
     retry(2) { sh("make oraclelinux") }
-    archiveArtifacts 'bundles/*/build-rpm/**'
+    stash(name: 'bundles-oraclelinux', includes: 'bundles/*/build-rpm/**')
   },
   'build-oraclelinux-experimental': dockerBuildStep {
     unstash 'bundles-experimental-binary'
     unstash 'bundles-experimental-dynbinary'
     retry(2) { sh("make oraclelinux-experimental") }
-    archiveArtifacts 'bundles-experimental/*/build-rpm/**'
+    stash(name: 'bundles-oraclelinux-experimental', includes: 'bundles-experimental/*/build-rpm/**')
   },
   'build-opensuse': dockerBuildStep {
     unstash 'bundles-binary'
     unstash 'bundles-dynbinary'
     sh("make opensuse")
-    archiveArtifacts 'bundles/*/build-rpm/**'
+    stash(name: 'bundles-opensuse', includes: 'bundles/*/build-rpm/**')
   },
   'build-opensuse-experimental': dockerBuildStep {
     unstash 'bundles-experimental-binary'
     unstash 'bundles-experimental-dynbinary'
     sh("make opensuse-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-rpm/**'
+    stash(name: 'bundles-opensuse-experimental', includes: 'bundles-experimental/*/build-rpm/**')
   }
 ]
 
@@ -167,17 +167,17 @@ def build_arm_steps = [
   'build-debian-jessie-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm")
-    archiveArtifacts 'bundles/*/build-deb/**'
+    stash(name: 'bundles-debian-jessie-arm', includes: 'bundles/*/build-deb/**')
   },
   'build-raspbian-jessie-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm")
-    archiveArtifacts 'bundles/*/build-deb/**'
+    stash(name: 'bundles-raspbian-jessie-arm', includes: 'bundles/*/build-deb/**')
   },
   'build-ubuntu-trusty-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm")
-    archiveArtifacts 'bundles/*/build-deb/**'
+    stash(name: 'bundles-ubuntu-trusty-arm', includes: 'bundles/*/build-deb/**')
   },
   'build-ubuntu-xenial-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary")
@@ -187,17 +187,17 @@ def build_arm_steps = [
   'build-debian-jessie-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+    stash(name: 'bundles-debian-jessie-arm-experimental', includes: 'bundles-experimental/*/build-deb/**')
   },
   'build-raspbian-jessie-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+    stash(name: 'bundles-raspbian-jessie-arm-experimental', includes: 'bundles-experimental/*/build-deb/**')
   },
   'build-ubuntu-trusty-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+    stash(name: 'bundles-ubuntu-trusty-arm-experimental', includes: 'bundles-experimental/*/build-deb/**')
   },
   'build-ubuntu-xenial-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
     sh("make binary-experimental")
@@ -245,3 +245,45 @@ parallel(
     }
   }
 )
+
+stage("generate index") {
+  timeout(time: 1, unit: 'HOURS') {
+    dockerBuildStep(label: 'volumes-repos') {
+      withCredentials([[
+        $class: 'AmazonWebServicesCredentialsBinding',
+        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+        credentialsId: 'jenkins@dockerengine.aws'
+      ],
+        file(credentialsId: 'releasedocker-secret-gpg.key', variable: 'RELEASEDOCKER_SECRET_GPG_KEY_FILE'),
+        file(credentialsId: 'releasedocker-ownertrust-gpg.txt', variable: 'RELEASEDOCKER_OWNERTRUST_GPG_TXT_FILE'),
+        string(credentialsId: 'releasedocker-gpg-passphrase', variable: 'GPG_PASSPHRASE')
+      ]) {
+        unstash 'bundles-deb'
+        unstash 'bundles-ubuntu'
+        unstash 'bundles-fedora'
+        unstash 'bundles-centos'
+        unstash 'bundles-oraclelinux'
+        unstash 'bundles-opensuse'
+        unstash 'bundles-debian-jessie-arm'
+        unstash 'bundles-raspbian-jessie-arm'
+        unstash 'bundles-ubuntu-trusty-arm'
+        unstash 'bundles-deb-experimental'
+        unstash 'bundles-ubuntu-experimental'
+        unstash 'bundles-fedora-experimental'
+        unstash 'bundles-centos-experimental'
+        unstash 'bundles-oraclelinux-experimental'
+        unstash 'bundles-opensuse-experimental'
+        unstash 'bundles-debian-jessie-arm-experimental'
+        unstash 'bundles-raspbian-jessie-arm-experimental'
+        unstash 'bundles-ubuntu-trusty-arm-experimental'
+        sh("make sync-repos-from-staging-to-local")
+        sh("make prep-gpg")
+        sh("make gen-index")
+        sh("make gen-index-experimental")
+        archiveArtifacts 'bundles/**'
+        archiveArtifacts 'bundles-experimental/**'
+      }
+    }.call()
+  }
+}
