@@ -259,6 +259,8 @@ stage("generate index") {
         file(credentialsId: 'releasedocker-ownertrust-gpg.txt', variable: 'RELEASEDOCKER_OWNERTRUST_GPG_TXT_FILE'),
         string(credentialsId: 'releasedocker-gpg-passphrase', variable: 'GPG_PASSPHRASE')
       ]) {
+        unstash 'bundles-binary'
+        unstash 'bundles-cross'
         unstash 'bundles-deb'
         unstash 'bundles-ubuntu'
         unstash 'bundles-fedora'
