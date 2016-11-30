@@ -1,0 +1,14 @@
+fedora:23
+fedora:24
+fedora:25
+centos:7
+oraclelinux:6
+oraclelinux:7
+dockerqa/curl:opensuse-13.2
+dockerqa/curl:debian-jessie
+dockerqa/curl:debian-stretch
+dockerqa/curl:debian-wheezy
+dockerqa/curl:ubuntu-precise
+dockerqa/curl:ubuntu-trusty
+dockerqa/curl:ubuntu-xenial
+dockerqa/curl:ubuntu-yakkety

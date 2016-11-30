@@ -250,6 +250,7 @@ def verifyBuild = build(
         string(name: 'INSTALL_CHANNEL', value: 'main'),
         string(name: 'EXPECTED_VERSION', value: ''),
         string(name: 'EXPECTED_REVISION', value: ''),
+        string(name: 'TEST_IMAGES', value: readTrusted("verify-distros.txt").replace('\n', ' ')),
     ]
 )
 echo "Finished verification build"
