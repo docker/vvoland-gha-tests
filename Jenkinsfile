@@ -241,7 +241,16 @@ parallel(
 )
 
 // TODO: populate parameters with correct values for what we just published
+// TODO: armhf
 echo "Starting verification build"
+def verificationImages
+
+node {
+  // XXX: we shouldn't need a node to do this.
+  // see https://issues.jenkins-ci.org/browse/JENKINS-40167
+  verificationImages = readYaml(text: readTrusted("verify-distros.yaml"))
+}
+
 def verifyBuild = build(
     job: 'docker-task-verify-linux-install',
     propagate: false,
@@ -250,7 +259,7 @@ def verifyBuild = build(
         string(name: 'INSTALL_CHANNEL', value: 'main'),
         string(name: 'EXPECTED_VERSION', value: ''),
         string(name: 'EXPECTED_REVISION', value: ''),
-        string(name: 'TEST_IMAGES', value: readTrusted("verify-distros.txt").replace('\n', ' ')),
+        string(name: 'TEST_IMAGES', value: verificationImages.amd64.join(" ")),
     ]
 )
 echo "Finished verification build"
