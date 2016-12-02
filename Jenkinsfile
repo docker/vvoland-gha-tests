@@ -4,13 +4,14 @@ properties(
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')),
     parameters(
       [
-        string(name: 'DOCKER_BUILD_IMG', defaultValue: '', description: 'Docker image used to build artifacts. If blank, will build a new image if necessary from the tip of corresponding branch in docker/docker repo.')
+        string(name: 'DOCKER_BUILD_IMG_AMD64', defaultValue: '', description: 'Docker image (amd64) used to build artifacts. If blank, will build a new image if necessary from the tip of corresponding branch in docker/docker repo.'),
+        string(name: 'DOCKER_BUILD_IMG_ARMHF', defaultValue: '', description: 'Docker image (armhf) used to build artifacts. If blank, will build a new image if necessary from the tip of corresponding branch in docker/docker repo.')
       ]
     )
   ]
 )
 
-this.dockerBuildImgDigest = [amd64: "", armhf: ""]
+this.dockerBuildImgDigest = [amd64: env.DOCKER_BUILD_IMG_AMD64 ?: "", armhf: env.DOCKER_BUILD_IMG_ARMHF ?: ""]
 
 def dockerBuildStep = { Map args=[:], Closure body=null ->
   // Work around groovy closure issues

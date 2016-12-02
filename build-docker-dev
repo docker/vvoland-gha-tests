@@ -13,7 +13,7 @@ DOCKER_BRANCH=${CHANGE_TARGET:-$BRANCH_NAME}
 DOCKER_COMMIT=`git ls-remote $DOCKER_REPO $DOCKER_BRANCH | awk '{print$1;exit}'`
 
 # docker image name to push docker-dev to
-DOCKER_DEV_IMG_NAME=${DOCKER_DEV_IMG_NAME:-'dockerbuildbot/docker'}
+DOCKER_BUILD_IMG_NAME=${DOCKER_BUILD_IMG_NAME:-'dockerbuildbot/docker'}
 
 # Suffix for arch-specific images
 ARCH=${ARCH:-"amd64"}
@@ -26,7 +26,7 @@ else
 fi
 
 # full docker image name to push docker-dev to
-DOCKER_DEV_IMG=${DOCKER_DEV_IMG:-"${DOCKER_DEV_IMG_NAME}:${DOCKER_COMMIT}${ARCH_SUFFIX}"}
+DOCKER_BUILD_IMG=${DOCKER_BUILD_IMG:-"${DOCKER_BUILD_IMG_NAME}:${DOCKER_COMMIT}${ARCH_SUFFIX}"}
 
 # sanity check
 [ -z "$DOCKER_COMMIT" ] && echo "commit not found for repo $DOCKER_REPO branch $DOCKER_BRANCH" && exit 1
@@ -35,25 +35,25 @@ DOCKER_DEV_IMG=${DOCKER_DEV_IMG:-"${DOCKER_DEV_IMG_NAME}:${DOCKER_COMMIT}${ARCH_
 FORCE_REBUILD=${FORCE_REBUILD:-0}
 
 PULL_RET=0
-docker pull "$DOCKER_DEV_IMG" || PULL_RET=$?
+docker pull "$DOCKER_BUILD_IMG" || PULL_RET=$?
 if [ "$FORCE_REBUILD" -eq 1 ] || [ "$PULL_RET" -ne 0 ];
 then
-  echo "not found $DOCKER_DEV_IMG, continue to build"
+  echo "not found $DOCKER_BUILD_IMG, continue to build"
   git clone -b "$DOCKER_BRANCH" "$DOCKER_REPO" docker
   git -C docker checkout "$DOCKER_COMMIT"
   BUILD_TAG=${BUILD_TAG:-tmp}
   EXECUTOR_NUMBER=${EXECUTOR_NUMBER:-0}
   TMP_IMG=${TMP_IMG:-`echo $BUILD_TAG-$EXECUTOR_NUMBER | tr A-Z a-z`}
   make -C docker DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS}" DOCKER_IMAGE="$TMP_IMG" build
-  docker tag "$TMP_IMG" "$DOCKER_DEV_IMG"
-  docker push "$DOCKER_DEV_IMG"
+  docker tag "$TMP_IMG" "$DOCKER_BUILD_IMG"
+  docker push "$DOCKER_BUILD_IMG"
   rm -r -f docker
   docker rmi "$TMP_IMG"
 else
-  echo "found $DOCKER_DEV_IMG, skip building"
+  echo "found $DOCKER_BUILD_IMG, skip building"
 fi
-if ! docker inspect -f '{{ index .RepoDigests 0 }}' "$DOCKER_DEV_IMG" > docker-dev-digest.txt ; then
+if ! docker inspect -f '{{ index .RepoDigests 0 }}' "$DOCKER_BUILD_IMG" > docker-dev-digest.txt ; then
     # Fallback in case a digest wasn't set.
     # XXX: why wasn't a digest set? (when building armhf image)
-    echo "$DOCKER_DEV_IMG" > docker-dev-digest.txt
+    echo "$DOCKER_BUILD_IMG" > docker-dev-digest.txt
 fi
