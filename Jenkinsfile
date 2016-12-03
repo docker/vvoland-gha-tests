@@ -22,9 +22,13 @@ def dockerBuildStep = { Map args=[:], Closure body=null ->
   }
 
   def arch = theArgs.arch ?: "amd64"
+  def label = "linux && ${arch}"
+  if (arch == "amd64") {
+    label += "&& aufs"
+  }
 
   { ->
-    wrappedNode(label: theArgs.get('label', 'docker && aufs'), cleanWorkspace: true) {
+    wrappedNode(label: label, cleanWorkspace: true) {
       withChownWorkspace {
         withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest[arch]}", "ARCH=${arch}"]) {
           checkout scm
@@ -164,17 +168,17 @@ def build_package_steps = [
 ]
 
 def build_arm_steps = [
-  'build-debian-jessie-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-debian-jessie-arm': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm")
     stash(name: 'bundles-debian-jessie-arm', includes: 'bundles/*/build-deb/**')
   },
-  'build-raspbian-jessie-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-raspbian-jessie-arm': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm")
     stash(name: 'bundles-raspbian-jessie-arm', includes: 'bundles/*/build-deb/**')
   },
-  'build-ubuntu-trusty-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-ubuntu-trusty-arm': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm")
     stash(name: 'bundles-ubuntu-trusty-arm', includes: 'bundles/*/build-deb/**')
@@ -184,17 +188,17 @@ def build_arm_steps = [
     sh("make DOCKER_BUILD_PKGS=ubuntu-xenial ubuntu-arm")
     archiveArtifacts 'bundles/*/build-deb/**'
   },
-  'build-debian-jessie-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-debian-jessie-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm-experimental")
     stash(name: 'bundles-debian-jessie-arm-experimental', includes: 'bundles-experimental/*/build-deb/**')
   },
-  'build-raspbian-jessie-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-raspbian-jessie-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm-experimental")
     stash(name: 'bundles-raspbian-jessie-arm-experimental', includes: 'bundles-experimental/*/build-deb/**')
   },
-  'build-ubuntu-trusty-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-ubuntu-trusty-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm-experimental")
     stash(name: 'bundles-ubuntu-trusty-arm-experimental', includes: 'bundles-experimental/*/build-deb/**')
@@ -232,7 +236,7 @@ parallel(
   'arm': { ->
     stage("build docker-dev arm") {
       timeout(time: 1, unit: 'HOURS') {
-        dockerBuildStep(label: 'arm', arch: 'armhf') {
+        dockerBuildStep(arch: 'armhf') {
           sh("make docker-dev-digest.txt")
           this.dockerBuildImgDigest["armhf"] = readFile('docker-dev-digest.txt').trim()
         }.call()
@@ -246,46 +250,20 @@ parallel(
   }
 )
 
-stage("generate index") {
-  timeout(time: 1, unit: 'HOURS') {
-    dockerBuildStep(label: 'volumes-repos') {
-      withCredentials([[
-        $class: 'AmazonWebServicesCredentialsBinding',
-        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-        credentialsId: 'jenkins@dockerengine.aws'
-      ],
-        file(credentialsId: 'releasedocker-secret-gpg.key', variable: 'RELEASEDOCKER_SECRET_GPG_KEY_FILE'),
-        file(credentialsId: 'releasedocker-ownertrust-gpg.txt', variable: 'RELEASEDOCKER_OWNERTRUST_GPG_TXT_FILE'),
-        string(credentialsId: 'releasedocker-gpg-passphrase', variable: 'GPG_PASSPHRASE')
-      ]) {
-        unstash 'bundles-binary'
-        unstash 'bundles-cross'
-        unstash 'bundles-deb'
-        unstash 'bundles-ubuntu'
-        unstash 'bundles-fedora'
-        unstash 'bundles-centos'
-        unstash 'bundles-oraclelinux'
-        unstash 'bundles-opensuse'
-        unstash 'bundles-debian-jessie-arm'
-        unstash 'bundles-raspbian-jessie-arm'
-        unstash 'bundles-ubuntu-trusty-arm'
-        unstash 'bundles-deb-experimental'
-        unstash 'bundles-ubuntu-experimental'
-        unstash 'bundles-fedora-experimental'
-        unstash 'bundles-centos-experimental'
-        unstash 'bundles-oraclelinux-experimental'
-        unstash 'bundles-opensuse-experimental'
-        unstash 'bundles-debian-jessie-arm-experimental'
-        unstash 'bundles-raspbian-jessie-arm-experimental'
-        unstash 'bundles-ubuntu-trusty-arm-experimental'
-        sh("make sync-repos-from-staging-to-local")
-        sh("make prep-gpg")
-        sh("make gen-index")
-        sh("make gen-index-experimental")
-        archiveArtifacts 'bundles/**'
-        archiveArtifacts 'bundles-experimental/**'
-      }
-    }.call()
-  }
+// TODO: populate parameters with correct values for what we just published
+echo "Starting verification build"
+def verifyBuild = build(
+    job: 'docker-task-verify-linux-install',
+    propagate: false,
+    parameters: [
+        string(name: 'INSTALL_SCRIPT_URL', value: 'https://get.docker.com'),
+        string(name: 'INSTALL_CHANNEL', value: 'main'),
+        string(name: 'EXPECTED_VERSION', value: ''),
+        string(name: 'EXPECTED_REVISION', value: ''),
+    ]
+)
+echo "Finished verification build"
+
+if (verifyBuild.result != "SUCCESS") {
+  currentBuild.result = 'UNSTABLE'
 }
