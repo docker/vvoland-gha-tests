@@ -22,9 +22,13 @@ def dockerBuildStep = { Map args=[:], Closure body=null ->
   }
 
   def arch = theArgs.arch ?: "amd64"
+  def label = "linux && ${arch}"
+  if (arch == "amd64") {
+    label += "&& aufs"
+  }
 
   { ->
-    wrappedNode(label: theArgs.get('label', 'docker && aufs'), cleanWorkspace: true) {
+    wrappedNode(label: label, cleanWorkspace: true) {
       withChownWorkspace {
         withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest[arch]}", "ARCH=${arch}"]) {
           checkout scm
@@ -164,32 +168,32 @@ def build_package_steps = [
 ]
 
 def build_arm_steps = [
-  'build-debian-jessie-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-debian-jessie-arm': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm")
     archiveArtifacts 'bundles/*/build-deb/**'
   },
-  'build-raspbian-jessie-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-raspbian-jessie-arm': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm")
     archiveArtifacts 'bundles/*/build-deb/**'
   },
-  'build-ubuntu-trusty-arm': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-ubuntu-trusty-arm': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm")
     archiveArtifacts 'bundles/*/build-deb/**'
   },
-  'build-debian-jessie-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-debian-jessie-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm-experimental")
     archiveArtifacts 'bundles-experimental/*/build-deb/**'
   },
-  'build-raspbian-jessie-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-raspbian-jessie-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm-experimental")
     archiveArtifacts 'bundles-experimental/*/build-deb/**'
   },
-  'build-ubuntu-trusty-arm-experimental': dockerBuildStep(label: 'arm', arch: 'armhf') { ->
+  'build-ubuntu-trusty-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm-experimental")
     archiveArtifacts 'bundles-experimental/*/build-deb/**'
@@ -222,7 +226,7 @@ parallel(
   'arm': { ->
     stage("build docker-dev arm") {
       timeout(time: 1, unit: 'HOURS') {
-        dockerBuildStep(label: 'arm', arch: 'armhf') {
+        dockerBuildStep(arch: 'armhf') {
           sh("make docker-dev-digest.txt")
           this.dockerBuildImgDigest["armhf"] = readFile('docker-dev-digest.txt').trim()
         }.call()
