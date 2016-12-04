@@ -4,7 +4,8 @@ properties(
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')),
     parameters(
       [
-        string(name: 'DOCKER_BUILD_IMG', defaultValue: '', description: 'Docker image used to build artifacts. If blank, will build a new image if necessary from the tip of corresponding branch in docker/docker repo.')
+        string(name: 'DOCKER_BUILD_IMG', defaultValue: '', description: 'Docker image used to build artifacts. If blank, will build a new image if necessary from the tip of corresponding branch in docker/docker repo.'),
+        string(name: 'DOCKER_REPO', defaultValue: 'https://github.com/docker/docker.git', description: 'Docker git source repository.')
       ]
     )
   ]
@@ -30,7 +31,7 @@ def dockerBuildStep = { Map args=[:], Closure body=null ->
   { ->
     wrappedNode(label: label, cleanWorkspace: true) {
       withChownWorkspace {
-        withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest[arch]}", "ARCH=${arch}"]) {
+        withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest[arch]}", "ARCH=${arch}", "DOCKER_REPO=${params.DOCKER_REPO}"]) {
           checkout scm
           if (theBody) {
             theBody.call()
