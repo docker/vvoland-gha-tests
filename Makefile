@@ -1,6 +1,6 @@
 SHELL:=/bin/bash
 DOCKER_BUILD_IMG?='' # Jenkinsfile should populate this var with contents of docker-dev-digest.txt
-CONTAINER_NAME:=$(BUILD_TAG)-$(EXECUTOR_NUMBER)
+CONTAINER_NAME:=$(BUILD_TAG)-$(EXECUTOR_NUMBER)-$(shell date | md5sum | head -c6)
 VOL_MNT_STABLE:=$(WORKSPACE)/bundles:/go/src/github.com/docker/docker/bundles
 VOL_MNT_EXPERIMENTAL:=$(WORKSPACE)/bundles-experimental:/go/src/github.com/docker/docker/bundles
 DOCKER_BUILD_PKGS?='' # if left empty, hack/make.sh will build all packages
