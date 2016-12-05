@@ -57,8 +57,8 @@ def testInstallStep(String arch, String imageName) {
           retry(3) {
             stdout = sh(script: installScript(theImage, env.INSTALL_SCRIPT_URL, env.INSTALL_CHANNEL, true), returnStdout: true)
             def versionString = stdout.trim().split("\n").last()
-            if (versionString ==~ /^Docker version (.+?), build ([a-f0-9]+)(?:\/(.+?))$/) {
-              def m = versionString =~ /^Docker version (.+?), build ([a-f0-9]+)$/
+            if (versionString ==~ /^Docker version (.+?), build ([a-f0-9]+)(?:\/(.+?))?$/) {
+              def m = versionString =~ /^Docker version (.+?), build ([a-f0-9]+)(?:\/(.+?))?$/
               def versionMatches = false
               def revisionMatches = false
 
