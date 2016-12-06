@@ -4,13 +4,14 @@ properties(
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')),
     parameters(
       [
-        string(name: 'DOCKER_BUILD_IMG', defaultValue: '', description: 'Docker image used to build artifacts. If blank, will build a new image if necessary from the tip of corresponding branch in docker/docker repo.')
+        string(name: 'DOCKER_BUILD_IMG_AMD64', defaultValue: '', description: 'Docker image (amd64) used to build artifacts. If blank, will build a new image if necessary from the tip of corresponding branch in docker/docker repo.'),
+        string(name: 'DOCKER_BUILD_IMG_ARMHF', defaultValue: '', description: 'Docker image (armhf) used to build artifacts. If blank, will build a new image if necessary from the tip of corresponding branch in docker/docker repo.')
       ]
     )
   ]
 )
 
-this.dockerBuildImgDigest = [amd64: "", armhf: ""]
+this.dockerBuildImgDigest = [amd64: env.DOCKER_BUILD_IMG_AMD64 ?: "", armhf: env.DOCKER_BUILD_IMG_ARMHF ?: ""]
 
 def dockerBuildStep = { Map args=[:], Closure body=null ->
   // Work around groovy closure issues
@@ -241,7 +242,16 @@ parallel(
 )
 
 // TODO: populate parameters with correct values for what we just published
+// TODO: armhf
 echo "Starting verification build"
+def verificationImages
+
+node {
+  // XXX: we shouldn't need a node to do this.
+  // see https://issues.jenkins-ci.org/browse/JENKINS-40167
+  verificationImages = readYaml(text: readTrusted("verify-distros.yaml"))
+}
+
 def verifyBuild = build(
     job: 'docker-task-verify-linux-install',
     propagate: false,
@@ -250,6 +260,7 @@ def verifyBuild = build(
         string(name: 'INSTALL_CHANNEL', value: 'main'),
         string(name: 'EXPECTED_VERSION', value: ''),
         string(name: 'EXPECTED_REVISION', value: ''),
+        string(name: 'TEST_IMAGES', value: verificationImages.amd64.join(" ")),
     ]
 )
 echo "Finished verification build"
