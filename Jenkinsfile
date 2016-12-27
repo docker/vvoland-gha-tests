@@ -5,7 +5,7 @@ properties(
     parameters(
       [
         string(name: 'DOCKER_BUILD_IMG', defaultValue: '', description: 'Docker image used to build artifacts. If blank, will build a new image if necessary from the tip of corresponding branch in docker/docker repo.'),
-        string(name: 'DOCKER_REPO', defaultValue: 'https://github.com/docker/docker.git', description: 'Docker git source repository.')
+        string(name: 'DOCKER_REPO', defaultValue: 'git@github.com:docker/docker.git', description: 'Docker git source repository.')
       ]
     )
   ]
@@ -73,7 +73,9 @@ def unstashS3(def name) {
 
 def build_docker_dev_steps = [
   'build-docker-dev': dockerBuildStep { ->
-    sh("make docker-dev-digest.txt")
+    sshagent(['docker-jenkins.github.ssh']) {
+      sh("make docker-dev-digest.txt")
+    }
     this.dockerBuildImgDigest["amd64"] = readFile('docker-dev-digest.txt').trim()
   },
 ]
@@ -257,7 +259,9 @@ parallel(
     stage("build docker-dev arm") {
       timeout(time: 1, unit: 'HOURS') {
         dockerBuildStep(arch: 'armhf') {
-          sh("make docker-dev-digest.txt")
+          sshagent(['docker-jenkins.github.ssh']) {
+            sh("make docker-dev-digest.txt")
+          }
           this.dockerBuildImgDigest["armhf"] = readFile('docker-dev-digest.txt').trim()
         }.call()
       }
