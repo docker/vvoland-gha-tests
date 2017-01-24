@@ -4,8 +4,8 @@ properties(
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')),
     parameters(
       [
-        string(name: 'DOCKER_BUILD_IMG_AMD64', defaultValue: '', description: 'Docker image (amd64) used to build artifacts. If blank, will build a new image if necessary from the tip of corresponding branch in docker/docker repo.'),
-        string(name: 'DOCKER_BUILD_IMG_ARMHF', defaultValue: '', description: 'Docker image (armhf) used to build artifacts. If blank, will build a new image if necessary from the tip of corresponding branch in docker/docker repo.')
+        string(name: 'DOCKER_BUILD_IMG', defaultValue: '', description: 'Docker image used to build artifacts. If blank, will build a new image if necessary from the tip of corresponding branch in docker/docker repo.'),
+        string(name: 'DOCKER_REPO', defaultValue: 'git@github.com:docker/docker.git', description: 'Docker git source repository.')
       ]
     )
   ]
@@ -31,7 +31,7 @@ def dockerBuildStep = { Map args=[:], Closure body=null ->
   { ->
     wrappedNode(label: label, cleanWorkspace: true) {
       withChownWorkspace {
-        withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest[arch]}", "ARCH=${arch}"]) {
+        withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest[arch]}", "ARCH=${arch}", "DOCKER_REPO=${params.DOCKER_REPO}"]) {
           checkout scm
           if (theBody) {
             theBody.call()
@@ -42,9 +42,40 @@ def dockerBuildStep = { Map args=[:], Closure body=null ->
   }
 }
 
+def stashS3(def Map args=[:]) {
+    def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/"
+    def awscli = args.awscli ?: 'docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z anigeo/awscli'
+    sh("find . -path './${args.includes}' | tar -c -z -v -f '${args.name}.tar.gz' -T -")
+    withCredentials([[
+        $class: 'AmazonWebServicesCredentialsBinding',
+        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+        credentialsId: 'ci@docker-qa.aws'
+    ]]) {
+        sh("${awscli} s3 cp '${args.name}.tar.gz' '${destS3Uri}'")
+    }
+    sh("rm -f '${args.name}.tar.gz'")
+}
+
+def unstashS3(def name) {
+    def srcS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/${name}.tar.gz"
+    withCredentials([[
+        $class: 'AmazonWebServicesCredentialsBinding',
+        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+        credentialsId: 'ci@docker-qa.aws'
+    ]]) {
+        sh("docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z anigeo/awscli s3 cp '${srcS3Uri}' /z/")
+    }
+    sh("tar -x -z -v -f '${name}.tar.gz'")
+    sh("rm -f '${name}.tar.gz'")
+}
+
 def build_docker_dev_steps = [
   'build-docker-dev': dockerBuildStep { ->
-    sh("make docker-dev-digest.txt")
+    sshagent(['docker-jenkins.github.ssh']) {
+      sh("make docker-dev-digest.txt")
+    }
     this.dockerBuildImgDigest["amd64"] = readFile('docker-dev-digest.txt').trim()
   },
 ]
@@ -52,119 +83,108 @@ def build_docker_dev_steps = [
 def build_binary_steps = [
   'build-binary': dockerBuildStep { ->
     sh("make binary")
-    stash(name: 'bundles-binary', includes: 'bundles/*/binary*/**')
+    stashS3(name: 'bundles-binary', includes: 'bundles/*/binary*/**')
   },
   'build-binary-experimental': dockerBuildStep { ->
     sh("make binary-experimental")
-    stash(name: 'bundles-experimental-binary', includes: 'bundles-experimental/*/binary*/**')
+    stashS3(name: 'bundles-experimental-binary', includes: 'bundles-experimental/*/binary*/**')
   },
 ]
 
 def build_cross_dynbinary_steps = [
   'build-dynbinary': dockerBuildStep { ->
     sh("make dynbinary")
-    stash(name: 'bundles-dynbinary', includes: 'bundles/*/dynbinary*/**')
+    stashS3(name: 'bundles-dynbinary', includes: 'bundles/*/dynbinary*/**')
   },
   'build-dynbinary-experimental': dockerBuildStep { ->
     sh("make dynbinary-experimental")
-    stash(name: 'bundles-experimental-dynbinary', includes: 'bundles-experimental/*/dynbinary*/**')
+    stashS3(name: 'bundles-experimental-dynbinary', includes: 'bundles-experimental/*/dynbinary*/**')
   },
   'build-cross': dockerBuildStep { ->
-    unstash 'bundles-binary'
+    unstashS3('bundles-binary')
     sh("make cross")
-    stash(name: 'bundles-cross', includes: 'bundles/*/cross/**')
+    stashS3(name: 'bundles-cross', includes: 'bundles/*/cross/**')
   },
   'build-cross-experimental': dockerBuildStep { ->
-    unstash 'bundles-experimental-binary'
+    unstashS3('bundles-experimental-binary')
     sh("make cross-experimental")
-    stash(name: 'bundles-experimental-cross', includes: 'bundles-experimental/*/cross/**')
+    stashS3(name: 'bundles-experimental-cross', includes: 'bundles-experimental/*/cross/**')
   }
 ]
 
 def build_package_steps = [
   'build-tgz': dockerBuildStep {
-    unstash 'bundles-binary'
-    unstash 'bundles-cross'
+    unstashS3('bundles-binary')
+    unstashS3('bundles-cross')
     sh("make tgz")
-    archiveArtifacts 'bundles/*/tgz/**'
+    stashS3(name: 'bundles-tgz', includes: 'bundles/*/tgz/**')
   },
   'build-tgz-experimental': dockerBuildStep {
-    unstash 'bundles-experimental-binary'
-    unstash 'bundles-experimental-cross'
+    unstashS3('bundles-experimental-binary')
+    unstashS3('bundles-experimental-cross')
     sh("make tgz-experimental")
-    archiveArtifacts 'bundles-experimental/*/tgz/**'
+    stashS3(name: 'bundles-experimental-tgz', includes: 'bundles-experimental/*/tgz/**')
   },
   'build-deb': dockerBuildStep {
-    unstash 'bundles-binary'
-    unstash 'bundles-dynbinary'
+    unstashS3('bundles-binary')
     sh("make deb")
-    archiveArtifacts 'bundles/*/build-deb/**'
+    stashS3(name: 'bundles-debian', includes: 'bundles/*/build-deb/**')
   },
   'build-deb-experimental': dockerBuildStep {
-    unstash 'bundles-experimental-binary'
-    unstash 'bundles-experimental-dynbinary'
+    unstashS3('bundles-experimental-binary')
     sh("make deb-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+    stashS3(name: 'bundles-experimental-debian', includes: 'bundles-experimental/*/build-deb/**')
   },
   'build-ubuntu': dockerBuildStep {
-    unstash 'bundles-binary'
-    unstash 'bundles-dynbinary'
+    unstashS3('bundles-binary')
     sh("make ubuntu")
     archiveArtifacts 'bundles/*/build-deb/**'
+    stashS3(name: 'bundles-ubuntu', includes: 'bundles/*/build-deb/**')
   },
   'build-ubuntu-experimental': dockerBuildStep {
-    unstash 'bundles-experimental-binary'
-    unstash 'bundles-experimental-dynbinary'
+    unstashS3('bundles-experimental-binary')
     sh("make ubuntu-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+    stashS3(name: 'bundles-experimental-ubuntu', includes: 'bundles-experimental/*/build-deb/**')
   },
   'build-fedora': dockerBuildStep {
-    unstash 'bundles-binary'
-    unstash 'bundles-dynbinary'
+    unstashS3('bundles-binary')
     retry(2) { sh("make fedora") }
-    archiveArtifacts 'bundles/*/build-rpm/**'
+    stashS3(name: 'bundles-fedora', includes: 'bundles/*/build-rpm/**')
   },
   'build-fedora-experimental': dockerBuildStep {
-    unstash 'bundles-experimental-binary'
-    unstash 'bundles-experimental-dynbinary'
-    sh("make fedora-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-rpm/**'
+    unstashS3('bundles-experimental-binary')
+    retry(2) { sh("make fedora-experimental") }
+    stashS3(name: 'bundles-experimental-fedora', includes: 'bundles-experimental/*/build-rpm/**')
   },
   'build-centos': dockerBuildStep {
-    unstash 'bundles-binary'
-    unstash 'bundles-dynbinary'
+    unstashS3('bundles-binary')
     sh("make centos")
-    archiveArtifacts 'bundles/*/build-rpm/**'
+    stashS3(name: 'bundles-centos', includes: 'bundles/*/build-rpm/**')
   },
   'build-centos-experimental': dockerBuildStep {
-    unstash 'bundles-experimental-binary'
-    unstash 'bundles-experimental-dynbinary'
+    unstashS3('bundles-experimental-binary')
     sh("make centos-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-rpm/**'
+    stashS3(name: 'bundles-experimental-centos', includes: 'bundles-experimental/*/build-rpm/**')
   },
   'build-oraclelinux': dockerBuildStep {
-    unstash 'bundles-binary'
-    unstash 'bundles-dynbinary'
+    unstashS3('bundles-binary')
     retry(2) { sh("make oraclelinux") }
-    archiveArtifacts 'bundles/*/build-rpm/**'
+    stashS3(name: 'bundles-oraclelinux', includes: 'bundles/*/build-rpm/**')
   },
   'build-oraclelinux-experimental': dockerBuildStep {
-    unstash 'bundles-experimental-binary'
-    unstash 'bundles-experimental-dynbinary'
+    unstashS3('bundles-experimental-binary')
     retry(2) { sh("make oraclelinux-experimental") }
-    archiveArtifacts 'bundles-experimental/*/build-rpm/**'
+    stashS3(name: 'bundles-experimental-oraclelinux', includes: 'bundles-experimental/*/build-rpm/**')
   },
   'build-opensuse': dockerBuildStep {
-    unstash 'bundles-binary'
-    unstash 'bundles-dynbinary'
+    unstashS3('bundles-binary')
     sh("make opensuse")
-    archiveArtifacts 'bundles/*/build-rpm/**'
+    stashS3(name: 'bundles-opensuse', includes: 'bundles/*/build-rpm/**')
   },
   'build-opensuse-experimental': dockerBuildStep {
-    unstash 'bundles-experimental-binary'
-    unstash 'bundles-experimental-dynbinary'
+    unstashS3('bundles-experimental-binary')
     sh("make opensuse-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-rpm/**'
+    stashS3(name: 'bundles-experimental-opensuse', includes: 'bundles-experimental/*/build-rpm/**')
   }
 ]
 
@@ -173,31 +193,42 @@ def build_arm_steps = [
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm")
     archiveArtifacts 'bundles/*/build-deb/**'
+    stashS3(name: 'bundles-debian-jessie-arm', includes: 'bundles/*/build-deb/**', awscli: 'aws')
   },
   'build-raspbian-jessie-arm': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm")
-    archiveArtifacts 'bundles/*/build-deb/**'
+    stashS3(name: 'bundles-raspbian-jessie-arm', includes: 'bundles/*/build-deb/**', awscli: 'aws')
   },
   'build-ubuntu-trusty-arm': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm")
-    archiveArtifacts 'bundles/*/build-deb/**'
+    stashS3(name: 'bundles-ubuntu-trusty-arm', includes: 'bundles/*/build-deb/**', awscli: 'aws')
+  },
+  'build-ubuntu-xenial-arm': dockerBuildStep(arch: 'armhf') { ->
+    sh("make binary")
+    sh("make DOCKER_BUILD_PKGS=ubuntu-xenial ubuntu-arm")
+    stashS3(name: 'bundles-ubuntu-xenial-arm', includes: 'bundles/*/build-deb/**', awscli: 'aws')
   },
   'build-debian-jessie-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+    stashS3(name: 'bundles-debian-jessie-arm-experimental', includes: 'bundles-experimental/*/build-deb/**', awscli: 'aws')
   },
   'build-raspbian-jessie-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+    stashS3(name: 'bundles-raspbian-jessie-arm-experimental', includes: 'bundles-experimental/*/build-deb/**', awscli: 'aws')
   },
   'build-ubuntu-trusty-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary-experimental")
     sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm-experimental")
-    archiveArtifacts 'bundles-experimental/*/build-deb/**'
+    stashS3(name: 'bundles-ubuntu-trusty-arm-experimental', includes: 'bundles-experimental/*/build-deb/**', awscli: 'aws')
+  },
+  'build-ubuntu-xenial-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
+    sh("make binary-experimental")
+    sh("make DOCKER_BUILD_PKGS=ubuntu-xenial ubuntu-arm-experimental")
+    stashS3(name: 'bundles-ubuntu-xenial-arm-experimental', includes: 'bundles-experimental/*/build-deb/**', awscli: 'aws')
   },
 ]
 
@@ -228,7 +259,9 @@ parallel(
     stage("build docker-dev arm") {
       timeout(time: 1, unit: 'HOURS') {
         dockerBuildStep(arch: 'armhf') {
-          sh("make docker-dev-digest.txt")
+          sshagent(['docker-jenkins.github.ssh']) {
+            sh("make docker-dev-digest.txt")
+          }
           this.dockerBuildImgDigest["armhf"] = readFile('docker-dev-digest.txt').trim()
         }.call()
       }
@@ -240,31 +273,3 @@ parallel(
     }
   }
 )
-
-// TODO: populate parameters with correct values for what we just published
-// TODO: armhf
-echo "Starting verification build"
-def verificationImages
-
-node {
-  // XXX: we shouldn't need a node to do this.
-  // see https://issues.jenkins-ci.org/browse/JENKINS-40167
-  verificationImages = readYaml(text: readTrusted("verify-distros.yaml"))
-}
-
-def verifyBuild = build(
-    job: 'docker-task-verify-linux-install',
-    propagate: false,
-    parameters: [
-        string(name: 'INSTALL_SCRIPT_URL', value: 'https://get.docker.com'),
-        string(name: 'INSTALL_CHANNEL', value: 'main'),
-        string(name: 'EXPECTED_VERSION', value: ''),
-        string(name: 'EXPECTED_REVISION', value: ''),
-        string(name: 'TEST_IMAGES', value: verificationImages.amd64.join(" ")),
-    ]
-)
-echo "Finished verification build"
-
-if (verifyBuild.result != "SUCCESS") {
-  currentBuild.result = 'UNSTABLE'
-}
