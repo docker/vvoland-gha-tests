@@ -84,11 +84,7 @@ def build_binary_steps = [
   'build-binary': dockerBuildStep { ->
     sh("make binary")
     stashS3(name: 'bundles-binary', includes: 'bundles/*/binary*/**')
-  },
-  'build-binary-experimental': dockerBuildStep { ->
-    sh("make binary-experimental")
-    stashS3(name: 'bundles-experimental-binary', includes: 'bundles-experimental/*/binary*/**')
-  },
+  }
 ]
 
 def build_cross_dynbinary_steps = [
@@ -96,19 +92,10 @@ def build_cross_dynbinary_steps = [
     sh("make dynbinary")
     stashS3(name: 'bundles-dynbinary', includes: 'bundles/*/dynbinary*/**')
   },
-  'build-dynbinary-experimental': dockerBuildStep { ->
-    sh("make dynbinary-experimental")
-    stashS3(name: 'bundles-experimental-dynbinary', includes: 'bundles-experimental/*/dynbinary*/**')
-  },
   'build-cross': dockerBuildStep { ->
     unstashS3('bundles-binary')
     sh("make cross")
     stashS3(name: 'bundles-cross', includes: 'bundles/*/cross/**')
-  },
-  'build-cross-experimental': dockerBuildStep { ->
-    unstashS3('bundles-experimental-binary')
-    sh("make cross-experimental")
-    stashS3(name: 'bundles-experimental-cross', includes: 'bundles-experimental/*/cross/**')
   }
 ]
 
@@ -119,21 +106,10 @@ def build_package_steps = [
     sh("make tgz")
     stashS3(name: 'bundles-tgz', includes: 'bundles/*/tgz/**')
   },
-  'build-tgz-experimental': dockerBuildStep {
-    unstashS3('bundles-experimental-binary')
-    unstashS3('bundles-experimental-cross')
-    sh("make tgz-experimental")
-    stashS3(name: 'bundles-experimental-tgz', includes: 'bundles-experimental/*/tgz/**')
-  },
   'build-deb': dockerBuildStep {
     unstashS3('bundles-binary')
     sh("make deb")
     stashS3(name: 'bundles-debian', includes: 'bundles/*/build-deb/**')
-  },
-  'build-deb-experimental': dockerBuildStep {
-    unstashS3('bundles-experimental-binary')
-    sh("make deb-experimental")
-    stashS3(name: 'bundles-experimental-debian', includes: 'bundles-experimental/*/build-deb/**')
   },
   'build-ubuntu': dockerBuildStep {
     unstashS3('bundles-binary')
@@ -141,50 +117,25 @@ def build_package_steps = [
     archiveArtifacts 'bundles/*/build-deb/**'
     stashS3(name: 'bundles-ubuntu', includes: 'bundles/*/build-deb/**')
   },
-  'build-ubuntu-experimental': dockerBuildStep {
-    unstashS3('bundles-experimental-binary')
-    sh("make ubuntu-experimental")
-    stashS3(name: 'bundles-experimental-ubuntu', includes: 'bundles-experimental/*/build-deb/**')
-  },
   'build-fedora': dockerBuildStep {
     unstashS3('bundles-binary')
     retry(2) { sh("make fedora") }
     stashS3(name: 'bundles-fedora', includes: 'bundles/*/build-rpm/**')
-  },
-  'build-fedora-experimental': dockerBuildStep {
-    unstashS3('bundles-experimental-binary')
-    retry(2) { sh("make fedora-experimental") }
-    stashS3(name: 'bundles-experimental-fedora', includes: 'bundles-experimental/*/build-rpm/**')
   },
   'build-centos': dockerBuildStep {
     unstashS3('bundles-binary')
     sh("make centos")
     stashS3(name: 'bundles-centos', includes: 'bundles/*/build-rpm/**')
   },
-  'build-centos-experimental': dockerBuildStep {
-    unstashS3('bundles-experimental-binary')
-    sh("make centos-experimental")
-    stashS3(name: 'bundles-experimental-centos', includes: 'bundles-experimental/*/build-rpm/**')
-  },
   'build-oraclelinux': dockerBuildStep {
     unstashS3('bundles-binary')
     retry(2) { sh("make oraclelinux") }
     stashS3(name: 'bundles-oraclelinux', includes: 'bundles/*/build-rpm/**')
   },
-  'build-oraclelinux-experimental': dockerBuildStep {
-    unstashS3('bundles-experimental-binary')
-    retry(2) { sh("make oraclelinux-experimental") }
-    stashS3(name: 'bundles-experimental-oraclelinux', includes: 'bundles-experimental/*/build-rpm/**')
-  },
   'build-opensuse': dockerBuildStep {
     unstashS3('bundles-binary')
     sh("make opensuse")
     stashS3(name: 'bundles-opensuse', includes: 'bundles/*/build-rpm/**')
-  },
-  'build-opensuse-experimental': dockerBuildStep {
-    unstashS3('bundles-experimental-binary')
-    sh("make opensuse-experimental")
-    stashS3(name: 'bundles-experimental-opensuse', includes: 'bundles-experimental/*/build-rpm/**')
   }
 ]
 
@@ -209,27 +160,7 @@ def build_arm_steps = [
     sh("make binary")
     sh("make DOCKER_BUILD_PKGS=ubuntu-xenial ubuntu-arm")
     stashS3(name: 'bundles-ubuntu-xenial-arm', includes: 'bundles/*/build-deb/**', awscli: 'aws')
-  },
-  'build-debian-jessie-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
-    sh("make binary-experimental")
-    sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm-experimental")
-    stashS3(name: 'bundles-debian-jessie-arm-experimental', includes: 'bundles-experimental/*/build-deb/**', awscli: 'aws')
-  },
-  'build-raspbian-jessie-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
-    sh("make binary-experimental")
-    sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm-experimental")
-    stashS3(name: 'bundles-raspbian-jessie-arm-experimental', includes: 'bundles-experimental/*/build-deb/**', awscli: 'aws')
-  },
-  'build-ubuntu-trusty-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
-    sh("make binary-experimental")
-    sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm-experimental")
-    stashS3(name: 'bundles-ubuntu-trusty-arm-experimental', includes: 'bundles-experimental/*/build-deb/**', awscli: 'aws')
-  },
-  'build-ubuntu-xenial-arm-experimental': dockerBuildStep(arch: 'armhf') { ->
-    sh("make binary-experimental")
-    sh("make DOCKER_BUILD_PKGS=ubuntu-xenial ubuntu-arm-experimental")
-    stashS3(name: 'bundles-ubuntu-xenial-arm-experimental', includes: 'bundles-experimental/*/build-deb/**', awscli: 'aws')
-  },
+  }
 ]
 
 parallel(
