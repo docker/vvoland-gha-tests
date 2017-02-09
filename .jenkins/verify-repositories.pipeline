@@ -20,6 +20,7 @@ def allImagesAmd64Str = [
 ].join(" ")
 
 properties([
+  buildDiscarder(logRotator(numToKeepStr: '20')),
   parameters([
     string(name: "INSTALL_SCRIPT_URL", defaultValue: "https://get.docker.com", description: "URL where the install script is located"),
     string(name: "INSTALL_CHANNEL", defaultValue: "main", description: "repository channel to install from (usually one of: main, test, experimental)"),
