@@ -23,8 +23,8 @@ properties([
   parameters([
     string(name: "INSTALL_SCRIPT_URL", defaultValue: "https://get.docker.com", description: "URL where the install script is located"),
     string(name: "INSTALL_CHANNEL", defaultValue: "main", description: "repository channel to install from (usually one of: main, test, experimental)"),
-    string(name: "EXPECTED_VERSION", defaultValue: "", description: "The version expected from `docker --version`"),
-    string(name: "EXPECTED_REVISION", defaultValue: "", description: "The commit SHA expected from `docker --version`. Optional."),
+    string(name: "EXPECTED_VERSION", defaultValue: "", description: "The version expected from `docker --version`, e.g. 1.13.1"),
+    string(name: "EXPECTED_REVISION", defaultValue: "", description: "The commit SHA expected from `docker --version`, e.g. 092cba3"),
     string(name: "TEST_IMAGES", defaultValue: allImagesAmd64Str, description: "Images to create containers from to test install script"),
   ])
 ])
@@ -69,7 +69,7 @@ def testInstallStep(String arch, String imageName) {
               if (!env.EXPECTED_REVISION) {
                 revisionMatches = true
               } else {
-                revisionMatches = m[0][2] == env.EXPECTED_REVISION
+                revisionMatches = ( m[0][2].startsWith(env.EXPECTED_REVISION) || env.EXPECTED_REVISION.startsWith(m[0][2]) )
               }
 
               if (!versionMatches || !revisionMatches) {
