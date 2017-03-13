@@ -36,18 +36,18 @@ FORCE_REBUILD=${FORCE_REBUILD:-0}
 
 PULL_RET=0
 docker pull "$DOCKER_BUILD_IMG" || PULL_RET=$?
+# need the source code for building packages, so might as well get it here
+git clone -b "$DOCKER_BRANCH" "$DOCKER_REPO" docker
+git -C docker checkout "$DOCKER_COMMIT"
 if [ "$FORCE_REBUILD" -eq 1 ] || [ "$PULL_RET" -ne 0 ];
 then
   echo "not found $DOCKER_BUILD_IMG, continue to build"
-  git clone -b "$DOCKER_BRANCH" "$DOCKER_REPO" docker
-  git -C docker checkout "$DOCKER_COMMIT"
   BUILD_TAG=${BUILD_TAG:-tmp}
   EXECUTOR_NUMBER=${EXECUTOR_NUMBER:-0}
   TMP_IMG=${TMP_IMG:-`echo $BUILD_TAG-$EXECUTOR_NUMBER | tr A-Z a-z`}
   make -C docker DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS}" DOCKER_IMAGE="$TMP_IMG" build
   docker tag "$TMP_IMG" "$DOCKER_BUILD_IMG"
   docker push "$DOCKER_BUILD_IMG"
-  rm -r -f docker
   docker rmi "$TMP_IMG"
 else
   echo "found $DOCKER_BUILD_IMG, skip building"
