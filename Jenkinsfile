@@ -12,6 +12,7 @@ properties(
 )
 
 this.dockerBuildImgDigest = [amd64: env.DOCKER_BUILD_IMG_AMD64 ?: "", armhf: env.DOCKER_BUILD_IMG_ARMHF ?: ""]
+this.dockerGitcommit = [amd64: env.DOCKER_GITCOMMIT_AMD64 ?: "", armhf: env.DOCKER_GITCOMMIT_ARMHF ?: ""]
 
 def dockerBuildStep = { Map args=[:], Closure body=null ->
   // Work around groovy closure issues
@@ -31,7 +32,7 @@ def dockerBuildStep = { Map args=[:], Closure body=null ->
   { ->
     wrappedNode(label: label, cleanWorkspace: true) {
       withChownWorkspace {
-        withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest[arch]}", "ARCH=${arch}", "DOCKER_REPO=${params.DOCKER_REPO}"]) {
+        withEnv(["DOCKER_BUILD_IMG=${this.dockerBuildImgDigest[arch]}", "ARCH=${arch}", "DOCKER_REPO=${params.DOCKER_REPO}", "DOCKER_GITCOMMIT=${this.dockerGitcommit[arch]}"]) {
           checkout scm
           if (theBody) {
             theBody.call()
@@ -77,6 +78,8 @@ def build_docker_dev_steps = [
       sh("make docker-dev-digest.txt")
     }
     this.dockerBuildImgDigest["amd64"] = readFile('docker-dev-digest.txt').trim()
+    def String[] parts = this.dockerBuildImgDigest["amd64"].split(":")
+    this.dockerGitcommit["amd64"] = parts[1].substring(0,7)
   },
 ]
 
@@ -194,6 +197,8 @@ parallel(
             sh("make docker-dev-digest.txt")
           }
           this.dockerBuildImgDigest["armhf"] = readFile('docker-dev-digest.txt').trim()
+          def String[] parts = this.dockerBuildImgDigest["armhf"].split(":")
+          this.dockerGitcommit["armhf"] = parts[1].substring(0,7)
         }.call()
       }
     }
