@@ -58,7 +58,7 @@ def stashS3(def Map args=[:]) {
     sh("rm -f '${args.name}.tar.gz'")
 }
 
-def unstashS3(def name) {
+def unstashS3(def name = '', def awscli = 'docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z anigeo/awscli') {
     def srcS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/${name}.tar.gz"
     withCredentials([[
         $class: 'AmazonWebServicesCredentialsBinding',
@@ -66,7 +66,7 @@ def unstashS3(def name) {
         secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
         credentialsId: 'ci@docker-qa.aws'
     ]]) {
-        sh("docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z anigeo/awscli s3 cp '${srcS3Uri}' /z/")
+        sh("${awscli} s3 cp '${srcS3Uri}' .")
     }
     sh("tar -x -z -v -f '${name}.tar.gz'")
     sh("rm -f '${name}.tar.gz'")
@@ -78,6 +78,7 @@ def build_docker_dev_steps = [
       sh("make docker-dev-digest.txt")
     }
     this.dockerBuildImgDigest["amd64"] = readFile('docker-dev-digest.txt').trim()
+    stashS3(name: 'docker-src', includes: 'docker/**')
     def String[] parts = this.dockerBuildImgDigest["amd64"].split(":")
     this.dockerGitcommit["amd64"] = parts[1].substring(0,7)
   },
@@ -111,32 +112,37 @@ def build_package_steps = [
   },
   'build-deb': dockerBuildStep {
     unstashS3('bundles-binary')
+    unstashS3('docker-src')
     sh("make deb")
     stashS3(name: 'bundles-debian', includes: 'bundles/*/build-deb/**')
   },
   'build-ubuntu': dockerBuildStep {
     unstashS3('bundles-binary')
+    unstashS3('docker-src')
     sh("make ubuntu")
-    archiveArtifacts 'bundles/*/build-deb/**'
     stashS3(name: 'bundles-ubuntu', includes: 'bundles/*/build-deb/**')
   },
   'build-fedora': dockerBuildStep {
     unstashS3('bundles-binary')
+    unstashS3('docker-src')
     retry(2) { sh("make fedora") }
     stashS3(name: 'bundles-fedora', includes: 'bundles/*/build-rpm/**')
   },
   'build-centos': dockerBuildStep {
     unstashS3('bundles-binary')
+    unstashS3('docker-src')
     sh("make centos")
     stashS3(name: 'bundles-centos', includes: 'bundles/*/build-rpm/**')
   },
   'build-oraclelinux': dockerBuildStep {
     unstashS3('bundles-binary')
+    unstashS3('docker-src')
     retry(2) { sh("make oraclelinux") }
     stashS3(name: 'bundles-oraclelinux', includes: 'bundles/*/build-rpm/**')
   },
   'build-opensuse': dockerBuildStep {
     unstashS3('bundles-binary')
+    unstashS3('docker-src')
     sh("make opensuse")
     stashS3(name: 'bundles-opensuse', includes: 'bundles/*/build-rpm/**')
   }
@@ -145,22 +151,25 @@ def build_package_steps = [
 def build_arm_steps = [
   'build-debian-jessie-arm': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary")
+    unstashS3('docker-src', 'aws')
     sh("make DOCKER_BUILD_PKGS=debian-jessie deb-arm")
-    archiveArtifacts 'bundles/*/build-deb/**'
     stashS3(name: 'bundles-debian-jessie-arm', includes: 'bundles/*/build-deb/**', awscli: 'aws')
   },
   'build-raspbian-jessie-arm': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary")
+    unstashS3('docker-src', 'aws')
     sh("make DOCKER_BUILD_PKGS=raspbian-jessie deb-arm")
     stashS3(name: 'bundles-raspbian-jessie-arm', includes: 'bundles/*/build-deb/**', awscli: 'aws')
   },
   'build-ubuntu-trusty-arm': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary")
+    unstashS3('docker-src', 'aws')
     sh("make DOCKER_BUILD_PKGS=ubuntu-trusty ubuntu-arm")
     stashS3(name: 'bundles-ubuntu-trusty-arm', includes: 'bundles/*/build-deb/**', awscli: 'aws')
   },
   'build-ubuntu-xenial-arm': dockerBuildStep(arch: 'armhf') { ->
     sh("make binary")
+    unstashS3('docker-src', 'aws')
     sh("make DOCKER_BUILD_PKGS=ubuntu-xenial ubuntu-arm")
     stashS3(name: 'bundles-ubuntu-xenial-arm', includes: 'bundles/*/build-deb/**', awscli: 'aws')
   }
