@@ -10,6 +10,7 @@ docker-dev-digest.txt: build-docker-dev
 	./$<
 
 binary:
+	echo "DOCKER_GITCOMMIT in binary: $$DOCKER_GITCOMMIT"
 	docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -e DOCKER_GITCOMMIT \
 		$(DOCKER_BUILD_IMG) hack/make.sh binary
 	./fix-bundles-symlinks bundles
@@ -34,6 +35,7 @@ tgz:
 deb:
 	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -v $(VOL_MNT_GIT) -e KEEPBUNDLE=1 \
+		-e DOCKER_GITCOMMIT \
 		-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
 		-e "DOCKER_BUILD_PKGS=debian-jessie debian-stretch debian-wheezy" \
 		-e "DOCKER_BUILD_ARGS=--build-arg=APT_MIRROR=ftp.us.debian.org" \
@@ -43,6 +45,7 @@ deb:
 deb-arm:
 	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -v $(VOL_MNT_GIT) -e KEEPBUNDLE=1 \
+		-e DOCKER_GITCOMMIT \
 		-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
 		-e "DOCKER_BUILD_PKGS" \
 		-e "DOCKER_BUILD_ARGS=--build-arg=APT_MIRROR=ftp.fr.debian.org" \
@@ -52,6 +55,7 @@ deb-arm:
 ubuntu-arm:
 	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -v $(VOL_MNT_GIT) -e KEEPBUNDLE=1 \
+		-e DOCKER_GITCOMMIT \
 		-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
 		-e "DOCKER_BUILD_PKGS" \
 		$(DOCKER_BUILD_IMG) hack/make.sh build-deb
@@ -60,6 +64,7 @@ ubuntu-arm:
 ubuntu:
 	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -v $(VOL_MNT_GIT) -e KEEPBUNDLE=1 \
+		-e DOCKER_GITCOMMIT \
 		-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
 		-e "DOCKER_BUILD_PKGS=ubuntu-precise ubuntu-trusty ubuntu-wily ubuntu-xenial ubuntu-yakkety" \
 		$(DOCKER_BUILD_IMG) hack/make.sh build-deb
@@ -68,6 +73,7 @@ ubuntu:
 fedora:
 	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -v $(VOL_MNT_GIT) -e KEEPBUNDLE=1 \
+		-e DOCKER_GITCOMMIT \
 		-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
 		-e "DOCKER_BUILD_PKGS=fedora-23 fedora-24 fedora-25" \
 		$(DOCKER_BUILD_IMG) hack/make.sh build-rpm
@@ -76,6 +82,7 @@ fedora:
 centos:
 	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -v $(VOL_MNT_GIT) -e KEEPBUNDLE=1 \
+		-e DOCKER_GITCOMMIT \
 		-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
 		-e "DOCKER_BUILD_PKGS=centos-7" \
 		$(DOCKER_BUILD_IMG) hack/make.sh build-rpm
@@ -84,6 +91,7 @@ centos:
 oraclelinux:
 	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -v $(VOL_MNT_GIT) -e KEEPBUNDLE=1 \
+		-e DOCKER_GITCOMMIT \
 		-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
 		-e "DOCKER_BUILD_PKGS=oraclelinux-6 oraclelinux-7" \
 		$(DOCKER_BUILD_IMG) hack/make.sh build-rpm
@@ -92,6 +100,7 @@ oraclelinux:
 opensuse:
 	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -v $(VOL_MNT_GIT) -e KEEPBUNDLE=1 \
+		-e DOCKER_GITCOMMIT \
 		-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
 		-e "DOCKER_BUILD_PKGS=opensuse-13.2" \
 		$(DOCKER_BUILD_IMG) hack/make.sh build-rpm
