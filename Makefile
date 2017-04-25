@@ -61,7 +61,7 @@ ubuntu:
 	DOCKER_GRAPHDRIVER=$(shell docker info | awk -F ': ' '$$1 == "Storage Driver" { print $$2; exit }' ) && \
 		docker run --rm --privileged --name $(CONTAINER_NAME) -v $(VOL_MNT_STABLE) -v $(VOL_MNT_GIT) -e KEEPBUNDLE=1 \
 		-e "DOCKER_GRAPHDRIVER=$$DOCKER_GRAPHDRIVER" \
-		-e "DOCKER_BUILD_PKGS=ubuntu-precise ubuntu-trusty ubuntu-wily ubuntu-xenial ubuntu-yakkety" \
+		-e "DOCKER_BUILD_PKGS=ubuntu-precise ubuntu-trusty ubuntu-wily ubuntu-xenial ubuntu-yakkety ubuntu-zesty" \
 		$(DOCKER_BUILD_IMG) hack/make.sh build-deb
 	$(RM) -r "$(WORKSPACE)/bundles/latest"
 
