@@ -5,7 +5,7 @@ properties(
     parameters(
       [
         string(name: 'DOCKER_REPO', defaultValue: 'git@github.com:docker/docker.git', description: 'Docker git source repository.'),
-        string(name: 'DOCKER_BRANCH', defaultValue: '17.04.x', description: 'Docker git source repository.'),
+        string(name: 'DOCKER_BRANCH', defaultValue: '17.05.x', description: 'Docker git source repository.'),
         string(name: 'DOCKER_GITCOMMIT', defaultValue: '', description: 'Docker git commit hash to build from. If blank, will auto detect tip of branch of repo')
       ]
     )
