@@ -112,13 +112,17 @@ def unstashS3(def name = '', def awscli = 'docker run --rm -e AWS_SECRET_ACCESS_
 
 def build_pkgs_amd64 = [
   'build-tgz-amd64': dockerBuildStep {
-    sh('make tgz')
+    sshagent(['docker-jenkins.github.ssh']) {
+      sh('make tgz')
+    }
   },
 ]
 
 def build_pkgs_armhf = [
   'build-tgz-armhf': dockerBuildStep(arch: 'armhf') {
-    sh('make tgz')
+    sshagent(['docker-jenkins.github.ssh']) {
+      sh('make tgz')
+    }
   },
 ]
 
