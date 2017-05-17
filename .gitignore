@@ -1,2 +1,4 @@
 /*.txt
 /docker-ce
+/bundles
+*.gz
