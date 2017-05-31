@@ -164,6 +164,18 @@ def build_package_steps = [
       }
     }
   },
+  'shell-completion': { ->
+    stage('shell-completion') {
+      wrappedNode(label: 'aufs', cleanWorkspace: true) {
+        withChownWorkspace {
+          checkout scm
+          unstashS3('docker-ce')
+          sh('make clean bundles-ce-shell-completion.tar.gz')
+          saveS3(name: 'bundles-ce-shell-completion.tar.gz')
+        }
+      }
+    }
+  },
 ]
 
 for (t in pkgs) {
