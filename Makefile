@@ -77,3 +77,9 @@ bundles-ce-centos-%-amd64.tar.gz:
 	cp -R docker-ce/components/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
 	cp -R docker-ce/components/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
 	tar czf $@ bundles
+
+bundles-ce-shell-completion.tar.gz:
+	install -D docker-ce/components/engine/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
+	install -D docker-ce/components/engine/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
+	install -D docker-ce/components/engine/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
+	tar czf $@ bundles
