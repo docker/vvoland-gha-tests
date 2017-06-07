@@ -2,3 +2,4 @@
 /docker-ce
 /bundles
 *.gz
+*.tgz
