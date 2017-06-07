@@ -120,7 +120,6 @@ def armhf_pkgs = [
   'ubuntu-zesty',
   'debian-stretch',
   'debian-jessie',
-  'debian-wheezy',
 ]
 
 def s390x_pkgs = [
