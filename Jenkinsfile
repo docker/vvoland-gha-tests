@@ -77,7 +77,7 @@ def init_steps = [
           sshagent(['docker-jenkins.github.ssh']) {
             sh("make DOCKER_CE_BRANCH=${params.DOCKER_CE_BRANCH} DOCKER_CE_REPO=${params.DOCKER_CE_REPO} docker-ce.tar.gz")
           }
-          saveS3(name: 'docker-ce.tar.gz', awscli_image: 'anigeo/awscli')
+          saveS3(name: 'docker-ce.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
         }
       }
     }
@@ -90,10 +90,10 @@ def result_steps = [
       wrappedNode(label: 'aufs', cleanWorkspace: true) {
         withChownWorkspace {
           checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli')
-          genBuildResult(awscli_image: 'anigeo/awscli')
+          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+          genBuildResult(awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
           sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
-          saveS3(name: 'build-result.txt', awscli_image: 'anigeo/awscli')
+          saveS3(name: 'build-result.txt', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
         }
       }
     }
@@ -123,6 +123,12 @@ def armhf_pkgs = [
   'debian-wheezy',
 ]
 
+def s390x_pkgs = [
+  'ubuntu-zesty',
+  'ubuntu-xenial',
+  'ubuntu-yakkety',
+]
+
 def genBuildStep(String distro_flavor, String arch, String label, String awscli_image) {
   return [ "${distro_flavor}-${arch}" : { ->
     stage("${distro_flavor}-${arch}") {
@@ -144,9 +150,9 @@ def build_package_steps = [
       wrappedNode(label: 'aufs', cleanWorkspace: true) {
         withChownWorkspace {
           checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli')
+          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
           sh('make clean static-linux bundles-ce-binary.tar.gz')
-          saveS3(name: 'bundles-ce-binary.tar.gz', awscli_image: 'anigeo/awscli')
+          saveS3(name: 'bundles-ce-binary.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
         }
       }
     }
@@ -156,9 +162,9 @@ def build_package_steps = [
       wrappedNode(label: 'aufs', cleanWorkspace: true) {
         withChownWorkspace {
           checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli')
+          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
           sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz')
-          saveS3(name: 'bundles-ce-cross-darwin.tar.gz', awscli_image: 'anigeo/awscli')
+          saveS3(name: 'bundles-ce-cross-darwin.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
         }
       }
     }
@@ -168,9 +174,9 @@ def build_package_steps = [
       wrappedNode(label: 'aufs', cleanWorkspace: true) {
         withChownWorkspace {
           checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli')
+          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
           sh('make clean cross-win bundles-ce-cross-windows.tar.gz')
-          saveS3(name: 'bundles-ce-cross-windows.tar.gz', awscli_image: 'anigeo/awscli')
+          saveS3(name: 'bundles-ce-cross-windows.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
         }
       }
     }
@@ -180,9 +186,9 @@ def build_package_steps = [
       wrappedNode(label: 'aufs', cleanWorkspace: true) {
         withChownWorkspace {
           checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli')
+          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
           sh('make clean bundles-ce-shell-completion.tar.gz')
-          saveS3(name: 'bundles-ce-shell-completion.tar.gz', awscli_image: 'anigeo/awscli')
+          saveS3(name: 'bundles-ce-shell-completion.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
         }
       }
     }
@@ -190,11 +196,15 @@ def build_package_steps = [
 ]
 
 for (t in amd64_pkgs) {
-  build_package_steps << genBuildStep(t, 'amd64', 'aufs', 'anigeo/awscli')
+  build_package_steps << genBuildStep(t, 'amd64', 'aufs', 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
 }
 
 for (t in armhf_pkgs) {
-  build_package_steps << genBuildStep(t, 'armhf', 'armhf', 'seemethere/awscli-armhf')
+  build_package_steps << genBuildStep(t, 'armhf', 'armhf', 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
+}
+
+for (t in s390x_pkgs) {
+  build_package_steps << genBuildStep(t, 's390x', 's390x', 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
 }
 
 parallel(init_steps)

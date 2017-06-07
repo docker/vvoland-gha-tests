@@ -88,6 +88,11 @@ bundles-ce-ubuntu-%-armhf.tar.gz:
 	cp -R docker-ce/components/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
+bundles-ce-ubuntu-%-s390x.tar.gz:
+	mkdir -p bundles/$(VERSION)/build-deb
+	cp -R docker-ce/components/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
+	tar czf $@ bundles
+
 bundles-ce-shell-completion.tar.gz:
 	install -D docker-ce/components/engine/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
 	install -D docker-ce/components/engine/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
