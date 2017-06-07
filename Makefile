@@ -11,6 +11,7 @@ clean:
 	make -C docker-ce clean
 	$(RM) -r bundles
 	$(RM) *.gz
+	$(RM) *.tgz
 
 docker-ce.tar.gz:
 	git clone --depth=1 -b $(DOCKER_CE_BRANCH) $(DOCKER_CE_REPO) docker-ce
@@ -98,3 +99,40 @@ bundles-ce-shell-completion.tar.gz:
 	install -D docker-ce/components/engine/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
 	install -D docker-ce/components/engine/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
 	tar czf $@ bundles
+
+docker-s390x.tgz:
+	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
+		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
+		-w /go/src/github.com/docker/cli \
+		s390x/golang:1.8.3 make binary
+	make -C docker-ce/components/engine binary
+	$(RM) -r docker
+	install -D docker-ce/components/cli/build/docker docker/docker
+	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
+		install -D docker-ce/components/engine/bundles/$(VERSION)/binary-daemon/$$f docker/$$f; \
+	done
+	tar --numeric-owner --owner 0 -c -z -f $@ docker
+	$(RM) -r docker
+
+docker-armhf.tgz:
+	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
+		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
+		-w /go/src/github.com/docker/cli \
+		arm32v7/golang:1.8.3 make binary
+	make -C docker-ce/components/engine binary
+	$(RM) -r docker
+	install -D docker-ce/components/cli/build/docker docker/docker
+	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
+		install -D docker-ce/components/engine/bundles/$(VERSION)/binary-daemon/$$f docker/$$f; \
+	done
+	tar --numeric-owner --owner 0 -c -z -f $@ docker
+	$(RM) -r docker
+
+docker-amd64.tgz:
+	$(RM) -r docker
+	install -D docker-ce/components/cli/build/docker docker/docker
+	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
+		install -D docker-ce/components/engine/bundles/$(VERSION)/binary-daemon/$$f docker/$$f; \
+	done
+	tar --numeric-owner --owner 0 -c -z -f $@ docker
+	$(RM) -r docker
