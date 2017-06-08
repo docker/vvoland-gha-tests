@@ -100,6 +100,12 @@ bundles-ce-shell-completion.tar.gz:
 	install -D docker-ce/components/engine/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
 	tar czf $@ bundles
 
+docker-win.zip:
+	cp docker-ce/components/packaging/static/build/win/docker-$(VERSION).zip $@
+
+docker-mac.tgz:
+	cp docker-ce/components/packaging/static/build/mac/docker-$(VERSION).tgz $@
+
 docker-s390x.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
 		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \

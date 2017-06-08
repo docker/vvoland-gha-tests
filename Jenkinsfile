@@ -187,8 +187,9 @@ def build_package_steps = [
         withChownWorkspace {
           checkout scm
           unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-          sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz')
+          sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz')
           saveS3(name: 'bundles-ce-cross-darwin.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+          saveS3(name: 'docker-mac.tgz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
         }
       }
     }
@@ -199,8 +200,9 @@ def build_package_steps = [
         withChownWorkspace {
           checkout scm
           unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-          sh('make clean cross-win bundles-ce-cross-windows.tar.gz')
+          sh('make clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip')
           saveS3(name: 'bundles-ce-cross-windows.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+          saveS3(name: 'docker-win.zip', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
         }
       }
     }
