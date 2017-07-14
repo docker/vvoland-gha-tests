@@ -72,13 +72,11 @@ def init_steps = [
   'src': { ->
     stage('src') {
       wrappedNode(label: 'aufs', cleanWorkspace: true) {
-        withChownWorkspace {
-          checkout scm
-          sshagent(['docker-jenkins.github.ssh']) {
-            sh("make DOCKER_CE_BRANCH=${params.DOCKER_CE_BRANCH} DOCKER_CE_REPO=${params.DOCKER_CE_REPO} docker-ce.tar.gz")
-          }
-          saveS3(name: 'docker-ce.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+        checkout scm
+        sshagent(['docker-jenkins.github.ssh']) {
+          sh("make DOCKER_CE_BRANCH=${params.DOCKER_CE_BRANCH} DOCKER_CE_REPO=${params.DOCKER_CE_REPO} docker-ce.tar.gz")
         }
+        saveS3(name: 'docker-ce.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
       }
     }
   }
@@ -88,13 +86,11 @@ def result_steps = [
   'result': { ->
     stage('result') {
       wrappedNode(label: 'aufs', cleanWorkspace: true) {
-        withChownWorkspace {
-          checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-          genBuildResult(awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-          sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
-          saveS3(name: 'build-result.txt', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        }
+        checkout scm
+        unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+        genBuildResult(awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+        sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
+        saveS3(name: 'build-result.txt', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
       }
     }
   }
@@ -131,13 +127,11 @@ def s390x_pkgs = [
 def genBuildStep(String distro_flavor, String arch, String label, String awscli_image) {
   return [ "${distro_flavor}-${arch}" : { ->
     stage("${distro_flavor}-${arch}") {
-      wrappedNode(label: label, cleanWorkspace: true) {
-        withChownWorkspace {
-          checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: awscli_image)
-          sh("make ${distro_flavor} bundles-ce-${distro_flavor}-${arch}.tar.gz")
-          saveS3(name: "bundles-ce-${distro_flavor}-${arch}.tar.gz", awscli_image: awscli_image)
-        }
+      wrappedNode(label: label) {
+        checkout scm
+        unstashS3(name: 'docker-ce', awscli_image: awscli_image)
+        sh("make clean ${distro_flavor} bundles-ce-${distro_flavor}-${arch}.tar.gz")
+        saveS3(name: "bundles-ce-${distro_flavor}-${arch}.tar.gz", awscli_image: awscli_image)
       }
     }
   } ]
@@ -146,76 +140,64 @@ def genBuildStep(String distro_flavor, String arch, String label, String awscli_
 def build_package_steps = [
   'static-linux-amd64': { ->
     stage('static-linux-amd64') {
-      wrappedNode(label: 'aufs', cleanWorkspace: true) {
-        withChownWorkspace {
-          checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-          sh('make clean static-linux bundles-ce-binary.tar.gz docker-amd64.tgz')
-          saveS3(name: 'bundles-ce-binary.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-          saveS3(name: 'docker-amd64.tgz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        }
+      wrappedNode(label: 'aufs') {
+        checkout scm
+        unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+        sh('make clean static-linux bundles-ce-binary.tar.gz docker-amd64.tgz')
+        saveS3(name: 'bundles-ce-binary.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+        saveS3(name: 'docker-amd64.tgz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
       }
     }
   },
   'static-linux-armhf': { ->
     stage('static-linux-armhf') {
-      wrappedNode(label: 'armhf', cleanWorkspace: true) {
-        withChownWorkspace {
-          checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
-          sh('make clean docker-armhf.tgz')
-          saveS3(name: 'docker-armhf.tgz', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
-        }
+      wrappedNode(label: 'armhf') {
+        checkout scm
+        unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
+        sh('make clean docker-armhf.tgz')
+        saveS3(name: 'docker-armhf.tgz', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
       }
     }
   },
   'static-linux-s390x': { ->
     stage('static-linux-s390x') {
-      wrappedNode(label: 's390x', cleanWorkspace: true) {
-        withChownWorkspace {
-          checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
-          sh('make clean docker-s390x.tgz')
-          saveS3(name: 'docker-s390x.tgz', awscli_image: 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
-        }
+      wrappedNode(label: 's390x') {
+        checkout scm
+        unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
+        sh('make clean docker-s390x.tgz')
+        saveS3(name: 'docker-s390x.tgz', awscli_image: 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
       }
     }
   },
   'cross-mac': { ->
     stage('cross-mac') {
-      wrappedNode(label: 'aufs', cleanWorkspace: true) {
-        withChownWorkspace {
-          checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-          sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz')
-          saveS3(name: 'bundles-ce-cross-darwin.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-          saveS3(name: 'docker-mac.tgz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        }
+      wrappedNode(label: 'aufs') {
+        checkout scm
+        unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+        sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz')
+        saveS3(name: 'bundles-ce-cross-darwin.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+        saveS3(name: 'docker-mac.tgz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
       }
     }
   },
   'cross-win': { ->
     stage('cross-win') {
-      wrappedNode(label: 'aufs', cleanWorkspace: true) {
-        withChownWorkspace {
-          checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-          sh('make clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip')
-          saveS3(name: 'bundles-ce-cross-windows.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-          saveS3(name: 'docker-win.zip', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        }
+      wrappedNode(label: 'aufs') {
+        checkout scm
+        unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+        sh('make clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip')
+        saveS3(name: 'bundles-ce-cross-windows.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+        saveS3(name: 'docker-win.zip', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
       }
     }
   },
   'shell-completion': { ->
     stage('shell-completion') {
-      wrappedNode(label: 'aufs', cleanWorkspace: true) {
-        withChownWorkspace {
-          checkout scm
-          unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-          sh('make clean bundles-ce-shell-completion.tar.gz')
-          saveS3(name: 'bundles-ce-shell-completion.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        }
+      wrappedNode(label: 'aufs') {
+        checkout scm
+        unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+        sh('make clean bundles-ce-shell-completion.tar.gz')
+        saveS3(name: 'bundles-ce-shell-completion.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
       }
     }
   },
