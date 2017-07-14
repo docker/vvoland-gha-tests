@@ -95,9 +95,9 @@ bundles-ce-ubuntu-%-s390x.tar.gz:
 	tar czf $@ bundles
 
 bundles-ce-shell-completion.tar.gz:
-	install -D docker-ce/components/engine/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
-	install -D docker-ce/components/engine/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
-	install -D docker-ce/components/engine/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
+	install -D docker-ce/components/cli/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
+	install -D docker-ce/components/cli/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
+	install -D docker-ce/components/cli/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
 	tar czf $@ bundles
 
 docker-win.zip:
