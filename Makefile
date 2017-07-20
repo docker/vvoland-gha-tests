@@ -94,6 +94,11 @@ bundles-ce-ubuntu-%-s390x.tar.gz:
 	cp -R docker-ce/components/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
+bundles-ce-ubuntu-%-aarch64.tar.gz:
+	mkdir -p bundles/$(VERSION)/build-deb
+	cp -R docker-ce/components/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
+	tar czf $@ bundles
+
 bundles-ce-shell-completion.tar.gz:
 	install -D docker-ce/components/cli/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
 	install -D docker-ce/components/cli/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
@@ -105,6 +110,21 @@ docker-win.zip:
 
 docker-mac.tgz:
 	cp docker-ce/components/packaging/static/build/mac/docker-$(VERSION).tgz $@
+
+docker-aarch64.tgz:
+	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
+		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
+		-w /go/src/github.com/docker/cli \
+		seemethere/golang-aarch64@sha256:4a83031cd2010c001a860fad43ee0f64d3bd2fe986af6416134dc896fbd5967c \
+		make binary
+	make -C docker-ce/components/engine binary
+	$(RM) -r docker
+	install -D docker-ce/components/cli/build/docker docker/docker
+	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
+		install -D docker-ce/components/engine/bundles/$(VERSION)/binary-daemon/$$f docker/$$f; \
+	done
+	tar --numeric-owner --owner 0 -c -z -f $@ docker
+	$(RM) -r docker
 
 docker-s390x.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \

@@ -5,7 +5,7 @@ properties(
     parameters(
       [
         string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
-        string(name: 'DOCKER_CE_BRANCH', defaultValue: '17.06', description: 'Docker git source repository.'),
+        string(name: 'DOCKER_CE_BRANCH', defaultValue: '17.07', description: 'Docker git source repository.'),
         string(name: 'DOCKER_CE_GITCOMMIT', defaultValue: '', description: 'Docker git commit hash to build from. If blank, will auto detect tip of branch of repo')
       ]
     )
@@ -124,6 +124,10 @@ def s390x_pkgs = [
   'ubuntu-yakkety',
 ]
 
+def aarch64_pkgs = [
+  'ubuntu-xenial'
+]
+
 def genBuildStep(String distro_flavor, String arch, String label, String awscli_image) {
   return [ "${distro_flavor}-${arch}" : { ->
     stage("${distro_flavor}-${arch}") {
@@ -166,6 +170,16 @@ def build_package_steps = [
         unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
         sh('make clean docker-s390x.tgz')
         saveS3(name: 'docker-s390x.tgz', awscli_image: 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
+      }
+    }
+  },
+  'static-linux-aarch64': { ->
+    stage('static-linux-aarch64') {
+      wrappedNode(label: 'aarch64') {
+        checkout scm
+        unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-aarch64@sha256:2d646ae12278006a710f74e57c27e23fb73eee027f237ab72ebb02ef66a447b9')
+        sh('make clean docker-aarch64.tgz')
+        saveS3(name: 'docker-aarch64.tgz', awscli_image: 'seemethere/awscli-aarch64@sha256:2d646ae12278006a710f74e57c27e23fb73eee027f237ab72ebb02ef66a447b9')
       }
     }
   },
@@ -213,6 +227,10 @@ for (t in armhf_pkgs) {
 
 for (t in s390x_pkgs) {
   build_package_steps << genBuildStep(t, 's390x', 's390x', 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
+}
+
+for (t in aarch64_pkgs) {
+  build_package_steps << genBuildStep(t, 'aarch64', 'aarch64', 'seemethere/awscli-aarch64@sha256:2d646ae12278006a710f74e57c27e23fb73eee027f237ab72ebb02ef66a447b9')
 }
 
 parallel(init_steps)
