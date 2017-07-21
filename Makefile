@@ -1,6 +1,6 @@
 SHELL:=/bin/bash
 DOCKER_CE_REPO:=git@github.com:docker/docker-ce
-DOCKER_CE_BRANCH:=17.06
+DOCKER_CE_BRANCH:=17.07
 VERSION=$(shell cat docker-ce/VERSION)
 GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
 
