@@ -5,7 +5,7 @@ properties(
     parameters(
       [
         string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
-        string(name: 'DOCKER_CE_BRANCH', defaultValue: '17.06', description: 'Docker git source repository.'),
+        string(name: 'DOCKER_CE_BRANCH', defaultValue: '17.07', description: 'Docker git source repository.'),
         string(name: 'DOCKER_CE_GITCOMMIT', defaultValue: '', description: 'Docker git commit hash to build from. If blank, will auto detect tip of branch of repo')
       ]
     )
