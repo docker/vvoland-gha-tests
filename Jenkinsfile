@@ -99,7 +99,6 @@ def result_steps = [
 def amd64_pkgs = [
   'ubuntu-trusty',
   'ubuntu-xenial',
-  'ubuntu-yakkety',
   'ubuntu-zesty',
   'debian-stretch',
   'debian-jessie',
@@ -112,7 +111,6 @@ def amd64_pkgs = [
 def armhf_pkgs = [
   'ubuntu-trusty',
   'ubuntu-xenial',
-  'ubuntu-yakkety',
   'ubuntu-zesty',
   'debian-stretch',
   'debian-jessie',
@@ -123,7 +121,6 @@ def armhf_pkgs = [
 def s390x_pkgs = [
   'ubuntu-zesty',
   'ubuntu-xenial',
-  'ubuntu-yakkety',
 ]
 
 def aarch64_pkgs = [
