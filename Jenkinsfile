@@ -162,6 +162,17 @@ def build_package_steps = [
       }
     }
   },
+  'static-linux-armel': { ->
+    // Basically armhf with GOARCH=6
+    stage('static-linux-armel') {
+      wrappedNode(label: 'armhf') {
+        checkout scm
+        unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
+        sh('make clean docker-armel.tgz')
+        saveS3(name: 'docker-armel.tgz', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
+      }
+    }
+  },
   'static-linux-s390x': { ->
     stage('static-linux-s390x') {
       wrappedNode(label: 's390x') {

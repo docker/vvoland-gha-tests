@@ -162,6 +162,20 @@ docker-armhf.tgz:
 	tar --numeric-owner --owner 0 -c -z -f $@ docker
 	$(RM) -r docker
 
+docker-armel.tgz:
+	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) -e GOARM=6 \
+		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
+		-w /go/src/github.com/docker/cli \
+		arm32v7/golang:1.8.3 make binary
+	make -C docker-ce/components/engine DOCKER_RUN_DOCKER='$$(DOCKER_FLAGS) -e GOARM=6 "$$(DOCKER_IMAGE)"' binary
+	$(RM) -r docker
+	install -D docker-ce/components/cli/build/docker docker/docker
+	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
+		install -D docker-ce/components/engine/bundles/$(VERSION)/binary-daemon/$$f docker/$$f; \
+	done
+	tar --numeric-owner --owner 0 -c -z -f $@ docker
+	$(RM) -r docker
+
 docker-amd64.tgz:
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
