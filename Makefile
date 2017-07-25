@@ -89,7 +89,7 @@ bundles-ce-debian-%-armhf.tar.gz:
 
 bundles-ce-raspbian-%-armhf.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/components/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
+	cp -R docker-ce/components/packaging/deb/debbuild/raspbian-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-ubuntu-%-armhf.tar.gz:

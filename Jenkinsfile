@@ -106,6 +106,7 @@ def amd64_pkgs = [
   'centos-7',
   'fedora-24',
   'fedora-25',
+  'fedora-26',
 ]
 
 def armhf_pkgs = [
@@ -114,7 +115,6 @@ def armhf_pkgs = [
   'ubuntu-zesty',
   'debian-stretch',
   'debian-jessie',
-  'raspbian-stretch',
   'raspbian-jessie',
 ]
 
