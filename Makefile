@@ -29,6 +29,9 @@ cross-win:
 debian-%:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=$@ deb
 
+raspbian-%:
+	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=$@ deb
+
 ubuntu-%:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=$@ deb
 
@@ -80,6 +83,11 @@ bundles-ce-centos-%-amd64.tar.gz:
 	tar czf $@ bundles
 
 bundles-ce-debian-%-armhf.tar.gz:
+	mkdir -p bundles/$(VERSION)/build-deb
+	cp -R docker-ce/components/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
+	tar czf $@ bundles
+
+bundles-ce-raspbian-%-armhf.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
 	cp -R docker-ce/components/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
