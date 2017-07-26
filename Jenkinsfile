@@ -130,7 +130,7 @@ def aarch64_pkgs = [
 def genBuildStep(String distro_flavor, String arch, String label, String awscli_image) {
   return [ "${distro_flavor}-${arch}" : { ->
     stage("${distro_flavor}-${arch}") {
-      wrappedNode(label: label) {
+      wrappedNode(label: label, cleanWorkspace: true) {
         checkout scm
         unstashS3(name: 'docker-ce', awscli_image: awscli_image)
         sh("make clean ${distro_flavor} bundles-ce-${distro_flavor}-${arch}.tar.gz")
@@ -143,7 +143,7 @@ def genBuildStep(String distro_flavor, String arch, String label, String awscli_
 def build_package_steps = [
   'static-linux-amd64': { ->
     stage('static-linux-amd64') {
-      wrappedNode(label: 'aufs') {
+      wrappedNode(label: 'aufs', cleanWorkspace: true) {
         checkout scm
         unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
         sh('make clean static-linux bundles-ce-binary.tar.gz docker-amd64.tgz')
@@ -154,7 +154,7 @@ def build_package_steps = [
   },
   'static-linux-armhf': { ->
     stage('static-linux-armhf') {
-      wrappedNode(label: 'armhf') {
+      wrappedNode(label: 'armhf', cleanWorkspace: true) {
         checkout scm
         unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
         sh('make clean docker-armhf.tgz')
@@ -165,7 +165,7 @@ def build_package_steps = [
   'static-linux-armel': { ->
     // Basically armhf with GOARCH=6
     stage('static-linux-armel') {
-      wrappedNode(label: 'armhf') {
+      wrappedNode(label: 'armhf', cleanWorkspace: true) {
         checkout scm
         unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
         sh('make clean docker-armel.tgz')
@@ -175,7 +175,7 @@ def build_package_steps = [
   },
   'static-linux-s390x': { ->
     stage('static-linux-s390x') {
-      wrappedNode(label: 's390x') {
+      wrappedNode(label: 's390x', cleanWorkspace: true) {
         checkout scm
         unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
         sh('make clean docker-s390x.tgz')
@@ -185,7 +185,7 @@ def build_package_steps = [
   },
   'static-linux-aarch64': { ->
     stage('static-linux-aarch64') {
-      wrappedNode(label: 'aarch64') {
+      wrappedNode(label: 'aarch64', cleanWorkspace: true) {
         checkout scm
         unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-aarch64@sha256:2d646ae12278006a710f74e57c27e23fb73eee027f237ab72ebb02ef66a447b9')
         sh('make clean docker-aarch64.tgz')
@@ -195,7 +195,7 @@ def build_package_steps = [
   },
   'cross-mac': { ->
     stage('cross-mac') {
-      wrappedNode(label: 'aufs') {
+      wrappedNode(label: 'aufs', cleanWorkspace: true) {
         checkout scm
         unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
         sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz')
@@ -206,7 +206,7 @@ def build_package_steps = [
   },
   'cross-win': { ->
     stage('cross-win') {
-      wrappedNode(label: 'aufs') {
+      wrappedNode(label: 'aufs', cleanWorkspace: true) {
         checkout scm
         unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
         sh('make clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip')
@@ -217,7 +217,7 @@ def build_package_steps = [
   },
   'shell-completion': { ->
     stage('shell-completion') {
-      wrappedNode(label: 'aufs') {
+      wrappedNode(label: 'aufs', cleanWorkspace: true) {
         checkout scm
         unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
         sh('make clean bundles-ce-shell-completion.tar.gz')
