@@ -99,7 +99,6 @@ def result_steps = [
 def amd64_pkgs = [
   'ubuntu-trusty',
   'ubuntu-xenial',
-  'ubuntu-yakkety',
   'ubuntu-zesty',
   'debian-stretch',
   'debian-jessie',
@@ -107,21 +106,21 @@ def amd64_pkgs = [
   'centos-7',
   'fedora-24',
   'fedora-25',
+  'fedora-26',
 ]
 
 def armhf_pkgs = [
   'ubuntu-trusty',
   'ubuntu-xenial',
-  'ubuntu-yakkety',
   'ubuntu-zesty',
   'debian-stretch',
   'debian-jessie',
+  'raspbian-jessie',
 ]
 
 def s390x_pkgs = [
   'ubuntu-zesty',
   'ubuntu-xenial',
-  'ubuntu-yakkety',
 ]
 
 def aarch64_pkgs = [
@@ -160,6 +159,17 @@ def build_package_steps = [
         unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
         sh('make clean docker-armhf.tgz')
         saveS3(name: 'docker-armhf.tgz', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
+      }
+    }
+  },
+  'static-linux-armel': { ->
+    // Basically armhf with GOARCH=6
+    stage('static-linux-armel') {
+      wrappedNode(label: 'armhf') {
+        checkout scm
+        unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
+        sh('make clean docker-armel.tgz')
+        saveS3(name: 'docker-armel.tgz', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
       }
     }
   },

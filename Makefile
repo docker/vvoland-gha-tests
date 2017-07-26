@@ -29,6 +29,9 @@ cross-win:
 debian-%:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=$@ deb
 
+raspbian-%:
+	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=$@ deb
+
 ubuntu-%:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=$@ deb
 
@@ -82,6 +85,11 @@ bundles-ce-centos-%-amd64.tar.gz:
 bundles-ce-debian-%-armhf.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
 	cp -R docker-ce/components/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
+	tar czf $@ bundles
+
+bundles-ce-raspbian-%-armhf.tar.gz:
+	mkdir -p bundles/$(VERSION)/build-deb
+	cp -R docker-ce/components/packaging/deb/debbuild/raspbian-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-ubuntu-%-armhf.tar.gz:
@@ -146,6 +154,20 @@ docker-armhf.tgz:
 		-w /go/src/github.com/docker/cli \
 		arm32v7/golang:1.8.3 make binary
 	make -C docker-ce/components/engine binary
+	$(RM) -r docker
+	install -D docker-ce/components/cli/build/docker docker/docker
+	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
+		install -D docker-ce/components/engine/bundles/$(VERSION)/binary-daemon/$$f docker/$$f; \
+	done
+	tar --numeric-owner --owner 0 -c -z -f $@ docker
+	$(RM) -r docker
+
+docker-armel.tgz:
+	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) -e GOARM=6 \
+		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
+		-w /go/src/github.com/docker/cli \
+		arm32v7/golang:1.8.3 make binary
+	make -C docker-ce/components/engine DOCKER_RUN_DOCKER='$$(DOCKER_FLAGS) -e GOARM=6 "$$(DOCKER_IMAGE)"' binary
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
 	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
