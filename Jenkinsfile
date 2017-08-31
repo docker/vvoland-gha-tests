@@ -104,7 +104,6 @@ def amd64_pkgs = [
   'debian-jessie',
   'debian-wheezy',
   'centos-7',
-  'fedora-24',
   'fedora-25',
   'fedora-26',
 ]
