@@ -5,7 +5,7 @@ properties(
     parameters(
       [
         string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
-        string(name: 'DOCKER_CE_BRANCH', defaultValue: '17.07', description: 'Docker git source repository.'),
+        string(name: 'DOCKER_CE_BRANCH', defaultValue: '17.09', description: 'Docker git source repository.'),
         string(name: 'DOCKER_CE_GITCOMMIT', defaultValue: '', description: 'Docker git commit hash to build from. If blank, will auto detect tip of branch of repo')
       ]
     )
@@ -123,6 +123,11 @@ def s390x_pkgs = [
   'ubuntu-xenial',
 ]
 
+def ppc64le_pkgs = [
+  'ubuntu-zesty',
+  'ubuntu-xenial',
+]
+
 def aarch64_pkgs = [
   'ubuntu-xenial'
 ]
@@ -183,6 +188,16 @@ def build_package_steps = [
       }
     }
   },
+  'static-linux-ppc64le': { ->
+    stage('static-linux-ppc64le') {
+      wrappedNode(label: 'ppc64le', cleanWorkspace: true) {
+        checkout scm
+        unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-ppc64le@sha256:1f46b7687cc70bbf4f9bcf67c5e779b65c67088f1a946c9759be470a41da06d7')
+        sh('make clean docker-ppc64le.tgz')
+        saveS3(name: 'docker-ppc64le.tgz', awscli_image: 'seemethere/awscli-ppc64le@sha256:1f46b7687cc70bbf4f9bcf67c5e779b65c67088f1a946c9759be470a41da06d7')
+      }
+    }
+  },
   'static-linux-aarch64': { ->
     stage('static-linux-aarch64') {
       wrappedNode(label: 'aarch64', cleanWorkspace: true) {
@@ -237,6 +252,10 @@ for (t in armhf_pkgs) {
 
 for (t in s390x_pkgs) {
   build_package_steps << genBuildStep(t, 's390x', 's390x', 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
+}
+
+for (t in ppc64le_pkgs) {
+  build_package_steps << genBuildStep(t, 'ppc64le', 'ppc64le', 'seemethere/awscli-ppc64le@sha256:1f46b7687cc70bbf4f9bcf67c5e779b65c67088f1a946c9759be470a41da06d7')
 }
 
 for (t in aarch64_pkgs) {
