@@ -134,7 +134,7 @@ docker-aarch64.tgz:
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
 	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
-		install -D docker-ce/components/engine/bundles/$(VERSION)/binary-daemon/$$f docker/$$f; \
+		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
 	done
 	tar --numeric-owner --owner 0 -c -z -f $@ docker
 	$(RM) -r docker
@@ -148,7 +148,7 @@ docker-s390x.tgz:
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
 	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
-		install -D docker-ce/components/engine/bundles/$(VERSION)/binary-daemon/$$f docker/$$f; \
+		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
 	done
 	tar --numeric-owner --owner 0 -c -z -f $@ docker
 	$(RM) -r docker
@@ -162,7 +162,7 @@ docker-ppc64le.tgz:
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
 	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
-		install -D docker-ce/components/engine/bundles/$(VERSION)/binary-daemon/$$f docker/$$f; \
+		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
 	done
 	tar --numeric-owner --owner 0 -c -z -f $@ docker
 	$(RM) -r docker
@@ -176,7 +176,7 @@ docker-armhf.tgz:
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
 	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
-		install -D docker-ce/components/engine/bundles/$(VERSION)/binary-daemon/$$f docker/$$f; \
+		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
 	done
 	tar --numeric-owner --owner 0 -c -z -f $@ docker
 	$(RM) -r docker
@@ -190,7 +190,7 @@ docker-armel.tgz:
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
 	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
-		install -D docker-ce/components/engine/bundles/$(VERSION)/binary-daemon/$$f docker/$$f; \
+		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
 	done
 	tar --numeric-owner --owner 0 -c -z -f $@ docker
 	$(RM) -r docker
@@ -199,7 +199,7 @@ docker-amd64.tgz:
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
 	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
-		install -D docker-ce/components/engine/bundles/$(VERSION)/binary-daemon/$$f docker/$$f; \
+		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
 	done
 	tar --numeric-owner --owner 0 -c -z -f $@ docker
 	$(RM) -r docker
