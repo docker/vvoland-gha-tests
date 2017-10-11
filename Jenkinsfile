@@ -13,6 +13,7 @@ properties(
 
 awscli_images = [
 	amd64: "anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1",
+	armel: "seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977",
 	armhf: "seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977",
 	s390x: "seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03",
 	ppc64le: "seemethere/awscli-ppc64le@sha256:1f46b7687cc70bbf4f9bcf67c5e779b65c67088f1a946c9759be470a41da06d7",
@@ -139,6 +140,15 @@ def aarch64_pkgs = [
 	'ubuntu-xenial'
 ]
 
+def static_arches = [
+	"amd64",
+	"armel",
+	"armhf",
+	"s390x",
+	"ppc64le",
+	"aarch64"
+]
+
 def genBuildStep(String distro_flavor, String arch, String label, String awscli_image) {
 	return [ "${distro_flavor}-${arch}" : { ->
 		stage("${distro_flavor}-${arch}") {
@@ -152,69 +162,32 @@ def genBuildStep(String distro_flavor, String arch, String label, String awscli_
 	} ]
 }
 
+def genStaticBuildStep(String arch) {
+	def label
+	switch (arch) {
+		case "amd64":
+			label = "aufs"
+			break
+		case "armel":
+			label = "armhf"
+			break
+		default:
+			label = arch
+			break
+	}
+	return [ "static-linux-${arch}": { ->
+		stage("static-linux-${arch}") {
+			wrappedNode(label: label, cleanWorkspace: true) {
+				checkout scm
+					unstashS3(name: 'docker-ce', awscli_image: awscli_images[arch])
+					sh("make clean docker-${arch}.tgz")
+					saveS3(name: "docker-${arch}.tgz", awscli_image: awscli_images[arch])
+			}
+		}
+	}]
+}
+
 def build_package_steps = [
-	'static-linux-amd64': { ->
-		stage('static-linux-amd64') {
-			wrappedNode(label: 'aufs', cleanWorkspace: true) {
-				checkout scm
-				unstashS3(name: 'docker-ce', awscli_image: awscli_images['amd64'])
-				sh('make clean static-linux bundles-ce-binary.tar.gz docker-amd64.tgz')
-				saveS3(name: 'bundles-ce-binary.tar.gz', awscli_image: awscli_images['amd64'])
-				saveS3(name: 'docker-amd64.tgz', awscli_image: awscli_images['amd64'])
-			}
-		}
-	},
-	'static-linux-armhf': { ->
-		stage('static-linux-armhf') {
-			wrappedNode(label: 'armhf', cleanWorkspace: true) {
-				checkout scm
-				unstashS3(name: 'docker-ce', awscli_image: awscli_images['armhf'])
-				sh('make clean docker-armhf.tgz')
-				saveS3(name: 'docker-armhf.tgz', awscli_image: awscli_images['armhf'])
-			}
-		}
-	},
-	'static-linux-armel': { ->
-		// Basically armhf with GOARCH=6
-		stage('static-linux-armel') {
-			wrappedNode(label: 'armhf', cleanWorkspace: true) {
-				checkout scm
-				unstashS3(name: 'docker-ce', awscli_image: awscli_images['armhf'])
-				sh('make clean docker-armel.tgz')
-				saveS3(name: 'docker-armel.tgz', awscli_image: awscli_images['armhf'])
-			}
-		}
-	},
-	'static-linux-s390x': { ->
-		stage('static-linux-s390x') {
-			wrappedNode(label: 's390x', cleanWorkspace: true) {
-				checkout scm
-				unstashS3(name: 'docker-ce', awscli_image: awscli_images['s390x'])
-				sh('make clean docker-s390x.tgz')
-				saveS3(name: 'docker-s390x.tgz', awscli_image: awscli_images['s390x'])
-			}
-		}
-	},
-	'static-linux-ppc64le': { ->
-		stage('static-linux-ppc64le') {
-			wrappedNode(label: 'ppc64le', cleanWorkspace: true) {
-				checkout scm
-				unstashS3(name: 'docker-ce', awscli_image: awscli_images['ppc64le'])
-				sh('make clean docker-ppc64le.tgz')
-				saveS3(name: 'docker-ppc64le.tgz', awscli_image: awscli_images['ppc64le'])
-			}
-		}
-	},
-	'static-linux-aarch64': { ->
-		stage('static-linux-aarch64') {
-			wrappedNode(label: 'aarch64', cleanWorkspace: true) {
-				checkout scm
-				unstashS3(name: 'docker-ce', awscli_image: awscli_images['aarch64'])
-				sh('make clean docker-aarch64.tgz')
-				saveS3(name: 'docker-aarch64.tgz', awscli_image: awscli_images['aarch64'])
-			}
-		}
-	},
 	'cross-mac': { ->
 		stage('cross-mac') {
 			wrappedNode(label: 'aufs', cleanWorkspace: true) {
@@ -248,6 +221,10 @@ def build_package_steps = [
 		}
 	},
 ]
+
+for (arch in static_arches) {
+	build_package_steps << genStaticBuildStep(arch)
+}
 
 for (t in amd64_pkgs) {
 	build_package_steps << genBuildStep(t, 'amd64', 'aufs', awscli_images['amd64'])

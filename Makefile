@@ -44,14 +44,6 @@ fedora-%:
 centos-%:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=$@ rpm
 
-bundles-ce-binary.tar.gz:
-	mkdir -p bundles/$(VERSION)/binary-client bundles/$(VERSION)/binary-daemon
-	cp docker-ce/components/packaging/static/build/linux/docker/docker bundles/$(VERSION)/binary-client/
-	for f in dockerd docker-init docker-proxy docker-runc docker-containerd docker-containerd-ctr docker-containerd-shim; do \
-		cp docker-ce/components/packaging/static/build/linux/docker/$$f bundles/$(VERSION)/binary-daemon/; \
-	done
-	tar czf $@ bundles
-
 bundles-ce-cross-darwin.tar.gz:
 	mkdir -p bundles/$(VERSION)/cross/darwin/amd64
 	cp docker-ce/components/packaging/static/build/mac/docker/docker bundles/$(VERSION)/cross/darwin/amd64/
@@ -199,6 +191,11 @@ docker-armel.tgz:
 	$(RM) -r docker
 
 docker-amd64.tgz:
+	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
+		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
+		-w /go/src/github.com/docker/cli \
+		golang:1.8.3 make binary
+	make -C docker-ce/components/engine binary
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
 	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
