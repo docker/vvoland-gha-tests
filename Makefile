@@ -1,6 +1,6 @@
 SHELL:=/bin/bash
 DOCKER_CE_REPO:=git@github.com:docker/docker-ce
-DOCKER_CE_BRANCH:=17.07
+DOCKER_CE_REF:=
 VERSION=$(shell cat docker-ce/VERSION)
 GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
 
@@ -13,9 +13,12 @@ clean:
 	$(RM) *.gz
 	$(RM) *.tgz
 
-docker-ce.tar.gz:
-	git clone --depth=1 -b $(DOCKER_CE_BRANCH) $(DOCKER_CE_REPO) docker-ce
-	tar czf $@ docker-ce
+docker-ce:
+	git clone $(DOCKER_CE_REPO) $@
+	git -C $@ checkout $(DOCKER_CE_REF)
+
+docker-ce.tar.gz: docker-ce
+	tar czf $@ $<
 
 static-linux:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=static-linux static
