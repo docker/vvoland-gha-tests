@@ -1,265 +1,265 @@
 #!groovy
 properties(
-  [
-    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '30')),
-    parameters(
-      [
-        string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
-        string(name: 'DOCKER_CE_BRANCH', defaultValue: '17.10', description: 'Docker git source repository.'),
-        string(name: 'DOCKER_CE_GITCOMMIT', defaultValue: '', description: 'Docker git commit hash to build from. If blank, will auto detect tip of branch of repo')
-      ]
-    )
-  ]
+	[
+		buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '30')),
+		parameters(
+			[
+				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
+				string(name: 'DOCKER_CE_BRANCH', defaultValue: '17.10', description: 'Docker git source repository.'),
+				string(name: 'DOCKER_CE_GITCOMMIT', defaultValue: '', description: 'Docker git commit hash to build from. If blank, will auto detect tip of branch of repo')
+			]
+		)
+	]
 )
 
 def saveS3(def Map args=[:]) {
-    def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/"
-    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
-    withCredentials([[
-        $class: 'AmazonWebServicesCredentialsBinding',
-        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-        credentialsId: 'ci@docker-qa.aws'
-    ]]) {
-        sh("${awscli} s3 cp --only-show-errors '${args.name}' '${destS3Uri}'")
-    }
+	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/"
+	def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
+	withCredentials([[
+		$class: 'AmazonWebServicesCredentialsBinding',
+		accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+		secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+		credentialsId: 'ci@docker-qa.aws'
+	]]) {
+		sh("${awscli} s3 cp --only-show-errors '${args.name}' '${destS3Uri}'")
+	}
 }
 
 def genBuildResult(def Map args=[:]) {
-    def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/"
-    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
-    withCredentials([[
-        $class: 'AmazonWebServicesCredentialsBinding',
-        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-        credentialsId: 'ci@docker-qa.aws'
-    ]]) {
-        sh("${awscli} s3 ls '${destS3Uri}' > build-result.txt")
-    }
+	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/"
+	def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
+	withCredentials([[
+		$class: 'AmazonWebServicesCredentialsBinding',
+		accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+		secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+		credentialsId: 'ci@docker-qa.aws'
+	]]) {
+		sh("${awscli} s3 ls '${destS3Uri}' > build-result.txt")
+	}
 }
 
 def stashS3(def Map args=[:]) {
-    def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/"
-    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
-    sh("find . -path './${args.includes}' | tar -c -z -f '${args.name}.tar.gz' -T -")
-    withCredentials([[
-        $class: 'AmazonWebServicesCredentialsBinding',
-        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-        credentialsId: 'ci@docker-qa.aws'
-    ]]) {
-        sh("${awscli} s3 cp --only-show-errors '${args.name}.tar.gz' '${destS3Uri}'")
-    }
-    sh("rm -f '${args.name}.tar.gz'")
+	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/"
+	def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
+	sh("find . -path './${args.includes}' | tar -c -z -f '${args.name}.tar.gz' -T -")
+	withCredentials([[
+		$class: 'AmazonWebServicesCredentialsBinding',
+		accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+		secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+		credentialsId: 'ci@docker-qa.aws'
+	]]) {
+		sh("${awscli} s3 cp --only-show-errors '${args.name}.tar.gz' '${destS3Uri}'")
+	}
+	sh("rm -f '${args.name}.tar.gz'")
 }
 
 def unstashS3(def Map args=[:]) {
-    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
-    def srcS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/${args.name}.tar.gz"
-    withCredentials([[
-        $class: 'AmazonWebServicesCredentialsBinding',
-        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-        credentialsId: 'ci@docker-qa.aws'
-    ]]) {
-        sh("${awscli} s3 cp --only-show-errors '${srcS3Uri}' .")
-    }
-    sh("tar -x -z -f '${args.name}.tar.gz'")
-    sh("rm -f '${args.name}.tar.gz'")
+	def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
+	def srcS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/${args.name}.tar.gz"
+	withCredentials([[
+		$class: 'AmazonWebServicesCredentialsBinding',
+		accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+		secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+		credentialsId: 'ci@docker-qa.aws'
+	]]) {
+		sh("${awscli} s3 cp --only-show-errors '${srcS3Uri}' .")
+	}
+	sh("tar -x -z -f '${args.name}.tar.gz'")
+	sh("rm -f '${args.name}.tar.gz'")
 }
 
 def init_steps = [
-  'src': { ->
-    stage('src') {
-      wrappedNode(label: 'aufs', cleanWorkspace: true) {
-        checkout scm
-        sshagent(['docker-jenkins.github.ssh']) {
-          sh("make DOCKER_CE_BRANCH=${params.DOCKER_CE_BRANCH} DOCKER_CE_REPO=${params.DOCKER_CE_REPO} docker-ce.tar.gz")
-        }
-        saveS3(name: 'docker-ce.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-      }
-    }
-  }
+	'src': { ->
+		stage('src') {
+			wrappedNode(label: 'aufs', cleanWorkspace: true) {
+				checkout scm
+				sshagent(['docker-jenkins.github.ssh']) {
+					sh("make DOCKER_CE_BRANCH=${params.DOCKER_CE_BRANCH} DOCKER_CE_REPO=${params.DOCKER_CE_REPO} docker-ce.tar.gz")
+				}
+				saveS3(name: 'docker-ce.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+			}
+		}
+	}
 ]
 
 def result_steps = [
-  'result': { ->
-    stage('result') {
-      wrappedNode(label: 'aufs', cleanWorkspace: true) {
-        checkout scm
-        unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        genBuildResult(awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
-        saveS3(name: 'build-result.txt', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-      }
-    }
-  }
+	'result': { ->
+		stage('result') {
+			wrappedNode(label: 'aufs', cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+				genBuildResult(awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+				sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
+				saveS3(name: 'build-result.txt', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+			}
+		}
+	}
 ]
 
 def amd64_pkgs = [
-  'ubuntu-trusty',
-  'ubuntu-xenial',
-  'ubuntu-zesty',
-  'debian-stretch',
-  'debian-jessie',
-  'debian-wheezy',
-  'centos-7',
-  'fedora-25',
-  'fedora-26',
+	'ubuntu-trusty',
+	'ubuntu-xenial',
+	'ubuntu-zesty',
+	'debian-stretch',
+	'debian-jessie',
+	'debian-wheezy',
+	'centos-7',
+	'fedora-25',
+	'fedora-26',
 ]
 
 def armhf_pkgs = [
-  'ubuntu-trusty',
-  'ubuntu-xenial',
-  'ubuntu-zesty',
-  'debian-stretch',
-  'debian-jessie',
-  'raspbian-jessie',
-  'raspbian-stretch',
+	'ubuntu-trusty',
+	'ubuntu-xenial',
+	'ubuntu-zesty',
+	'debian-stretch',
+	'debian-jessie',
+	'raspbian-jessie',
+	'raspbian-stretch',
 ]
 
 def s390x_pkgs = [
-  'ubuntu-zesty',
-  'ubuntu-xenial',
+	'ubuntu-zesty',
+	'ubuntu-xenial',
 ]
 
 def ppc64le_pkgs = [
-  'ubuntu-zesty',
-  'ubuntu-xenial',
+	'ubuntu-zesty',
+	'ubuntu-xenial',
 ]
 
 def aarch64_pkgs = [
-  'ubuntu-xenial'
+	'ubuntu-xenial'
 ]
 
 def genBuildStep(String distro_flavor, String arch, String label, String awscli_image) {
-  return [ "${distro_flavor}-${arch}" : { ->
-    stage("${distro_flavor}-${arch}") {
-      wrappedNode(label: label, cleanWorkspace: true) {
-        checkout scm
-        unstashS3(name: 'docker-ce', awscli_image: awscli_image)
-        sh("make clean ${distro_flavor} bundles-ce-${distro_flavor}-${arch}.tar.gz")
-        saveS3(name: "bundles-ce-${distro_flavor}-${arch}.tar.gz", awscli_image: awscli_image)
-      }
-    }
-  } ]
+	return [ "${distro_flavor}-${arch}" : { ->
+		stage("${distro_flavor}-${arch}") {
+			wrappedNode(label: label, cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: awscli_image)
+				sh("make clean ${distro_flavor} bundles-ce-${distro_flavor}-${arch}.tar.gz")
+				saveS3(name: "bundles-ce-${distro_flavor}-${arch}.tar.gz", awscli_image: awscli_image)
+			}
+		}
+	} ]
 }
 
 def build_package_steps = [
-  'static-linux-amd64': { ->
-    stage('static-linux-amd64') {
-      wrappedNode(label: 'aufs', cleanWorkspace: true) {
-        checkout scm
-        unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        sh('make clean static-linux bundles-ce-binary.tar.gz docker-amd64.tgz')
-        saveS3(name: 'bundles-ce-binary.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        saveS3(name: 'docker-amd64.tgz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-      }
-    }
-  },
-  'static-linux-armhf': { ->
-    stage('static-linux-armhf') {
-      wrappedNode(label: 'armhf', cleanWorkspace: true) {
-        checkout scm
-        unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
-        sh('make clean docker-armhf.tgz')
-        saveS3(name: 'docker-armhf.tgz', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
-      }
-    }
-  },
-  'static-linux-armel': { ->
-    // Basically armhf with GOARCH=6
-    stage('static-linux-armel') {
-      wrappedNode(label: 'armhf', cleanWorkspace: true) {
-        checkout scm
-        unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
-        sh('make clean docker-armel.tgz')
-        saveS3(name: 'docker-armel.tgz', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
-      }
-    }
-  },
-  'static-linux-s390x': { ->
-    stage('static-linux-s390x') {
-      wrappedNode(label: 's390x', cleanWorkspace: true) {
-        checkout scm
-        unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
-        sh('make clean docker-s390x.tgz')
-        saveS3(name: 'docker-s390x.tgz', awscli_image: 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
-      }
-    }
-  },
-  'static-linux-ppc64le': { ->
-    stage('static-linux-ppc64le') {
-      wrappedNode(label: 'ppc64le', cleanWorkspace: true) {
-        checkout scm
-        unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-ppc64le@sha256:1f46b7687cc70bbf4f9bcf67c5e779b65c67088f1a946c9759be470a41da06d7')
-        sh('make clean docker-ppc64le.tgz')
-        saveS3(name: 'docker-ppc64le.tgz', awscli_image: 'seemethere/awscli-ppc64le@sha256:1f46b7687cc70bbf4f9bcf67c5e779b65c67088f1a946c9759be470a41da06d7')
-      }
-    }
-  },
-  'static-linux-aarch64': { ->
-    stage('static-linux-aarch64') {
-      wrappedNode(label: 'aarch64', cleanWorkspace: true) {
-        checkout scm
-        unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-aarch64@sha256:2d646ae12278006a710f74e57c27e23fb73eee027f237ab72ebb02ef66a447b9')
-        sh('make clean docker-aarch64.tgz')
-        saveS3(name: 'docker-aarch64.tgz', awscli_image: 'seemethere/awscli-aarch64@sha256:2d646ae12278006a710f74e57c27e23fb73eee027f237ab72ebb02ef66a447b9')
-      }
-    }
-  },
-  'cross-mac': { ->
-    stage('cross-mac') {
-      wrappedNode(label: 'aufs', cleanWorkspace: true) {
-        checkout scm
-        unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz')
-        saveS3(name: 'bundles-ce-cross-darwin.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        saveS3(name: 'docker-mac.tgz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-      }
-    }
-  },
-  'cross-win': { ->
-    stage('cross-win') {
-      wrappedNode(label: 'aufs', cleanWorkspace: true) {
-        checkout scm
-        unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        sh('make clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip')
-        saveS3(name: 'bundles-ce-cross-windows.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        saveS3(name: 'docker-win.zip', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-      }
-    }
-  },
-  'shell-completion': { ->
-    stage('shell-completion') {
-      wrappedNode(label: 'aufs', cleanWorkspace: true) {
-        checkout scm
-        unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-        sh('make clean bundles-ce-shell-completion.tar.gz')
-        saveS3(name: 'bundles-ce-shell-completion.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
-      }
-    }
-  },
+	'static-linux-amd64': { ->
+		stage('static-linux-amd64') {
+			wrappedNode(label: 'aufs', cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+				sh('make clean static-linux bundles-ce-binary.tar.gz docker-amd64.tgz')
+				saveS3(name: 'bundles-ce-binary.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+				saveS3(name: 'docker-amd64.tgz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+			}
+		}
+	},
+	'static-linux-armhf': { ->
+		stage('static-linux-armhf') {
+			wrappedNode(label: 'armhf', cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
+				sh('make clean docker-armhf.tgz')
+				saveS3(name: 'docker-armhf.tgz', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
+			}
+		}
+	},
+	'static-linux-armel': { ->
+		// Basically armhf with GOARCH=6
+		stage('static-linux-armel') {
+			wrappedNode(label: 'armhf', cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
+				sh('make clean docker-armel.tgz')
+				saveS3(name: 'docker-armel.tgz', awscli_image: 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
+			}
+		}
+	},
+	'static-linux-s390x': { ->
+		stage('static-linux-s390x') {
+			wrappedNode(label: 's390x', cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
+				sh('make clean docker-s390x.tgz')
+				saveS3(name: 'docker-s390x.tgz', awscli_image: 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
+			}
+		}
+	},
+	'static-linux-ppc64le': { ->
+		stage('static-linux-ppc64le') {
+			wrappedNode(label: 'ppc64le', cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-ppc64le@sha256:1f46b7687cc70bbf4f9bcf67c5e779b65c67088f1a946c9759be470a41da06d7')
+				sh('make clean docker-ppc64le.tgz')
+				saveS3(name: 'docker-ppc64le.tgz', awscli_image: 'seemethere/awscli-ppc64le@sha256:1f46b7687cc70bbf4f9bcf67c5e779b65c67088f1a946c9759be470a41da06d7')
+			}
+		}
+	},
+	'static-linux-aarch64': { ->
+		stage('static-linux-aarch64') {
+			wrappedNode(label: 'aarch64', cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: 'seemethere/awscli-aarch64@sha256:2d646ae12278006a710f74e57c27e23fb73eee027f237ab72ebb02ef66a447b9')
+				sh('make clean docker-aarch64.tgz')
+				saveS3(name: 'docker-aarch64.tgz', awscli_image: 'seemethere/awscli-aarch64@sha256:2d646ae12278006a710f74e57c27e23fb73eee027f237ab72ebb02ef66a447b9')
+			}
+		}
+	},
+	'cross-mac': { ->
+		stage('cross-mac') {
+			wrappedNode(label: 'aufs', cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+				sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz')
+				saveS3(name: 'bundles-ce-cross-darwin.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+				saveS3(name: 'docker-mac.tgz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+			}
+		}
+	},
+	'cross-win': { ->
+		stage('cross-win') {
+			wrappedNode(label: 'aufs', cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+				sh('make clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip')
+				saveS3(name: 'bundles-ce-cross-windows.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+				saveS3(name: 'docker-win.zip', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+			}
+		}
+	},
+	'shell-completion': { ->
+		stage('shell-completion') {
+			wrappedNode(label: 'aufs', cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+				sh('make clean bundles-ce-shell-completion.tar.gz')
+				saveS3(name: 'bundles-ce-shell-completion.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+			}
+		}
+	},
 ]
 
 for (t in amd64_pkgs) {
-  build_package_steps << genBuildStep(t, 'amd64', 'aufs', 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
+	build_package_steps << genBuildStep(t, 'amd64', 'aufs', 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
 }
 
 for (t in armhf_pkgs) {
-  build_package_steps << genBuildStep(t, 'armhf', 'armhf', 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
+	build_package_steps << genBuildStep(t, 'armhf', 'armhf', 'seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977')
 }
 
 for (t in s390x_pkgs) {
-  build_package_steps << genBuildStep(t, 's390x', 's390x', 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
+	build_package_steps << genBuildStep(t, 's390x', 's390x', 'seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03')
 }
 
 for (t in ppc64le_pkgs) {
-  build_package_steps << genBuildStep(t, 'ppc64le', 'ppc64le', 'seemethere/awscli-ppc64le@sha256:1f46b7687cc70bbf4f9bcf67c5e779b65c67088f1a946c9759be470a41da06d7')
+	build_package_steps << genBuildStep(t, 'ppc64le', 'ppc64le', 'seemethere/awscli-ppc64le@sha256:1f46b7687cc70bbf4f9bcf67c5e779b65c67088f1a946c9759be470a41da06d7')
 }
 
 for (t in aarch64_pkgs) {
-  build_package_steps << genBuildStep(t, 'aarch64', 'aarch64', 'seemethere/awscli-aarch64@sha256:2d646ae12278006a710f74e57c27e23fb73eee027f237ab72ebb02ef66a447b9')
+	build_package_steps << genBuildStep(t, 'aarch64', 'aarch64', 'seemethere/awscli-aarch64@sha256:2d646ae12278006a710f74e57c27e23fb73eee027f237ab72ebb02ef66a447b9')
 }
 
 parallel(init_steps)
