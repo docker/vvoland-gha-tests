@@ -5,8 +5,7 @@ properties(
 		parameters(
 			[
 				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
-				string(name: 'DOCKER_CE_BRANCH', defaultValue: '17.10', description: 'Docker git source repository.'),
-				string(name: 'DOCKER_CE_GITCOMMIT', defaultValue: '', description: 'Docker git commit hash to build from. If blank, will auto detect tip of branch of repo')
+				string(name: 'DOCKER_CE_REF', defaultValue: '17.10', description: 'Docker CE reference to build from (usually a branch).'),
 			]
 		)
 	]
@@ -74,7 +73,7 @@ def init_steps = [
 			wrappedNode(label: 'aufs', cleanWorkspace: true) {
 				checkout scm
 				sshagent(['docker-jenkins.github.ssh']) {
-					sh("make DOCKER_CE_BRANCH=${params.DOCKER_CE_BRANCH} DOCKER_CE_REPO=${params.DOCKER_CE_REPO} docker-ce.tar.gz")
+					sh("make DOCKER_CE_REF=${params.DOCKER_CE_REF} DOCKER_CE_REPO=${params.DOCKER_CE_REPO} docker-ce.tar.gz")
 				}
 				saveS3(name: 'docker-ce.tar.gz', awscli_image: 'anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1')
 			}
