@@ -220,6 +220,16 @@ def build_package_steps = [
 			}
 		}
 	},
+	'bundles-ce-binary': { ->
+		stage('bundles-ce-binary') {
+			wrappedNode(label: 'aufs', cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: awscli_images['amd64'])
+				sh('make clean static-linux bundles-ce-binary.tar.gz')
+				saveS3(name: 'bundles-ce-binary.tar.gz', awscli_image: awscli_images['amd64'])
+			}
+		}
+	},
 ]
 
 for (arch in static_arches) {
