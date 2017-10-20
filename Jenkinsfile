@@ -6,6 +6,7 @@ properties(
 			[
 				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
 				string(name: 'DOCKER_CE_REF', defaultValue: '17.10', description: 'Docker CE reference to build from (usually a branch).'),
+				booleanParam(name: 'TRIGGER_RELEASE', description: 'Trigger release after a successful build', defaultValue: false)
 			]
 		)
 	]
@@ -99,6 +100,16 @@ def result_steps = [
 				genBuildResult(awscli_image: awscli_images['amd64'])
 				sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
 				saveS3(name: 'build-result.txt', awscli_image: awscli_images['amd64'])
+				if (params.TRIGGER_RELEASE) {
+					// Triggers builds to go through to staging
+					build(
+						job: 'docker/release/ce',
+						parameters: [
+							[$class: 'StringParameterValue', name: 'ARTIFACT_BUILD_TAG', value: "${env.BUILD_TAG}"],
+						],
+						wait: false,
+					)
+				}
 			}
 		}
 	}
