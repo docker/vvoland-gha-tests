@@ -119,6 +119,7 @@ def amd64_pkgs = [
 	'ubuntu-trusty',
 	'ubuntu-xenial',
 	'ubuntu-zesty',
+	'ubuntu-artful',
 	'debian-stretch',
 	'debian-jessie',
 	'debian-wheezy',
@@ -131,6 +132,7 @@ def armhf_pkgs = [
 	'ubuntu-trusty',
 	'ubuntu-xenial',
 	'ubuntu-zesty',
+	'ubuntu-artful',
 	'debian-stretch',
 	'debian-jessie',
 	'raspbian-jessie',
@@ -139,11 +141,13 @@ def armhf_pkgs = [
 
 def s390x_pkgs = [
 	'ubuntu-zesty',
+	'ubuntu-artful',
 	'ubuntu-xenial',
 ]
 
 def ppc64le_pkgs = [
 	'ubuntu-zesty',
+	'ubuntu-artful',
 	'ubuntu-xenial',
 ]
 
