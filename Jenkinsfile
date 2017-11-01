@@ -106,6 +106,7 @@ def result_steps = [
 						job: 'docker/release/ce',
 						parameters: [
 							[$class: 'StringParameterValue', name: 'ARTIFACT_BUILD_TAG', value: "${env.BUILD_TAG}"],
+							[$class: 'BooleanParameterValue', name: 'TRIGGER_RELEASE', value: params.TRIGGER_RELEASE],
 						],
 						wait: false,
 					)
