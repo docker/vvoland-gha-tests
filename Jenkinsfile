@@ -5,7 +5,7 @@ properties(
 		parameters(
 			[
 				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
-				string(name: 'DOCKER_CE_REF', defaultValue: '17.11', description: 'Docker CE reference to build from (usually a branch).'),
+				string(name: 'DOCKER_CE_REF', defaultValue: '17.12', description: 'Docker CE reference to build from (usually a branch).'),
 				booleanParam(name: 'TRIGGER_RELEASE', description: 'Trigger release after a successful build', defaultValue: false)
 			]
 		)
