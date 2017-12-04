@@ -155,7 +155,10 @@ def ppc64le_pkgs = [
 ]
 
 def aarch64_pkgs = [
-	'ubuntu-xenial'
+	'ubuntu-zesty',
+	'ubuntu-xenial',
+	'debian-stretch',
+	'debian-jessie',
 ]
 
 def static_arches = [
