@@ -115,6 +115,11 @@ bundles-ce-ubuntu-%-aarch64.tar.gz:
 	cp -R docker-ce/components/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
+bundles-ce-debian-%-aarch64.tar.gz:
+	mkdir -p bundles/$(VERSION)/build-deb
+	cp -R docker-ce/components/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
+	tar czf $@ bundles
+
 bundles-ce-shell-completion.tar.gz:
 	install -D docker-ce/components/cli/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
 	install -D docker-ce/components/cli/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
