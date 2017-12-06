@@ -278,6 +278,14 @@ for (t in aarch64_pkgs) {
 	build_package_steps << genBuildStep(t, 'aarch64', 'aarch64', awscli_images['aarch64'])
 }
 
+stage('announce packages building') {
+  if (params.TRIGGER_RELEASE) {
+    wrappedNode(label: 'aufs', cleanWorkspace: true) {
+      slackSend(channel: '#ship-builders', message: "@here Initiating build pipeline. Building packages from `docker/docker-ce:${params.DOCKER_CE_REF}`")
+    }
+  }
+}
+
 parallel(init_steps)
 parallel(build_package_steps)
 parallel(result_steps)
