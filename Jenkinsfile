@@ -128,6 +128,7 @@ def amd64_pkgs = [
 	'centos-7',
 	'fedora-25',
 	'fedora-26',
+	'fedora-27',
 ]
 
 def armhf_pkgs = [
