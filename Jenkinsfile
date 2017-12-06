@@ -78,9 +78,12 @@ def unstashS3(def Map args=[:]) {
 }
 
 def init_steps = [
-	'src': { ->
-		stage('src') {
+	'init': { ->
+		stage('init') {
 			wrappedNode(label: 'aufs', cleanWorkspace: true) {
+				if (params.TRIGGER_RELEASE) {
+					slackSend(channel: '#ship-builders', message: "Initiating build pipeline. Building packages from `docker/docker-ce:${params.DOCKER_CE_REF}`. ${env.BUILD_URL}")
+				}
 				checkout scm
 				sshagent(['docker-jenkins.github.ssh']) {
 					sh("make DOCKER_CE_REF=${params.DOCKER_CE_REF} DOCKER_CE_REPO=${params.DOCKER_CE_REPO} docker-ce.tar.gz")
@@ -276,14 +279,6 @@ for (t in ppc64le_pkgs) {
 
 for (t in aarch64_pkgs) {
 	build_package_steps << genBuildStep(t, 'aarch64', 'aarch64', awscli_images['aarch64'])
-}
-
-stage('announce packages building') {
-  if (params.TRIGGER_RELEASE) {
-    wrappedNode(label: 'aufs', cleanWorkspace: true) {
-      slackSend(channel: '#ship-builders', message: "@here Initiating build pipeline. Building packages from `docker/docker-ce:${params.DOCKER_CE_REF}`")
-    }
-  }
 }
 
 parallel(init_steps)
