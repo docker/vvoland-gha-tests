@@ -151,7 +151,7 @@ docker-s390x.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
 		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
 		-w /go/src/github.com/docker/cli \
-		s390x/golang:1.8.3 make binary
+		s390x/golang:1.9.2 make binary
 	make -C docker-ce/components/engine binary
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
@@ -165,7 +165,7 @@ docker-ppc64le.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
 		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
 		-w /go/src/github.com/docker/cli \
-		ppc64le/golang:1.8.3 make binary
+		ppc64le/golang:1.9.2 make binary
 	make -C docker-ce/components/engine binary
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
@@ -179,7 +179,7 @@ docker-armhf.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
 		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
 		-w /go/src/github.com/docker/cli \
-		arm32v7/golang:1.8.3 make binary
+		arm32v7/golang:1.9.2 make binary
 	make -C docker-ce/components/engine binary
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
@@ -193,7 +193,7 @@ docker-armel.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) -e GOARM=6 \
 		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
 		-w /go/src/github.com/docker/cli \
-		arm32v7/golang:1.8.3 make binary
+		arm32v7/golang:1.9.2 make binary
 	make -C docker-ce/components/engine DOCKER_RUN_DOCKER='$$(DOCKER_FLAGS) -e GOARM=6 "$$(DOCKER_IMAGE)"' binary
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
@@ -207,7 +207,7 @@ docker-amd64.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
 		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
 		-w /go/src/github.com/docker/cli \
-		golang:1.8.3 make binary
+		golang:1.9.2 make binary
 	make -C docker-ce/components/engine binary
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
