@@ -103,6 +103,7 @@ def result_steps = [
 				genBuildResult(awscli_image: awscli_images['amd64'])
 				sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
 				saveS3(name: 'build-result.txt', awscli_image: awscli_images['amd64'])
+				slackSend(channel: "#release-announce-test", message: "Docker CE ${params.DOCKER_CE_REF} https://s3-us-west-2.amazonaws.com/docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/build-result.txt")
 				if (params.TRIGGER_RELEASE) {
 					// Triggers builds to go through to staging
 					build(
