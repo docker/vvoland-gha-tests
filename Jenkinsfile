@@ -262,7 +262,7 @@ for (arch in static_arches) {
 }
 
 for (t in amd64_pkgs) {
-	build_package_steps << genBuildStep(t, 'amd64', 'aufs', awscli_images['amd64'])
+	build_package_steps << genBuildStep(t, 'amd64', 'ubuntu-1604-aufs-edge', awscli_images['amd64'])
 }
 
 for (t in armhf_pkgs) {
@@ -270,11 +270,11 @@ for (t in armhf_pkgs) {
 }
 
 for (t in s390x_pkgs) {
-	build_package_steps << genBuildStep(t, 's390x', 's390x', awscli_images['s390x'])
+	build_package_steps << genBuildStep(t, 's390x', 's390x-ubuntu-1604', awscli_images['s390x'])
 }
 
 for (t in ppc64le_pkgs) {
-	build_package_steps << genBuildStep(t, 'ppc64le', 'ppc64le', awscli_images['ppc64le'])
+	build_package_steps << genBuildStep(t, 'ppc64le', 'ppc64le-ubuntu-1604', awscli_images['ppc64le'])
 }
 
 for (t in aarch64_pkgs) {
