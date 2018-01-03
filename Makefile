@@ -136,8 +136,7 @@ docker-aarch64.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
 		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
 		-w /go/src/github.com/docker/cli \
-		seemethere/golang-aarch64@sha256:4a83031cd2010c001a860fad43ee0f64d3bd2fe986af6416134dc896fbd5967c \
-		make binary
+		arm64v8/golang:1.9.2 make binary
 	make -C docker-ce/components/engine VERSION=$(VERSION) binary
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
