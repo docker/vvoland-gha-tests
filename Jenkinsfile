@@ -107,7 +107,7 @@ def result_steps = [
 				if (params.TRIGGER_RELEASE) {
 					// Triggers builds to go through to staging
 					build(
-						job: 'docker/release/ce',
+						job: 'docker/release-repo/ce',
 						parameters: [
 							[$class: 'StringParameterValue', name: 'ARTIFACT_BUILD_TAG', value: "${env.BUILD_TAG}"],
 							[$class: 'BooleanParameterValue', name: 'TRIGGER_RELEASE', value: params.TRIGGER_RELEASE],
