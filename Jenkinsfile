@@ -180,7 +180,9 @@ def genBuildStep(String distro_flavor, String arch, String label, String awscli_
 			wrappedNode(label: label, cleanWorkspace: true) {
 				checkout scm
 				unstashS3(name: 'docker-ce', awscli_image: awscli_image)
-				sh("make clean ${distro_flavor} bundles-ce-${distro_flavor}-${arch}.tar.gz")
+				retry(3) {
+					sh("make clean ${distro_flavor} bundles-ce-${distro_flavor}-${arch}.tar.gz")
+				}
 				saveS3(name: "bundles-ce-${distro_flavor}-${arch}.tar.gz", awscli_image: awscli_image)
 			}
 		}
@@ -205,7 +207,9 @@ def genStaticBuildStep(String arch) {
 			wrappedNode(label: label, cleanWorkspace: true) {
 				checkout scm
 					unstashS3(name: 'docker-ce', awscli_image: awscli_images[arch])
-					sh("make clean docker-${arch}.tgz")
+					retry(3) {
+						sh("make clean docker-${arch}.tgz")
+					}
 					saveS3(name: "docker-${arch}.tgz", awscli_image: awscli_images[arch])
 			}
 		}
