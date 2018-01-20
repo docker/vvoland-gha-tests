@@ -158,6 +158,10 @@ def aarch64_pkgs = [
 	'ubuntu-xenial',
 	'debian-stretch',
 	'debian-jessie',
+	'centos-7',
+	'fedora-25',
+	'fedora-26',
+	'fedora-27',
 ]
 
 def static_arches = [
