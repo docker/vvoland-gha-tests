@@ -120,6 +120,18 @@ bundles-ce-debian-%-aarch64.tar.gz:
 	cp -R docker-ce/components/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
+bundles-ce-fedora-%-aarch64.tar.gz:
+	mkdir -p bundles/$(VERSION)/build-rpm/fedora-$*
+	cp -R docker-ce/components/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/fedora-$*/
+	cp -R docker-ce/components/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/fedora-$*/
+	tar czf $@ bundles
+
+bundles-ce-centos-%-aarch64.tar.gz:
+	mkdir -p bundles/$(VERSION)/build-rpm/centos-$*
+	cp -R docker-ce/components/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
+	cp -R docker-ce/components/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
+	tar czf $@ bundles
+
 bundles-ce-shell-completion.tar.gz:
 	install -D docker-ce/components/cli/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
 	install -D docker-ce/components/cli/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
