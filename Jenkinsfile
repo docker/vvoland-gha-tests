@@ -159,7 +159,6 @@ def aarch64_pkgs = [
 	'debian-stretch',
 	'debian-jessie',
 	'centos-7',
-	'fedora-25',
 	'fedora-26',
 	'fedora-27',
 ]
