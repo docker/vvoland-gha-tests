@@ -6,11 +6,18 @@ properties(
 			[
 				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
 				string(name: 'DOCKER_CE_REF', defaultValue: '18.02', description: 'Docker CE reference to build from (usually a branch).'),
+				string(name: 'ARTIFACT_BUILD_TAG', defaultValue:'', description: 'ONLY USED BY NIGHTLY BUILDS, LEAVE BLANK OTHERWISE'),
 				booleanParam(name: 'TRIGGER_RELEASE', description: 'Trigger release after a successful build', defaultValue: false)
 			]
 		)
 	]
 )
+
+if ("${params.ARTIFACT_BUILD_TAG}" == "") {
+	BUILD_TAG="${env.BUILD_TAG}"
+} else {
+	BUILD_TAG="${params.ARTIFACT_BUILD_TAG}"
+}
 
 awscli_images = [
 	amd64: "anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1",
@@ -22,7 +29,7 @@ awscli_images = [
 ]
 
 def saveS3(def Map args=[:]) {
-	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/"
+	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
 	def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
 	withCredentials([[
 		$class: 'AmazonWebServicesCredentialsBinding',
@@ -35,7 +42,7 @@ def saveS3(def Map args=[:]) {
 }
 
 def genBuildResult(def Map args=[:]) {
-	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/"
+	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
 	def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
 	withCredentials([[
 		$class: 'AmazonWebServicesCredentialsBinding',
@@ -48,7 +55,7 @@ def genBuildResult(def Map args=[:]) {
 }
 
 def stashS3(def Map args=[:]) {
-	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/"
+	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
 	def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
 	sh("find . -path './${args.includes}' | tar -c -z -f '${args.name}.tar.gz' -T -")
 	withCredentials([[
@@ -64,7 +71,7 @@ def stashS3(def Map args=[:]) {
 
 def unstashS3(def Map args=[:]) {
 	def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
-	def srcS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/${args.name}.tar.gz"
+	def srcS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/${args.name}.tar.gz"
 	withCredentials([[
 		$class: 'AmazonWebServicesCredentialsBinding',
 		accessKeyVariable: 'AWS_ACCESS_KEY_ID',
@@ -103,13 +110,13 @@ def result_steps = [
 				genBuildResult(awscli_image: awscli_images['amd64'])
 				sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
 				saveS3(name: 'build-result.txt', awscli_image: awscli_images['amd64'])
-				slackSend(channel: "#release-announce-test", message: "Docker CE ${params.DOCKER_CE_REF} https://s3-us-west-2.amazonaws.com/docker-ci-artifacts/ci.qa.aws.dckr.io/${env.BUILD_TAG}/build-result.txt")
+				slackSend(channel: "#release-announce-test", message: "Docker CE ${params.DOCKER_CE_REF} https://s3-us-west-2.amazonaws.com/docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/build-result.txt")
 				if (params.TRIGGER_RELEASE) {
 					// Triggers builds to go through to staging
 					build(
 						job: 'docker/release-repo/ce',
 						parameters: [
-							[$class: 'StringParameterValue', name: 'ARTIFACT_BUILD_TAG', value: "${env.BUILD_TAG}"],
+							[$class: 'StringParameterValue', name: 'ARTIFACT_BUILD_TAG', value: "${BUILD_TAG}"],
 							[$class: 'BooleanParameterValue', name: 'TRIGGER_RELEASE', value: params.TRIGGER_RELEASE],
 						],
 						wait: false,
