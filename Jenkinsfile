@@ -91,7 +91,7 @@ def init_steps = [
 				announceChannel = "#ship-builders"
 				// This is only the case on a nightly build
 				if (params.ARTIFACT_BUILD_TAG != "") {
-					announceChannel = "#release-sprint"
+					announceChannel = "#sf-rel-eng"
 				}
 				if (params.TRIGGER_RELEASE) {
 					slackSend(channel: announceChannel, message: "Initiating build pipeline. Building packages from `docker/docker-ce:${params.DOCKER_CE_REF}`. ${env.BUILD_URL}")
