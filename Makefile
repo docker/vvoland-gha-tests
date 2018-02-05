@@ -139,10 +139,10 @@ bundles-ce-shell-completion.tar.gz:
 	tar czf $@ bundles
 
 docker-win.zip:
-	cp docker-ce/components/packaging/static/build/win/docker-$(VERSION).zip $@
+	cp docker-ce/components/packaging/static/build/win/docker-*.zip $@
 
 docker-mac.tgz:
-	cp docker-ce/components/packaging/static/build/mac/docker-$(VERSION).tgz $@
+	cp docker-ce/components/packaging/static/build/mac/docker-*.tgz $@
 
 docker-aarch64.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
