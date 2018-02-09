@@ -91,7 +91,7 @@ def init_steps = [
 				announceChannel = "#ship-builders"
 				// This is only the case on a nightly build
 				if (params.ARTIFACT_BUILD_TAG != "") {
-					announceChannel = "#sf-rel-eng"
+					announceChannel = "#release-ci-feed"
 				}
 				if (params.TRIGGER_RELEASE) {
 					slackSend(channel: announceChannel, message: "Initiating build pipeline. Building packages from `docker/docker-ce:${params.DOCKER_CE_REF}`. ${env.BUILD_URL}")
@@ -115,7 +115,7 @@ def result_steps = [
 				genBuildResult(awscli_image: awscli_images['amd64'])
 				sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
 				saveS3(name: 'build-result.txt', awscli_image: awscli_images['amd64'])
-				slackSend(channel: "#release-announce-test", message: "Docker CE ${params.DOCKER_CE_REF} https://s3-us-west-2.amazonaws.com/docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/build-result.txt")
+				slackSend(channel: "#release-ci-feed", message: "Docker CE ${params.DOCKER_CE_REF} https://s3-us-west-2.amazonaws.com/docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/build-result.txt")
 				if (params.TRIGGER_RELEASE) {
 					// Triggers builds to go through to staging
 					build(
