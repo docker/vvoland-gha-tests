@@ -3,6 +3,7 @@ DOCKER_CE_REPO:=git@github.com:docker/docker-ce
 DOCKER_CE_REF:=
 VERSION=$(shell cat docker-ce/VERSION)
 GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
+LDD_RUN=ldd >/dev/null 2>/dev/null
 
 help:
 	@echo help
@@ -49,6 +50,7 @@ bundles-ce-binary.tar.gz:
 	cp docker-ce/components/packaging/static/build/linux/docker/docker bundles/$(VERSION)/binary-client/
 	for f in dockerd docker-init docker-proxy docker-runc docker-containerd docker-containerd-ctr docker-containerd-shim; do \
 		cp docker-ce/components/packaging/static/build/linux/docker/$$f bundles/$(VERSION)/binary-daemon/; \
+		if $(LDD_RUN) bundles/$(VERSION)/binary-daemon/$$f; then echo "$$f is not static, exiting..."; exit 1; fi \
 	done
 	tar czf $@ bundles
 
@@ -144,62 +146,6 @@ docker-win.zip:
 docker-mac.tgz:
 	cp docker-ce/components/packaging/static/build/mac/docker-*.tgz $@
 
-docker-aarch64.tgz:
-	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
-		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
-		-w /go/src/github.com/docker/cli \
-		golang:1.9.2 make binary
-	make -C docker-ce/components/engine VERSION=$(VERSION) binary
-	$(RM) -r docker
-	install -D docker-ce/components/cli/build/docker docker/docker
-	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
-		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
-	done
-	tar --numeric-owner --owner 0 -c -z -f $@ docker
-	$(RM) -r docker
-
-docker-s390x.tgz:
-	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
-		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
-		-w /go/src/github.com/docker/cli \
-		golang:1.9.2 make binary
-	make -C docker-ce/components/engine VERSION=$(VERSION) binary
-	$(RM) -r docker
-	install -D docker-ce/components/cli/build/docker docker/docker
-	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
-		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
-	done
-	tar --numeric-owner --owner 0 -c -z -f $@ docker
-	$(RM) -r docker
-
-docker-ppc64le.tgz:
-	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
-		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
-		-w /go/src/github.com/docker/cli \
-		golang:1.9.2 make binary
-	make -C docker-ce/components/engine VERSION=$(VERSION) binary
-	$(RM) -r docker
-	install -D docker-ce/components/cli/build/docker docker/docker
-	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
-		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
-	done
-	tar --numeric-owner --owner 0 -c -z -f $@ docker
-	$(RM) -r docker
-
-docker-armhf.tgz:
-	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
-		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
-		-w /go/src/github.com/docker/cli \
-		golang:1.9.2 make binary
-	make -C docker-ce/components/engine VERSION=$(VERSION) binary
-	$(RM) -r docker
-	install -D docker-ce/components/cli/build/docker docker/docker
-	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
-		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
-	done
-	tar --numeric-owner --owner 0 -c -z -f $@ docker
-	$(RM) -r docker
-
 docker-armel.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) -e GOARM=6 \
 		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
@@ -211,10 +157,13 @@ docker-armel.tgz:
 	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
 		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
 	done
+	for binary in docker/*; do \
+		if $(LDD_RUN) $$binary; then echo "$$binary is not static, exiting..."; exit 1; fi \
+	done
 	tar --numeric-owner --owner 0 -c -z -f $@ docker
 	$(RM) -r docker
 
-docker-amd64.tgz:
+docker-%.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
 		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
 		-w /go/src/github.com/docker/cli \
@@ -224,6 +173,9 @@ docker-amd64.tgz:
 	install -D docker-ce/components/cli/build/docker docker/docker
 	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
 		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
+	done
+	for binary in docker/*; do \
+		if $(LDD_RUN) $$binary; then echo "$$binary is not static, exiting..."; exit 1; fi \
 	done
 	tar --numeric-owner --owner 0 -c -z -f $@ docker
 	$(RM) -r docker
