@@ -136,6 +136,7 @@ def amd64_pkgs = [
 	'ubuntu-trusty',
 	'ubuntu-xenial',
 	'ubuntu-artful',
+	'ubuntu-bionic',
 	'debian-buster',
 	'debian-stretch',
 	'debian-jessie',
@@ -149,6 +150,7 @@ def armhf_pkgs = [
 	'ubuntu-trusty',
 	'ubuntu-xenial',
 	'ubuntu-artful',
+	'ubuntu-bionic',
 	'debian-buster',
 	'debian-stretch',
 	'debian-jessie',
@@ -158,16 +160,19 @@ def armhf_pkgs = [
 
 def s390x_pkgs = [
 	'ubuntu-artful',
+	'ubuntu-bionic',
 	'ubuntu-xenial',
 ]
 
 def ppc64le_pkgs = [
 	'ubuntu-artful',
+	'ubuntu-bionic',
 	'ubuntu-xenial',
 ]
 
 def aarch64_pkgs = [
 	'ubuntu-xenial',
+	'ubuntu-bionic',
 	'debian-stretch',
 	'debian-jessie',
 	'centos-7',
