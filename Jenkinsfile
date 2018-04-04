@@ -144,6 +144,7 @@ def amd64_pkgs = [
 	'centos-7',
 	'fedora-26',
 	'fedora-27',
+	'fedora-28',
 ]
 
 def armhf_pkgs = [
@@ -178,6 +179,7 @@ def aarch64_pkgs = [
 	'centos-7',
 	'fedora-26',
 	'fedora-27',
+	'fedora-28',
 ]
 
 def static_arches = [
