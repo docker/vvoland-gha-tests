@@ -194,13 +194,13 @@ def static_arches = [
 def genBuildStep(String distro_flavor, String arch, String label, String awscli_image) {
 	return [ "${distro_flavor}-${arch}" : { ->
 		stage("${distro_flavor}-${arch}") {
-			wrappedNode(label: label, cleanWorkspace: true) {
-				checkout scm
-				unstashS3(name: 'docker-ce', awscli_image: awscli_image)
-				retry(3) {
+			retry(3) {
+				wrappedNode(label: label, cleanWorkspace: true) {
+					checkout scm
+					unstashS3(name: 'docker-ce', awscli_image: awscli_image)
 					sh("make clean ${distro_flavor} bundles-ce-${distro_flavor}-${arch}.tar.gz")
+					saveS3(name: "bundles-ce-${distro_flavor}-${arch}.tar.gz", awscli_image: awscli_image)
 				}
-				saveS3(name: "bundles-ce-${distro_flavor}-${arch}.tar.gz", awscli_image: awscli_image)
 			}
 		}
 	} ]
@@ -221,13 +221,13 @@ def genStaticBuildStep(String arch) {
 	}
 	return [ "static-linux-${arch}": { ->
 		stage("static-linux-${arch}") {
-			wrappedNode(label: label, cleanWorkspace: true) {
-				checkout scm
+			retry(3) {
+				wrappedNode(label: label, cleanWorkspace: true) {
+					checkout scm
 					unstashS3(name: 'docker-ce', awscli_image: awscli_images[arch])
-					retry(3) {
-						sh("make clean docker-${arch}.tgz")
-					}
+					sh("make clean docker-${arch}.tgz")
 					saveS3(name: "docker-${arch}.tgz", awscli_image: awscli_images[arch])
+				}
 			}
 		}
 	}]
