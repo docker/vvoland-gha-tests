@@ -174,6 +174,7 @@ def ppc64le_pkgs = [
 def aarch64_pkgs = [
 	'ubuntu-xenial',
 	'ubuntu-bionic',
+	'debian-buster',
 	'debian-stretch',
 	'debian-jessie',
 	'centos-7',
