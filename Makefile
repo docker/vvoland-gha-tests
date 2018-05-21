@@ -150,7 +150,7 @@ docker-armel.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) -e GOARM=6 \
 		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
 		-w /go/src/github.com/docker/cli \
-		golang:1.9.2 make binary
+		golang:1.10.2 make binary
 	make -C docker-ce/components/engine DOCKER_RUN_DOCKER='$$(DOCKER_FLAGS) -e GOARM=6 "$$(DOCKER_IMAGE)"' VERSION=$(VERSION) binary
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
@@ -167,7 +167,7 @@ docker-%.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
 		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
 		-w /go/src/github.com/docker/cli \
-		golang:1.9.2 make binary
+		golang:1.10.2 make binary
 	make -C docker-ce/components/engine VERSION=$(VERSION) binary
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
