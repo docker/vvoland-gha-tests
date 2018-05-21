@@ -140,9 +140,7 @@ def amd64_pkgs = [
 	'debian-buster',
 	'debian-stretch',
 	'debian-jessie',
-	'debian-wheezy',
 	'centos-7',
-	'fedora-26',
 	'fedora-27',
 	'fedora-28',
 ]
@@ -178,7 +176,6 @@ def aarch64_pkgs = [
 	'debian-stretch',
 	'debian-jessie',
 	'centos-7',
-	'fedora-26',
 	'fedora-27',
 	'fedora-28',
 ]
