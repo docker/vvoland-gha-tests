@@ -163,19 +163,4 @@ docker-armel.tgz:
 	tar --numeric-owner --owner 0 -c -z -f $@ docker
 	$(RM) -r docker
 
-docker-%.tgz:
-	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) \
-		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
-		-w /go/src/github.com/docker/cli \
-		golang:1.10.2 make binary
-	make -C docker-ce/components/engine VERSION=$(VERSION) binary
-	$(RM) -r docker
-	install -D docker-ce/components/cli/build/docker docker/docker
-	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
-		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
-	done
-	for binary in docker/*; do \
-		if $(LDD_RUN) $$binary; then echo "$$binary is not static, exiting..."; exit 1; fi \
-	done
-	tar --numeric-owner --owner 0 -c -z -f $@ docker
-	$(RM) -r docker
+docker-%.tgz: static-linux
