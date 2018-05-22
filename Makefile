@@ -163,4 +163,5 @@ docker-armel.tgz:
 	tar --numeric-owner --owner 0 -c -z -f $@ docker
 	$(RM) -r docker
 
-docker-%.tgz: static-linux
+docker-%.tgz:
+	$(MAKE) static-linux
