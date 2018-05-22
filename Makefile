@@ -165,3 +165,4 @@ docker-armel.tgz:
 
 docker-%.tgz:
 	$(MAKE) static-linux
+	mv docker-ce/components/packaging/static/build/linux/docker-*.tgz $@
