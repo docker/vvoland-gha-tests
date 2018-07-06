@@ -5,8 +5,7 @@ properties(
 		parameters(
 			[
 				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
-				string(name: 'DOCKER_CE_REF', defaultValue: '18.06', description: 'Docker CE reference to build from (usually a branch).'),
-				string(name: 'ARTIFACT_BUILD_TAG', defaultValue:'', description: 'ONLY USED BY NIGHTLY BUILDS, LEAVE BLANK OTHERWISE'),
+				string(name: 'DOCKER_CE_REF', defaultValue: 'master', description: 'Docker CE reference to build from (usually a branch).'),
 				booleanParam(name: 'TRIGGER_RELEASE', description: 'Trigger release after a successful build', defaultValue: false)
 			]
 		)
@@ -84,7 +83,7 @@ def init_steps = [
 			wrappedNode(label: 'aufs', cleanWorkspace: true) {
 				announceChannel = "#ship-builders"
 				// This is only the case on a nightly build
-				if (params.ARTIFACT_BUILD_TAG != "") {
+				if (env.BRANCH_NAME == 'ce-nightly') {
 					announceChannel = "#release-ci-feed"
 				}
 				if (params.TRIGGER_RELEASE) {
