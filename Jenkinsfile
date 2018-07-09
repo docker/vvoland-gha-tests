@@ -12,11 +12,7 @@ properties(
 	]
 )
 
-if ("${params.ARTIFACT_BUILD_TAG}" == "") {
-	BUILD_TAG="${env.BUILD_TAG}"
-} else {
-	BUILD_TAG="${params.ARTIFACT_BUILD_TAG}"
-}
+BUILD_TAG="${env.BUILD_TAG}"
 
 
 def saveS3(def Map args=[:]) {
