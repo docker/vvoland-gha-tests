@@ -24,6 +24,9 @@ docker-ce.tar.gz: docker-ce
 static-linux:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=static-linux static
 
+image-linux:
+	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=image-linux image
+
 cross-mac:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=cross-mac static
 
@@ -166,3 +169,6 @@ docker-armel.tgz:
 docker-%.tgz:
 	$(MAKE) static-linux
 	mv docker-ce/components/packaging/static/build/linux/docker-*.tgz $@
+
+release:
+	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) release
