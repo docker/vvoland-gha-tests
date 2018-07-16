@@ -210,6 +210,18 @@ def build_package_steps = [
 			}
 		}
 	},
+	'image-ce-binary': { ->
+		stage('image-ce-binary') {
+			wrappedNode(label: 'aufs', cleanWorkspace: true) {
+				checkout scm
+				unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
+				sh('make clean image-linux')
+				if (params.TRIGGER_RELEASE) {
+				    sh('make release')
+				}
+			}
+		}
+	},
 ]
 
 def static_arches = [
