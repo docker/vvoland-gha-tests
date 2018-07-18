@@ -6,13 +6,21 @@ properties(
 			[
 				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
 				string(name: 'DOCKER_CE_REF', defaultValue: 'master', description: 'Docker CE reference to build from (usually a branch).'),
-				booleanParam(name: 'TRIGGER_RELEASE', description: 'Trigger release after a successful build', defaultValue: false)
+				booleanParam(name: 'RELEASE_STAGING', description: 'Trigger release to staging after a successful build', defaultValue: false),
+				booleanParam(name: 'RELEASE_PRODUCTION', description: 'Trigger release to production after a successful build', defaultValue: false),
 			]
 		)
 	]
 )
 
 BUILD_TAG="${env.BUILD_TAG}"
+STAGING = params.RELEASE_STAGING
+PROD = params.RELEASE_PRODUCTION
+// Releasing to staging must always happen before a release to production
+if (params.RELEASE_PRODUCTION) {
+	STAGING = true
+}
+
 
 
 def saveS3(def Map args=[:]) {
@@ -107,13 +115,14 @@ def result_steps = [
 				// upload supported file to our s3 bucket
 				saveS3(name: 'supported', awscli_image: DEFAULT_AWS_IMAGE)
 				slackSend(channel: "#release-ci-feed", message: "Docker CE ${params.DOCKER_CE_REF} https://s3-us-west-2.amazonaws.com/docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/build-result.txt")
-				if (params.TRIGGER_RELEASE) {
-					// Triggers builds to go through to staging
+				if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
+					// Triggers builds to go through to staging and/or production
 					build(
 						job: 'docker/release-repo/ce',
 						parameters: [
 							[$class: 'StringParameterValue', name: 'ARTIFACT_BUILD_TAG', value: "${BUILD_TAG}"],
-							[$class: 'BooleanParameterValue', name: 'TRIGGER_RELEASE', value: params.TRIGGER_RELEASE],
+							[$class: 'BooleanParameterValue', name: 'RELEASE_STAGING', value: STAGING],
+							[$class: 'BooleanParameterValue', name: 'RELEASE_PRODUCTION', value: PROD],
 						],
 						wait: false,
 					)
