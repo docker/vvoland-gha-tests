@@ -10,14 +10,11 @@ armv7l-debian-jessie
 armv7l-debian-stretch
 armv7l-raspbian-jessie
 armv7l-raspbian-stretch
-armv7l-ubuntu-artful
 armv7l-ubuntu-bionic
 armv7l-ubuntu-trusty
 armv7l-ubuntu-xenial
-ppc64le-ubuntu-artful
 ppc64le-ubuntu-bionic
 ppc64le-ubuntu-xenial
-s390x-ubuntu-artful
 s390x-ubuntu-bionic
 s390x-ubuntu-xenial
 x86_64-centos-7
@@ -26,7 +23,6 @@ x86_64-debian-jessie
 x86_64-debian-stretch
 x86_64-fedora-27
 x86_64-fedora-28
-x86_64-ubuntu-artful
 x86_64-ubuntu-bionic
 x86_64-ubuntu-trusty
 x86_64-ubuntu-xenial
