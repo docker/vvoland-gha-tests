@@ -90,7 +90,7 @@ def init_steps = [
 				if (env.BRANCH_NAME == 'ce-nightly') {
 					announceChannel = "#release-ci-feed"
 				}
-				if (params.TRIGGER_RELEASE) {
+				if (params.RELEASE_PRODUCTION) {
 					slackSend(channel: announceChannel, message: "Initiating build pipeline. Building packages from `docker/docker-ce:${params.DOCKER_CE_REF}`. ${env.BUILD_URL}")
 				}
 				checkout scm
@@ -225,7 +225,7 @@ def build_package_steps = [
 				checkout scm
 				unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
 				sh('make clean image-linux')
-				if (params.TRIGGER_RELEASE) {
+				if (params.RELEASE_PRODUCTION) {
 				    sh('make release')
 				}
 			}
