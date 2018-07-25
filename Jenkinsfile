@@ -238,7 +238,7 @@ def static_arches = [
 	"armv6l",
 	"armv7l",
 	"s390x",
-	// "ppc64le",
+	"ppc64le",
 	"aarch64"
 ]
 
