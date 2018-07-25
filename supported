@@ -13,8 +13,6 @@ armv7l-raspbian-stretch
 armv7l-ubuntu-bionic
 armv7l-ubuntu-trusty
 armv7l-ubuntu-xenial
-ppc64le-ubuntu-bionic
-ppc64le-ubuntu-xenial
 s390x-ubuntu-bionic
 s390x-ubuntu-xenial
 x86_64-centos-7
