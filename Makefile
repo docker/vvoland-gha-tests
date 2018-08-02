@@ -2,6 +2,7 @@ SHELL:=/bin/bash
 DOCKER_CE_REPO:=git@github.com:docker/docker-ce
 DOCKER_CE_REF:=
 VERSION=$(shell cat docker-ce/VERSION)
+ARCH=$(shell uname -m)
 GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
 LDD_RUN=ldd >/dev/null 2>/dev/null
 
@@ -20,6 +21,9 @@ docker-ce:
 
 docker-ce.tar.gz: docker-ce
 	tar czf $@ $<
+
+engine-$(ARCH).tar:
+	make -C docker-ce/components/packaging/ VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
 
 static-linux:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=static-linux static
@@ -172,3 +176,6 @@ docker-%.tgz:
 
 release:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) release
+
+static_version:
+	@$(MAKE) -s -C docker-ce/components/packaging print-STATIC_VERSION
