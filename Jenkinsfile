@@ -4,8 +4,8 @@ properties(
 		buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '30')),
 		parameters(
 			[
-				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:jose-bigio/docker-ce.git', description: 'Docker git source repository.'),
-				string(name: 'DOCKER_CE_REF', defaultValue: 'develop-test', description: 'Docker CE reference to build from (usually a branch).'),
+				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
+				string(name: 'DOCKER_CE_REF', defaultValue: 'master', description: 'Docker CE reference to build from (usually a branch).'),
 				booleanParam(name: 'RELEASE_STAGING', description: 'Trigger release to staging after a successful build', defaultValue: false),
 				booleanParam(name: 'RELEASE_PRODUCTION', description: 'Trigger release to production after a successful build', defaultValue: false),
 			]
@@ -186,8 +186,7 @@ def genSaveDockerImage(String arch) {
 				def MAKE = "make ENGINE_IMAGE=engine-community-arches DOCKER_HUB_ORG=dockereng ARCH=${arch}"
 				unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
 				sh("ls docker-ce/components")
-				//sh("${MAKE} clean engine-${arch}.tar")
-				sh("${MAKE} engine-${arch}.tar")
+				sh("${MAKE} clean engine-${arch}.tar")
 				saveS3(name: "docker-ce/components/packaging/image/engine-${arch}.tar", awscli_image: config.awscli_image)
 			}
 		}
