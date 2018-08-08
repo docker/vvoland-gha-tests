@@ -4,8 +4,8 @@ properties(
 		buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '30')),
 		parameters(
 			[
-				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
-				string(name: 'DOCKER_CE_REF', defaultValue: 'develop', description: 'Docker CE reference to build from (usually a branch).'),
+				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:jose-bigio/docker-ce.git', description: 'Docker git source repository.'),
+				string(name: 'DOCKER_CE_REF', defaultValue: 'develop-test', description: 'Docker CE reference to build from (usually a branch).'),
 				booleanParam(name: 'RELEASE_STAGING', description: 'Trigger release to staging after a successful build', defaultValue: false),
 				booleanParam(name: 'RELEASE_PRODUCTION', description: 'Trigger release to production after a successful build', defaultValue: false),
 			]
@@ -167,8 +167,8 @@ def genBuildStep(String supportedString) {
 					checkout scm
 					unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
 					loadS3(name: "engine-${uname_arch}.tar", awscli_image: config.awscli_image)
-					sh("cp engine-${uname_arch}.tar docker-ce/components/packagig/deb/")
-					sh("cp engine-${uname_arch}.tar docker-ce/components/packagig/rpm/")
+					sh("cp engine-${uname_arch}.tar docker-ce/components/packaging/deb/")
+					sh("cp engine-${uname_arch}.tar docker-ce/components/packaging/rpm/")
 					sh("make clean ${distro_flavor} bundles-ce-${distro_flavor}-${config.arch}.tar.gz")
 					saveS3(name: "bundles-ce-${distro_flavor}-${config.arch}.tar.gz", awscli_image: config.awscli_image)
 				}
@@ -183,12 +183,12 @@ def genSaveDockerImage(String arch) {
 		stage("image-ce-binary-${arch}") {
 			wrappedNode(label: config.label, cleanWorkspace: true) {
 				checkout scm
-				def MAKE = "make ENGINE_IMAGE=engine-community-arches DOCKER_HUB_ORG=dockereng ENGINE_DIR=docker-ce/components/engine ARCH=${arch}"
+				def MAKE = "make ENGINE_IMAGE=engine-community-arches DOCKER_HUB_ORG=dockereng ARCH=${arch}"
 				unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
 				sh("ls docker-ce/components")
 				//sh("${MAKE} clean engine-${arch}.tar")
 				sh("${MAKE} engine-${arch}.tar")
-				saveS3(name: "engine-${arch}.tar", awscli_image: config.awscli_image)
+				saveS3(name: "docker-ce/components/packaging/image/engine-${arch}.tar", awscli_image: config.awscli_image)
 			}
 		}
 	}]
@@ -263,10 +263,11 @@ def static_arches = [
 	"ppc64le",
 	"aarch64"
 ]
+post_init_steps = [:]
 
 for (arch in static_arches) {
 	build_package_steps << genStaticBuildStep(arch)
-	build_package_steps << genSaveDockerImage(arch)
+	post_init_steps << genSaveDockerImage(arch)
 } 
 
 stage("generate package steps") {
@@ -279,6 +280,12 @@ stage("generate package steps") {
 	}
 }
 
+// post_init_steps build the docker images 
+// and saves the tar
+// these steps need to be run after the init step because that 
+// is when the docker-ce tar is available and before the build_package_steps 
+// because some of those steps rely on the image tar
 parallel(init_steps)
+parallel(post_init_steps)
 parallel(build_package_steps)
 parallel(result_steps)
