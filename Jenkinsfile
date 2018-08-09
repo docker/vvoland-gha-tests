@@ -5,7 +5,7 @@ properties(
 		parameters(
 			[
 				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
-				string(name: 'DOCKER_CE_REF', defaultValue: 'master', description: 'Docker CE reference to build from (usually a branch).'),
+				string(name: 'DOCKER_CE_REF', defaultValue: 'develop', description: 'Docker CE reference to build from (usually a branch).'),
 				booleanParam(name: 'RELEASE_STAGING', description: 'Trigger release to staging after a successful build', defaultValue: false),
 				booleanParam(name: 'RELEASE_PRODUCTION', description: 'Trigger release to production after a successful build', defaultValue: false),
 			]
@@ -37,7 +37,7 @@ def saveS3(def Map args=[:]) {
 }
 
 def loadS3(def Map args=[:]) {
-	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/${args.name}" 
+	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/${args.name}"
 	def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
 	withCredentials([[
 		$class: 'AmazonWebServicesCredentialsBinding',
@@ -179,7 +179,7 @@ def genBuildStep(String supportedString) {
 
 def genSaveDockerImage(String arch) {
 	def config = archConfig[arch]
-	return [ "image-ce-binary-${arch}": { -> 
+	return [ "image-ce-binary-${arch}": { ->
 		stage("image-ce-binary-${arch}") {
 			wrappedNode(label: config.label, cleanWorkspace: true) {
 				checkout scm
@@ -267,7 +267,7 @@ post_init_steps = [:]
 for (arch in static_arches) {
 	build_package_steps << genStaticBuildStep(arch)
 	post_init_steps << genSaveDockerImage(arch)
-} 
+}
 
 stage("generate package steps") {
 	wrappedNode(label: "x86_64&&ubuntu", cleanWorkspace: true) {
@@ -279,10 +279,10 @@ stage("generate package steps") {
 	}
 }
 
-// post_init_steps build the docker images 
+// post_init_steps build the docker images
 // and saves the tar
-// these steps need to be run after the init step because that 
-// is when the docker-ce tar is available and before the build_package_steps 
+// these steps need to be run after the init step because that
+// is when the docker-ce tar is available and before the build_package_steps
 // because some of those steps rely on the image tar
 parallel(init_steps)
 parallel(post_init_steps)
