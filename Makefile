@@ -5,6 +5,12 @@ VERSION=$(shell cat docker-ce/VERSION)
 ARCH=$(shell uname -m)
 GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
 LDD_RUN=ldd >/dev/null 2>/dev/null
+ENGINE_IMAGE?=engine-community-arches
+DOCKER_HUB_ORG?=dockereng
+
+STATIC_VERSION=$(shell ./docker-ce/components/packaging/static/gen-static-ver docker-ce/components/engine "$(VERSION)")
+
+ARCHES?=x86_64 ppc64le aarch64 armv7l
 
 help:
 	@echo help
@@ -22,6 +28,18 @@ docker-ce:
 docker-ce.tar.gz: docker-ce
 	tar czf $@ $<
 
+release-image-staging:
+	make -C docker-ce/components/packaging/image \
+		VERSION=$(VERSION) \
+		GITCOMMIT=$(GITCOMMIT) \
+		ENGINE_IMAGE=$(ENGINE_IMAGE) \
+		DOCKER_HUB_ORG=$(DOCKER_HUB_ORG) \
+		image-linux \
+		release
+
+release-image-manifest-staging:
+	ARCHES='$(ARCHES)' ./build-manifest-list $(DOCKER_HUB_ORG)/engine-community $(STATIC_VERSION) $(STATIC_VERSION)
+
 engine-$(ARCH).tar:
 	make -C docker-ce/components/packaging/ VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
 
@@ -38,19 +56,19 @@ cross-win:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=cross-win static
 
 debian-%:
-	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=$@ deb
+	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
 raspbian-%:
-	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=$@ deb
+	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
 ubuntu-%:
-	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=$@ deb
+	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
 fedora-%:
-	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=$@ rpm
+	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
 centos-%:
-	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=$@ rpm
+	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
 bundles-ce-binary.tar.gz:
 	mkdir -p bundles/$(VERSION)/binary-client bundles/$(VERSION)/binary-daemon
