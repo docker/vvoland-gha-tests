@@ -5,7 +5,7 @@ properties(
 		parameters(
 			[
 				string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
-				string(name: 'DOCKER_CE_REF', defaultValue: 'master', description: 'Docker CE reference to build from (usually a branch).'),
+				string(name: 'DOCKER_CE_REF', defaultValue: 'develop', description: 'Docker CE reference to build from (usually a branch).'),
 				booleanParam(name: 'RELEASE_STAGING', description: 'Trigger release to staging after a successful build', defaultValue: false),
 				booleanParam(name: 'RELEASE_PRODUCTION', description: 'Trigger release to production after a successful build', defaultValue: false),
 			]
@@ -35,6 +35,20 @@ def saveS3(def Map args=[:]) {
 		sh("${awscli} s3 cp --only-show-errors '${args.name}' '${destS3Uri}'")
 	}
 }
+
+def loadS3(def Map args=[:]) {
+	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/${args.name}"
+	def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
+	withCredentials([[
+		$class: 'AmazonWebServicesCredentialsBinding',
+		accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+		secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+		credentialsId: 'ci@docker-qa.aws'
+	]]) {
+		sh("${awscli} s3 cp --only-show-errors  '${destS3Uri}' '${args.name}'")
+	}
+}
+
 
 def genBuildResult(def Map args=[:]) {
 	def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
@@ -152,12 +166,31 @@ def genBuildStep(String supportedString) {
 				wrappedNode(label: config.label, cleanWorkspace: true) {
 					checkout scm
 					unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
+					loadS3(name: "engine-${uname_arch}.tar", awscli_image: config.awscli_image)
+					sh("cp engine-${uname_arch}.tar docker-ce/components/packaging/deb/")
+					sh("cp engine-${uname_arch}.tar docker-ce/components/packaging/rpm/")
 					sh("make clean ${distro_flavor} bundles-ce-${distro_flavor}-${config.arch}.tar.gz")
 					saveS3(name: "bundles-ce-${distro_flavor}-${config.arch}.tar.gz", awscli_image: config.awscli_image)
 				}
 			}
 		}
 	} ]
+}
+
+def genSaveDockerImage(String arch) {
+	def config = archConfig[arch]
+	return [ "image-ce-binary-${arch}": { ->
+		stage("image-ce-binary-${arch}") {
+			wrappedNode(label: config.label, cleanWorkspace: true) {
+				checkout scm
+				def MAKE = "make ENGINE_IMAGE=engine-community-arches DOCKER_HUB_ORG=dockereng ARCH=${arch}"
+				unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
+				sh("ls docker-ce/components")
+				sh("${MAKE} clean release-image-staging engine-${arch}.tar")
+				saveS3(name: "docker-ce/components/packaging/image/engine-${arch}.tar", awscli_image: config.awscli_image)
+			}
+		}
+	}]
 }
 
 def genStaticBuildStep(String uname_arch) {
@@ -219,31 +252,21 @@ def build_package_steps = [
 			}
 		}
 	},
-	'image-ce-binary': { ->
-		stage('image-ce-binary') {
-			wrappedNode(label: 'aufs', cleanWorkspace: true) {
-				checkout scm
-				unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
-				sh('make clean image-linux')
-				if (params.RELEASE_PRODUCTION) {
-				    sh('make release')
-				}
-			}
-		}
-	},
 ]
 
 def static_arches = [
 	"x86_64",
 	"armv6l",
 	"armv7l",
-	"s390x",
+	// "s390x",
 	"ppc64le",
 	"aarch64"
 ]
+post_init_steps = [:]
 
 for (arch in static_arches) {
 	build_package_steps << genStaticBuildStep(arch)
+	post_init_steps << genSaveDockerImage(arch)
 }
 
 stage("generate package steps") {
@@ -256,6 +279,24 @@ stage("generate package steps") {
 	}
 }
 
+// post_init_steps build the docker images
+// and saves the tar
+// these steps need to be run after the init step because that
+// is when the docker-ce tar is available and before the build_package_steps
+// because some of those steps rely on the image tar
 parallel(init_steps)
+parallel(post_init_steps)
+// Hey why do we have to do this?
+// Well images need to be up on hub since docker can't transfer images to containerd
+// in any form or fashion right now which is super annoying but there's nothing we
+// can do about it so sucks to suck.
+stage("release image manifest to staging") {
+	wrappedNode(label: "linux&&x86_64", cleanWorkspace: true) {
+		checkout scm
+		def MAKE = "make ENGINE_IMAGE=engine-community DOCKER_HUB_ORG=dockereng"
+		unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
+		sh("${MAKE} release-image-manifest-staging")
+	}
+}
 parallel(build_package_steps)
 parallel(result_steps)

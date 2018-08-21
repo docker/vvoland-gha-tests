@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+ARCHES=${ARCHES:-x86_64 s390x ppc64le aarch64 armv7l}
+
+TARGET_IMAGE=$1
+TARGET_TAG=$2
+FINAL_TAG=$3
+
+main() {
+    arch_images=$( \
+        for arch in ${ARCHES}; do  \
+            echo -n "${TARGET_IMAGE}-arches:${TARGET_TAG}.${arch} "; \
+        done \
+    )
+    (
+        set -x
+        DOCKER_CLI_EXPERIMENTAL=enabled docker manifest create --amend "${TARGET_IMAGE}:${FINAL_TAG}" ${arch_images}
+        DOCKER_CLI_EXPERIMENTAL=enabled docker manifest push "${TARGET_IMAGE}:${FINAL_TAG}"
+    )
+}
+
+main
