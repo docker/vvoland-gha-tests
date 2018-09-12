@@ -188,6 +188,7 @@ def genSaveDockerImage(String arch) {
 				sh("ls docker-ce/components")
 				sh("${MAKE} clean release-image-staging engine-${arch}.tar")
 				saveS3(name: "docker-ce/components/packaging/image/engine-${arch}.tar", awscli_image: config.awscli_image)
+				saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-docker-compat.tar", awscli_image: config.awscli_image)
 			}
 		}
 	}]
