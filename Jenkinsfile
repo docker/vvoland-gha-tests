@@ -186,7 +186,7 @@ def genSaveDockerImage(String arch) {
 				def MAKE = "make ENGINE_IMAGE=engine-community-arches DOCKER_HUB_ORG=dockereng ARCH=${arch}"
 				unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
 				sh("ls docker-ce/components")
-				sh("${MAKE} clean release-image-staging engine-${arch}.tar")
+				sh("${MAKE} clean engine-${arch}.tar")
 				saveS3(name: "docker-ce/components/packaging/image/engine-${arch}.tar", awscli_image: config.awscli_image)
 				saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-docker-compat.tar", awscli_image: config.awscli_image)
 			}
@@ -287,17 +287,5 @@ stage("generate package steps") {
 // because some of those steps rely on the image tar
 parallel(init_steps)
 parallel(post_init_steps)
-// Hey why do we have to do this?
-// Well images need to be up on hub since docker can't transfer images to containerd
-// in any form or fashion right now which is super annoying but there's nothing we
-// can do about it so sucks to suck.
-stage("release image manifest to staging") {
-	wrappedNode(label: "linux&&x86_64", cleanWorkspace: true) {
-		checkout scm
-		def MAKE = "make ENGINE_IMAGE=engine-community DOCKER_HUB_ORG=dockereng"
-		unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
-		sh("${MAKE} release-image-manifest-staging")
-	}
-}
 parallel(build_package_steps)
 parallel(result_steps)
