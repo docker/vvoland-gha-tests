@@ -166,9 +166,8 @@ def genBuildStep(String supportedString) {
 				wrappedNode(label: config.label, cleanWorkspace: true) {
 					checkout scm
 					unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
-					loadS3(name: "engine-${uname_arch}.tar", awscli_image: config.awscli_image)
-					sh("cp engine-${uname_arch}.tar docker-ce/components/packaging/deb/")
-					sh("cp engine-${uname_arch}.tar docker-ce/components/packaging/rpm/")
+					loadS3(name: "engine-${uname_arch}-docker-compat.tar", awscli_image: config.awscli_image)
+					loadS3(name: "engine-${uname_arch}-dm-docker-compat.tar", awscli_image: config.awscli_image)
 					sh("make clean ${distro_flavor} bundles-ce-${distro_flavor}-${config.arch}.tar.gz")
 					saveS3(name: "bundles-ce-${distro_flavor}-${config.arch}.tar.gz", awscli_image: config.awscli_image)
 				}
@@ -183,12 +182,16 @@ def genSaveDockerImage(String arch) {
 		stage("image-ce-binary-${arch}") {
 			wrappedNode(label: config.label, cleanWorkspace: true) {
 				checkout scm
-				def MAKE = "make ENGINE_IMAGE=engine-community-arches DOCKER_HUB_ORG=dockereng ARCH=${arch}"
+				def MAKE = "make -C docker-ce/components/packaging/image ENGINE_IMAGE=engine-community DOCKER_HUB_ORG=dockereng"
 				unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
-				sh("ls docker-ce/components")
 				sh("${MAKE} clean engine-${arch}.tar")
 				saveS3(name: "docker-ce/components/packaging/image/engine-${arch}.tar", awscli_image: config.awscli_image)
 				saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-docker-compat.tar", awscli_image: config.awscli_image)
+				// TODO: make engine-${arch}.tar clean up the `artifacts/engine-image` directory
+				// Is this an awful way to do it? Yeah but we don't really have a choice without making a change upstream
+				sh("${MAKE} clean engine-${arch}-dm.tar")
+				saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-dm.tar", awscli_image: config.awscli_image)
+				saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-dm-docker-compat.tar", awscli_image: config.awscli_image)
 			}
 		}
 	}]
@@ -267,7 +270,9 @@ post_init_steps = [:]
 
 for (arch in static_arches) {
 	build_package_steps << genStaticBuildStep(arch)
-	post_init_steps << genSaveDockerImage(arch)
+	if ( arch != "armv6l" ) {
+		post_init_steps << genSaveDockerImage(arch)
+	}
 }
 
 stage("generate package steps") {

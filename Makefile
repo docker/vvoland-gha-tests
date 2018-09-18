@@ -28,21 +28,6 @@ docker-ce:
 docker-ce.tar.gz: docker-ce
 	tar czf $@ $<
 
-release-image-staging:
-	make -C docker-ce/components/packaging/image \
-		VERSION=$(VERSION) \
-		GITCOMMIT=$(GITCOMMIT) \
-		ENGINE_IMAGE=$(ENGINE_IMAGE) \
-		DOCKER_HUB_ORG=$(DOCKER_HUB_ORG) \
-		image-linux \
-		release
-
-release-image-manifest-staging:
-	ARCHES='$(ARCHES)' ./build-manifest-list $(DOCKER_HUB_ORG)/engine-community $(STATIC_VERSION) $(STATIC_VERSION)
-
-engine-$(ARCH).tar:
-	make -C docker-ce/components/packaging/ VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
-
 static-linux:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=static-linux static
 
@@ -55,25 +40,35 @@ cross-mac:
 cross-win:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=cross-win static
 
-debian-%:
+DEB_DEPENDENCIES=docker-ce/components/packaging/deb/sources/engine-image
+docker-ce/components/packaging/deb/sources/engine-image: engine-$(ARCH)-docker-compat.tar
+	mkdir -p $(@D)
+	docker load -i $< | sed '/Loaded image/!d' | cut -d':' -f2- | xargs > $@
+
+RPM_DEPENDENCIES=docker-ce/components/packaging/rpm/rpmbuild/SOURCES/engine-image
+docker-ce/components/packaging/rpm/rpmbuild/SOURCES/engine-image: engine-$(ARCH)-dm-docker-compat.tar
+	mkdir -p $(@D)
+	docker load -i $< | sed '/Loaded image/!d' | cut -d':' -f2- | xargs > $@
+
+debian-%: $(DEB_DEPENDENCIES)
 	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
-raspbian-%:
+raspbian-%: $(DEB_DEPENDENCIES)
 	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
-ubuntu-%:
+ubuntu-%: $(DEB_DEPENDENCIES)
 	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
-fedora-%:
+fedora-%: $(RPM_DEPENDENCIES)
 	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
-centos-%:
+centos-%: $(RPM_DEPENDENCIES)
 	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
 bundles-ce-binary.tar.gz:
 	mkdir -p bundles/$(VERSION)/binary-client bundles/$(VERSION)/binary-daemon
 	cp docker-ce/components/packaging/static/build/linux/docker/docker bundles/$(VERSION)/binary-client/
-	for f in dockerd docker-init docker-proxy docker-runc docker-containerd docker-containerd-ctr docker-containerd-shim; do \
+	for f in dockerd docker-init docker-proxy runc containerd ctr containerd-shim; do \
 		cp docker-ce/components/packaging/static/build/linux/docker/$$f bundles/$(VERSION)/binary-daemon/; \
 		if $(LDD_RUN) bundles/$(VERSION)/binary-daemon/$$f; then echo "$$f is not static, exiting..."; exit 1; fi \
 	done
@@ -179,7 +174,7 @@ docker-armel.tgz:
 	make -C docker-ce/components/engine DOCKER_RUN_DOCKER='$$(DOCKER_FLAGS) -e GOARM=6 "$$(DOCKER_IMAGE)"' VERSION=$(VERSION) binary
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
-	for f in dockerd docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc; do \
+	for f in dockerd containerd ctr containerd-shim docker-init docker-proxy runc; do \
 		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
 	done
 	for binary in docker/*; do \
