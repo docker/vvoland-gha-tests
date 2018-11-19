@@ -1,4 +1,5 @@
 aarch64-centos-7
+aarch64-debian-buster
 aarch64-debian-stretch
 aarch64-fedora-27
 aarch64-fedora-28
@@ -6,12 +7,14 @@ aarch64-fedora-29
 aarch64-ubuntu-cosmic
 aarch64-ubuntu-bionic
 aarch64-ubuntu-xenial
+armv7l-debian-buster
 armv7l-debian-stretch
 armv7l-raspbian-stretch
 armv7l-ubuntu-cosmic
 armv7l-ubuntu-bionic
 armv7l-ubuntu-xenial
 x86_64-centos-7
+x86_64-debian-buster
 x86_64-debian-stretch
 x86_64-fedora-27
 x86_64-fedora-28
