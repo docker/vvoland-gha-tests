@@ -285,12 +285,23 @@ stage("generate package steps") {
 	}
 }
 
-// post_init_steps build the docker images
-// and saves the tar
-// these steps need to be run after the init step because that
-// is when the docker-ce tar is available and before the build_package_steps
-// because some of those steps rely on the image tar
-parallel(init_steps)
-parallel(post_init_steps)
-parallel(build_package_steps)
-parallel(result_steps)
+try {
+	// post_init_steps build the docker images
+	// and saves the tar
+	// these steps need to be run after the init step because that
+	// is when the docker-ce tar is available and before the build_package_steps
+	// because some of those steps rely on the image tar
+	parallel(init_steps)
+	parallel(post_init_steps)
+	parallel(build_package_steps)
+	parallel(result_steps)
+} catch (err) {
+	def failChannel = "#release-announce-test"
+	def notify = ""
+	if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
+		failChannel = "#release-ci-feed"
+		notify = "@sf-release-eng"
+	}
+	slackSend(channel: failChannel, color: 'danger', message: "${notify}Release Packaging job ${env.JOB_NAME} failed. ${env.BUILD_URL}")
+	throw err
+}
