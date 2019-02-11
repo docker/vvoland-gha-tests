@@ -7,6 +7,7 @@ GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
 LDD_RUN=ldd >/dev/null 2>/dev/null
 ENGINE_IMAGE?=engine-community-arches
 DOCKER_HUB_ORG?=dockereng
+DOCKER_CLI_GOLANG_IMG=$(shell awk '$$1=="FROM"{split($$2,a,"-");print a[1];exit}' $(CURDIR)/docker-ce/components/cli/dockerfiles/Dockerfile.dev)
 
 STATIC_VERSION=$(shell ./docker-ce/components/packaging/static/gen-static-ver docker-ce/components/engine "$(VERSION)")
 
@@ -170,7 +171,7 @@ docker-armel.tgz:
 	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) -e GOARM=6 \
 		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
 		-w /go/src/github.com/docker/cli \
-		golang:1.10.2 make binary
+		$(DOCKER_CLI_GOLANG_IMG) make binary
 	make -C docker-ce/components/engine DOCKER_RUN_DOCKER='$$(DOCKER_FLAGS) -e GOARM=6 "$$(DOCKER_IMAGE)"' VERSION=$(VERSION) binary
 	$(RM) -r docker
 	install -D docker-ce/components/cli/build/docker docker/docker
