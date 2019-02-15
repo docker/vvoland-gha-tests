@@ -207,6 +207,7 @@ def genStaticBuildStep(String uname_arch) {
 					unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
 					sh("make clean docker-${config.arch}.tgz")
 					saveS3(name: "docker-${config.arch}.tgz", awscli_image: config.awscli_image)
+					saveS3(name: "docker-rootless-extras-${config.arch}.tgz", awscli_image: config.awscli_image)
 				}
 			}
 		}
