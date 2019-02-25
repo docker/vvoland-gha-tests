@@ -61,6 +61,8 @@ ubuntu-%: $(DEB_DEPENDENCIES)
 	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
 fedora-%: $(RPM_DEPENDENCIES)
+	docker rmi -f $(subst -,:,$@)
+	docker pull $(subst -,:,$@)
 	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
 centos-%: $(RPM_DEPENDENCIES)
