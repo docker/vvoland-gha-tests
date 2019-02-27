@@ -261,7 +261,7 @@ def build_package_steps = [
 
 def static_arches = [
 	"x86_64",
-	"armv6l",
+	// "armv6l",
 	"armv7l",
 	// "s390x",
 	//"ppc64le",
@@ -270,7 +270,10 @@ def static_arches = [
 post_init_steps = [:]
 
 for (arch in static_arches) {
-	build_package_steps << genStaticBuildStep(arch)
+	// Why we bundled these together in the first place the world may never know
+	if ( arch != "armv7l" ) {
+		build_package_steps << genStaticBuildStep(arch)
+	}
 	if ( arch != "armv6l" ) {
 		post_init_steps << genSaveDockerImage(arch)
 	}
