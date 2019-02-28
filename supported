@@ -4,12 +4,14 @@ aarch64-debian-stretch
 aarch64-fedora-27
 aarch64-fedora-28
 aarch64-fedora-29
+aarch64-ubuntu-disco
 aarch64-ubuntu-cosmic
 aarch64-ubuntu-bionic
 aarch64-ubuntu-xenial
 armv7l-debian-buster
 armv7l-debian-stretch
 armv7l-raspbian-stretch
+armv7l-ubuntu-disco
 armv7l-ubuntu-cosmic
 armv7l-ubuntu-bionic
 armv7l-ubuntu-xenial
@@ -20,6 +22,7 @@ x86_64-fedora-27
 x86_64-fedora-28
 x86_64-fedora-29
 x86_64-fedora-30
+x86_64-ubuntu-disco
 x86_64-ubuntu-cosmic
 x86_64-ubuntu-bionic
 x86_64-ubuntu-xenial
