@@ -79,13 +79,12 @@ bundles-ce-binary.tar.gz:
 
 bundles-ce-cross-darwin.tar.gz:
 	mkdir -p bundles/$(VERSION)/cross/darwin/amd64
-	cp docker-ce/components/packaging/static/build/mac/docker/docker bundles/$(VERSION)/cross/darwin/amd64/
+	cp -r docker-ce/components/packaging/static/build/mac/docker/* bundles/$(VERSION)/cross/darwin/amd64/
 	tar czf $@ bundles
 
 bundles-ce-cross-windows.tar.gz:
 	mkdir -p bundles/$(VERSION)/cross/windows/amd64
-	cp docker-ce/components/packaging/static/build/win/docker/docker.exe bundles/$(VERSION)/cross/windows/amd64/
-	cp docker-ce/components/packaging/static/build/win/docker/dockerd.exe bundles/$(VERSION)/cross/windows/amd64/
+	cp -r docker-ce/components/packaging/static/build/win/docker/* bundles/$(VERSION)/cross/windows/amd64/
 	tar czf $@ bundles
 
 bundles-ce-debian-%-amd64.tar.gz:
