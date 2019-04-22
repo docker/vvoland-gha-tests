@@ -9,6 +9,10 @@ ENGINE_IMAGE?=engine-community-arches
 DOCKER_HUB_ORG?=dockereng
 DOCKER_CLI_GOLANG_IMG=$(shell awk '$$1=="FROM"{split($$2,a,"-");print a[1];exit}' $(CURDIR)/docker-ce/components/cli/dockerfiles/Dockerfile.dev)
 
+# Should probably find an easier way to do this
+PLATFORM=Docker Engine - Community
+export PLATFORM
+
 STATIC_VERSION=$(shell ./docker-ce/components/packaging/static/gen-static-ver docker-ce/components/engine "$(VERSION)")
 
 ARCHES?=x86_64 ppc64le aarch64 armv7l
