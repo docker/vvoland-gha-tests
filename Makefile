@@ -1,5 +1,9 @@
 SHELL:=/bin/bash
 DOCKER_CE_REPO:=git@github.com:docker/docker-ce
+DOCKER_PACKAGING_REPO := git@github.com:docker/docker-ce-packaging
+DOCKER_CLI_REPO := git@github.com:docker/cli
+DOCKER_ENGINE_REPO := git@github.com:docker/engine
+COMPONENTS_DIR := "docker-ce/components"
 DOCKER_CE_REF:=
 VERSION=$(shell cat docker-ce/VERSION)
 ARCH=$(shell uname -m)
@@ -8,6 +12,13 @@ LDD_RUN=ldd >/dev/null 2>/dev/null
 ENGINE_IMAGE?=engine-community-arches
 DOCKER_HUB_ORG?=dockereng
 DOCKER_CLI_GOLANG_IMG=$(shell awk '$$1=="FROM"{split($$2,a,"-");print a[1];exit}' $(CURDIR)/docker-ce/components/cli/dockerfiles/Dockerfile.dev)
+
+define clone_upstream_project
+	rm -rf $(COMPONENTS_DIR)/${1}
+	git clone ${2} $(COMPONENTS_DIR)/${1}
+	git -C $(COMPONENTS_DIR)/${1} fetch origin
+	git -C $(COMPONENTS_DIR)/${1} checkout $(DOCKER_CE_REF)
+endef
 
 # Should probably find an easier way to do this
 PLATFORM=Docker Engine - Community
@@ -29,6 +40,12 @@ clean:
 docker-ce:
 	git clone $(DOCKER_CE_REPO) $@
 	git -C $@ checkout $(DOCKER_CE_REF)
+
+  # Clear out existing packages and clone them from upstream
+	$(call clone_upstream_project,packaging,$(DOCKER_PACKAGING_REPO))
+	$(call clone_upstream_project,cli,$(DOCKER_CLI_REPO))
+	$(call clone_upstream_project,engine,$(DOCKER_ENGINE_REPO))
+
 
 docker-ce.tar.gz: docker-ce
 	tar czf $@ $<
