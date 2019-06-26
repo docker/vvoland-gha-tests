@@ -176,18 +176,20 @@ def genSaveDockerImage(String arch) {
     def config = archConfig[arch]
     return [ "image-ce-binary-${arch}": { ->
         stage("image-ce-binary-${arch}") {
-            wrappedNode(label: config.label, cleanWorkspace: true) {
-                checkout scm
-                def MAKE = "make -C docker-ce/components/packaging/image ENGINE_IMAGE=engine-community DOCKER_HUB_ORG=dockereng"
-                unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
-                sh("${MAKE} clean engine-${arch}.tar")
-                saveS3(name: "docker-ce/components/packaging/image/engine-${arch}.tar", awscli_image: config.awscli_image)
-                saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-docker-compat.tar", awscli_image: config.awscli_image)
-                // TODO: make engine-${arch}.tar clean up the `artifacts/engine-image` directory
-                // Is this an awful way to do it? Yeah but we don't really have a choice without making a change upstream
-                sh("${MAKE} clean engine-${arch}-dm.tar")
-                saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-dm.tar", awscli_image: config.awscli_image)
-                saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-dm-docker-compat.tar", awscli_image: config.awscli_image)
+            retry(3) {
+                wrappedNode(label: config.label, cleanWorkspace: true) {
+                    checkout scm
+                    def MAKE = "make -C docker-ce/components/packaging/image ENGINE_IMAGE=engine-community DOCKER_HUB_ORG=dockereng"
+                    unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
+                    sh("${MAKE} clean engine-${arch}.tar")
+                    saveS3(name: "docker-ce/components/packaging/image/engine-${arch}.tar", awscli_image: config.awscli_image)
+                    saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-docker-compat.tar", awscli_image: config.awscli_image)
+                    // TODO: make engine-${arch}.tar clean up the `artifacts/engine-image` directory
+                    // Is this an awful way to do it? Yeah but we don't really have a choice without making a change upstream
+                    sh("${MAKE} clean engine-${arch}-dm.tar")
+                    saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-dm.tar", awscli_image: config.awscli_image)
+                    saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-dm-docker-compat.tar", awscli_image: config.awscli_image)
+                }
             }
         }
     }]
@@ -213,43 +215,51 @@ def genStaticBuildStep(String uname_arch) {
 def build_package_steps = [
     'cross-mac'         : { ->
         stage('cross-mac') {
-            wrappedNode(label: 'aufs', cleanWorkspace: true) {
-                checkout scm
-                unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
-                sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz')
-                saveS3(name: 'bundles-ce-cross-darwin.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
-                saveS3(name: 'docker-mac.tgz', awscli_image: DEFAULT_AWS_IMAGE)
+            retry(3) {
+                wrappedNode(label: 'aufs', cleanWorkspace: true) {
+                    checkout scm
+                    unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
+                    sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz')
+                    saveS3(name: 'bundles-ce-cross-darwin.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
+                    saveS3(name: 'docker-mac.tgz', awscli_image: DEFAULT_AWS_IMAGE)
+                }
             }
         }
     },
     'cross-win'         : { ->
         stage('cross-win') {
-            wrappedNode(label: 'aufs', cleanWorkspace: true) {
-                checkout scm
-                unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
-                sh('make clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip')
-                saveS3(name: 'bundles-ce-cross-windows.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
-                saveS3(name: 'docker-win.zip', awscli_image: DEFAULT_AWS_IMAGE)
+            retry(3) {
+                wrappedNode(label: 'aufs', cleanWorkspace: true) {
+                    checkout scm
+                    unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
+                    sh('make clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip')
+                    saveS3(name: 'bundles-ce-cross-windows.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
+                    saveS3(name: 'docker-win.zip', awscli_image: DEFAULT_AWS_IMAGE)
+                }
             }
         }
     },
     'shell-completion'  : { ->
         stage('shell-completion') {
-            wrappedNode(label: 'aufs', cleanWorkspace: true) {
-                checkout scm
-                unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
-                sh('make clean bundles-ce-shell-completion.tar.gz')
-                saveS3(name: 'bundles-ce-shell-completion.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
+            retry(3) {
+                wrappedNode(label: 'aufs', cleanWorkspace: true) {
+                    checkout scm
+                    unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
+                    sh('make clean bundles-ce-shell-completion.tar.gz')
+                    saveS3(name: 'bundles-ce-shell-completion.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
+                }
             }
         }
     },
     'bundles-ce-binary' : { ->
         stage('bundles-ce-binary') {
-            wrappedNode(label: 'aufs', cleanWorkspace: true) {
-                checkout scm
-                unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
-                sh('make clean static-linux bundles-ce-binary.tar.gz')
-                saveS3(name: 'bundles-ce-binary.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
+            retry(3) {
+                wrappedNode(label: 'aufs', cleanWorkspace: true) {
+                    checkout scm
+                    unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
+                    sh('make clean static-linux bundles-ce-binary.tar.gz')
+                    saveS3(name: 'bundles-ce-binary.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
+                }
             }
         }
     },
