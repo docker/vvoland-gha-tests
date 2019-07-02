@@ -19,6 +19,7 @@ x86_64-debian-buster
 x86_64-debian-stretch
 x86_64-fedora-28
 x86_64-fedora-29
+x86_64-fedora-30
 x86_64-ubuntu-disco
 x86_64-ubuntu-cosmic
 x86_64-ubuntu-bionic
