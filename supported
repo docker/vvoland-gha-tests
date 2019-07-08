@@ -9,6 +9,7 @@ aarch64-ubuntu-bionic
 aarch64-ubuntu-xenial
 armv7l-debian-buster
 armv7l-debian-stretch
+armv7l-raspbian-buster
 armv7l-raspbian-stretch
 armv7l-ubuntu-disco
 armv7l-ubuntu-cosmic
