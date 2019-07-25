@@ -7,8 +7,8 @@ GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
 LDD_RUN=ldd >/dev/null 2>/dev/null
 ENGINE_IMAGE?=engine-community-arches
 DOCKER_HUB_ORG?=dockereng
-DOCKER_CLI_GOLANG_IMG=$(shell awk '$$1=="FROM"{split($$2,a,"-");print a[1];exit}' $(CURDIR)/docker-ce/components/cli/dockerfiles/Dockerfile.dev)
-
+GO_VERSION=$(shell grep "ARG GO_VERSION" $(CURDIR)/docker-ce/components/cli/dockerfiles/Dockerfile.dev | awk -F'=' '{print $$2}')
+DOCKER_CLI_GOLANG_IMG=golang:$(GO_VERSION)
 # Should probably find an easier way to do this
 PLATFORM=Docker Engine - Community
 export PLATFORM
