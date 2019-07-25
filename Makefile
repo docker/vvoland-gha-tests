@@ -7,7 +7,7 @@ GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
 LDD_RUN=ldd >/dev/null 2>/dev/null
 ENGINE_IMAGE?=engine-community-arches
 DOCKER_HUB_ORG?=dockereng
-DOCKER_CLI_GOLANG_IMG=$(shell awk '$$1=="FROM"{split($$2,a,"-");print a[1];exit}' $(CURDIR)/docker-ce/components/cli/dockerfiles/Dockerfile.dev)
+DOCKER_CLI_GOLANG_IMG=golang:$(shell sed '1q;d' $(CURDIR)/docker-ce/components/cli/dockerfiles/Dockerfile.dev | awk -F'=' '{print $$2}')
 
 # Should probably find an easier way to do this
 PLATFORM=Docker Engine - Community
