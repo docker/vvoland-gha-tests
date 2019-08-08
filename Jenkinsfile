@@ -128,7 +128,7 @@ def result_steps = [
                 if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
                     // Triggers builds to go through to staging and/or production
                     build(
-                        job: "docker/release-repo/ce",
+                        job: "release-repo/ce",
                         parameters: [
                             [$class: 'StringParameterValue', name: 'ARTIFACT_BUILD_TAG', value: "${BUILD_TAG}"],
                             [$class: 'BooleanParameterValue', name: 'RELEASE_STAGING', value: STAGING],
