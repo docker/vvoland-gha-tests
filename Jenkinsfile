@@ -144,6 +144,7 @@ def result_steps = [
 
 archConfig = [
     x86_64 : [label: "x86_64&&ubuntu", awscli_image: DEFAULT_AWS_IMAGE, arch: "amd64"],
+    amd64 :  [label: "x86_64&&ubuntu", awscli_image: DEFAULT_AWS_IMAGE, arch: "amd64"],
     armv6l : [label: "armhf", awscli_image: "seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977", arch: "armel"],
     armv7l : [label: "armhf", awscli_image: "seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977", arch: "armhf"],
     s390x  : [label: "s390x", awscli_image: "seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03", arch: "s390x"],
@@ -151,25 +152,45 @@ archConfig = [
     aarch64: [label: "aarch64", awscli_image: "seemethere/awscli-aarch64@sha256:2d646ae12278006a710f74e57c27e23fb73eee027f237ab72ebb02ef66a447b9", arch: "aarch64"],
 ]
 
-def genBuildStep(String supportedString) {
-    // since historically we've named our stuff after the dpkg --print-architecture string we're bound by this
-    def uname_arch = supportedString.tokenize('-')[0]        // get first part of the string
-    def distro_flavor = supportedString - (uname_arch + "-") // grab distro_flavor by deleting the arch from original string
-    def config = archConfig[uname_arch]
-    return [ "${distro_flavor}-${config.arch}" : { ->
-        stage("${distro_flavor}-${config.arch}") {
+def arches = ["amd64", "armhf", "aarch64"]
+
+def pkgs = [
+    [target: "ubuntu-xenial",            image: "ubuntu:xenial",                          arches: arches],
+    [target: "ubuntu-bionic",            image: "ubuntu:bionic",                          arches: arches],
+    [target: "ubuntu-cosmic",            image: "ubuntu:cosmic",                          arches: arches],
+    [target: "debian-buster",            image: "debian:buster",                          arches: arches],
+    [target: "debian-stretch",           image: "debian:stretch",                         arches: arches],
+    [target: "fedora-31",                image: "fedora:31",                              arches: arches - ["armhf"]],
+    [target: "fedora-30",                image: "fedora:30",                              arches: arches - ["armhf"]],
+    [target: "fedora-29",                image: "fedora:29",                              arches: arches - ["armhf"]],
+    [target: "centos-7",                 image: "centos:7",                               arches: arches - ["armhf"]],
+    [target: "raspbian-buster",          image: "resin/rpi-raspbian:buster",              arches: arches - ["amd64", "aarch64"]],
+    [target: "raspbian-stretch",         image: "resin/rpi-raspbian:stretch",             arches: arches - ["amd64", "aarch64"]],
+
+]
+
+def genBuildStep(LinkedHashMap pkg, String arch) {
+    def awscli_image = "dockereng/awscli"
+    def nodeLabel = "linux&&${arch}"
+    return { ->
+        stage("${pkg.target}-${arch}") {
             retry(3) {
-                wrappedNode(label: config.label, cleanWorkspace: true) {
+                wrappedNode(label: nodeLabel, cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
-                    loadS3(name: "engine-${uname_arch}-docker-compat.tar", awscli_image: config.awscli_image)
-                    loadS3(name: "engine-${uname_arch}-dm-docker-compat.tar", awscli_image: config.awscli_image)
-                    sh("make clean ${distro_flavor} bundles-ce-${distro_flavor}-${config.arch}.tar.gz")
-                    saveS3(name: "bundles-ce-${distro_flavor}-${config.arch}.tar.gz", awscli_image: config.awscli_image)
+                    unstashS3(name: 'docker-ce', awscli_image: awscli_image)
+                    uname_arch = sh(script: "uname -m", returnStdout: true).trim()
+                    loadS3(name: "engine-${uname_arch}-docker-compat.tar", awscli_image: awscli_image)
+                    loadS3(name: "engine-${uname_arch}-dm-docker-compat.tar", awscli_image: awscli_image)
+                    sshagent(['docker-jenkins.github.ssh']) {
+                        def buildImage = pkg.image
+                        sh("make clean ${pkg.target} bundles-ce-${pkg.target}-${arch}.tar.gz")
+                        sh("docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify")
+                    }
+                    saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz", awscli_image: awscli_image)
                 }
             }
         }
-    } ]
+    }
 }
 
 def genSaveDockerImage(String arch) {
@@ -282,15 +303,13 @@ for (arch in static_arches) {
     }
 }
 
-stage("generate package steps") {
-    wrappedNode(label: "x86_64&&ubuntu", cleanWorkspace: true) {
-        checkout scm
-        supported = readFile("supported")
-        for (String line : supported.split("\n")) {
-            build_package_steps << genBuildStep(line)
-        }
+def genPackageSteps(opts) {
+    return opts.arches.collectEntries {
+        ["${opts.image}-${it}": genBuildStep(opts, it)]
     }
 }
+
+build_package_steps << pkgs.collectEntries { genPackageSteps(it) }
 
 try {
     // post_init_steps build the docker images
