@@ -5,8 +5,6 @@ VERSION=$(shell cat docker-ce/VERSION)
 ARCH=$(shell uname -m)
 GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
 LDD_RUN=ldd >/dev/null 2>/dev/null
-ENGINE_IMAGE?=engine-community-arches
-DOCKER_HUB_ORG?=dockereng
 GO_VERSION=$(shell grep "ARG GO_VERSION" $(CURDIR)/docker-ce/components/cli/dockerfiles/Dockerfile.dev | awk -F'=' '{print $$2}')
 DOCKER_CLI_GOLANG_IMG=golang:$(GO_VERSION)
 # Should probably find an easier way to do this
@@ -36,24 +34,11 @@ docker-ce.tar.gz: docker-ce
 static-linux:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=static-linux static
 
-image-linux:
-	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=image-linux image
-
 cross-mac:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=cross-mac static
 
 cross-win:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=cross-win static
-
-DEB_DEPENDENCIES=docker-ce/components/packaging/deb/sources/engine-image
-docker-ce/components/packaging/deb/sources/engine-image: engine-$(ARCH)-docker-compat.tar
-	mkdir -p $(@D)
-	docker load -i $< | sed '/Loaded image/!d' | cut -d':' -f2- | xargs > $@
-
-RPM_DEPENDENCIES=docker-ce/components/packaging/rpm/rpmbuild/SOURCES/engine-image
-docker-ce/components/packaging/rpm/rpmbuild/SOURCES/engine-image: engine-$(ARCH)-dm-docker-compat.tar
-	mkdir -p $(@D)
-	docker load -i $< | sed '/Loaded image/!d' | cut -d':' -f2- | xargs > $@
 
 debian-%: $(DEB_DEPENDENCIES)
 	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@

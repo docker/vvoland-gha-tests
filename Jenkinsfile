@@ -179,9 +179,6 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                 wrappedNode(label: nodeLabel, cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce', awscli_image: awscli_image)
-                    uname_arch = sh(script: "uname -m", returnStdout: true).trim()
-                    loadS3(name: "engine-${uname_arch}-docker-compat.tar", awscli_image: awscli_image)
-                    loadS3(name: "engine-${uname_arch}-dm-docker-compat.tar", awscli_image: awscli_image)
                     sshagent(['docker-jenkins.github.ssh']) {
                         def buildImage = pkg.image
                         sh("make clean ${pkg.target} bundles-ce-${pkg.target}-${arch}.tar.gz")
@@ -192,29 +189,6 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
             }
         }
     }
-}
-
-def genSaveDockerImage(String arch) {
-    def config = archConfig[arch]
-    return [ "image-ce-binary-${arch}": { ->
-        stage("image-ce-binary-${arch}") {
-            retry(3) {
-                wrappedNode(label: config.label, cleanWorkspace: true) {
-                    checkout scm
-                    def MAKE = "make -C docker-ce/components/packaging/image ENGINE_IMAGE=engine-community DOCKER_HUB_ORG=dockereng"
-                    unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
-                    sh("${MAKE} clean engine-${arch}.tar")
-                    saveS3(name: "docker-ce/components/packaging/image/engine-${arch}.tar", awscli_image: config.awscli_image)
-                    saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-docker-compat.tar", awscli_image: config.awscli_image)
-                    // TODO: make engine-${arch}.tar clean up the `artifacts/engine-image` directory
-                    // Is this an awful way to do it? Yeah but we don't really have a choice without making a change upstream
-                    sh("${MAKE} clean engine-${arch}-dm.tar")
-                    saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-dm.tar", awscli_image: config.awscli_image)
-                    saveS3(name: "docker-ce/components/packaging/image/engine-${arch}-dm-docker-compat.tar", awscli_image: config.awscli_image)
-                }
-            }
-        }
-    }]
 }
 
 def genStaticBuildStep(String uname_arch) {
@@ -299,9 +273,6 @@ post_init_steps = [:]
 
 for (arch in static_arches) {
     build_package_steps << genStaticBuildStep(arch)
-    if ( arch != "armv6l" ) {
-        post_init_steps << genSaveDockerImage(arch)
-    }
 }
 
 def genPackageSteps(opts) {
