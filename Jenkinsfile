@@ -71,7 +71,7 @@ def unstashS3(def Map args=[:]) {
     sh("rm -f '${args.name}.tar.gz'")
 }
 
-DEFAULT_AWS_IMAGE = "anigeo/awscli@sha256:f4685e66230dcb77c81dc590140aee61e727936cf47e8f4f19a427fc851844a1"
+DEFAULT_AWS_IMAGE = "dockereng/awscli:1.16.156"
 
 def init_steps = [
     'init': { ->
@@ -127,11 +127,11 @@ def result_steps = [
 archConfig = [
     x86_64 : [label: "x86_64&&ubuntu", awscli_image: DEFAULT_AWS_IMAGE, arch: "amd64"],
     amd64 :  [label: "x86_64&&ubuntu", awscli_image: DEFAULT_AWS_IMAGE, arch: "amd64"],
-    armv6l : [label: "armhf", awscli_image: "seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977", arch: "armel"],
-    armv7l : [label: "armhf", awscli_image: "seemethere/awscli-armhf@sha256:2a92eebed76e3e82f3899c6851cfaf8b7eb26d08cabcb5938dfcd66115d37977", arch: "armhf"],
-    s390x  : [label: "s390x", awscli_image: "seemethere/awscli-s390x@sha256:198e47b58a868784bce929a1c8dc8a25c521f9ce102a3eb0aa2094d44c241c03", arch: "s390x"],
-    ppc64le: [label: "ppc64le", awscli_image: "seemethere/awscli-ppc64le@sha256:1f46b7687cc70bbf4f9bcf67c5e779b65c67088f1a946c9759be470a41da06d7", arch: "ppc64le"],
-    aarch64: [label: "aarch64", awscli_image: "seemethere/awscli-aarch64@sha256:2d646ae12278006a710f74e57c27e23fb73eee027f237ab72ebb02ef66a447b9", arch: "aarch64"],
+    armv6l : [label: "armhf", awscli_image: DEFAULT_AWS_IMAGE, arch: "armel"],
+    armv7l : [label: "armhf", awscli_image: DEFAULT_AWS_IMAGE, arch: "armhf"],
+    s390x  : [label: "s390x", awscli_image: DEFAULT_AWS_IMAGE, arch: "s390x"],
+    ppc64le: [label: "ppc64le", awscli_image: DEFAULT_AWS_IMAGE, arch: "ppc64le"],
+    aarch64: [label: "aarch64", awscli_image: DEFAULT_AWS_IMAGE, arch: "aarch64"],
 ]
 
 def arches = ["amd64", "armhf", "aarch64"]
@@ -153,7 +153,7 @@ def pkgs = [
 ]
 
 def genBuildStep(LinkedHashMap pkg, String arch) {
-    def awscli_image = "dockereng/awscli"
+    def awscli_image = DEFAULT_AWS_IMAGE
     def nodeLabel = "linux&&${arch}"
     return { ->
         stage("${pkg.target}-${arch}") {
