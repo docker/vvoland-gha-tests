@@ -157,32 +157,6 @@ docker-win.zip:
 docker-mac.tgz:
 	cp docker-ce/components/packaging/static/build/mac/docker-*.tgz $@
 
-docker-armel.tgz:
-	docker run --rm -i -e VERSION=$(VERSION) -e GITCOMMIT=$(GITCOMMIT) -e GOARM=6 \
-		-v $(CURDIR)/docker-ce/components/cli:/go/src/github.com/docker/cli \
-		-w /go/src/github.com/docker/cli \
-		$(DOCKER_CLI_GOLANG_IMG) make binary
-	make -C docker-ce/components/engine DOCKER_RUN_DOCKER='$$(DOCKER_FLAGS) -e GOARM=6 "$$(DOCKER_IMAGE)"' VERSION=$(VERSION) binary
-	$(RM) -r docker
-	install -D docker-ce/components/cli/build/docker docker/docker
-	for f in dockerd containerd ctr containerd-shim docker-init docker-proxy runc; do \
-		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker/$$f; \
-	done
-	for binary in docker/*; do \
-		if $(LDD_RUN) $$binary; then echo "$$binary is not static, exiting..."; exit 1; fi \
-	done
-	tar --numeric-owner --owner 0 -c -z -f $@ docker
-	$(RM) -r docker
-	# We should add vpnkit here, but it doesn't build on ARM: https://github.com/docker/docker-ce-packaging/pull/295/files#r254136585
-	for f in rootlesskit dockerd-rootless.sh; do \
-		install -D docker-ce/components/engine/bundles/binary-daemon/$$f docker-rootless-extras/$$f; \
-	done
-	for binary in docker-rootless-extras/*; do \
-		if $(LDD_RUN) $$binary; then echo "$$binary is not static, exiting..."; exit 1; fi \
-	done
-	tar --numeric-owner --owner 0 -c -z -f docker-rootless-extras-armel.tgz docker-rootless-extras
-	$(RM) -r docker-rootless-extras
-
 docker-%.tgz:
 	$(MAKE) static-linux
 	mv docker-ce/components/packaging/static/build/linux/docker-rootless-extras-*.tgz docker-rootless-extras-$*.tgz
