@@ -20,15 +20,17 @@ if (params.RELEASE_PRODUCTION) {
 }
 
 
+awsCred = [
+    $class           : 'AmazonWebServicesCredentialsBinding',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+    credentialsId    : 'ci@docker-qa.aws'
+]
+
 def saveS3(def Map args=[:]) {
     def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
     def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
-    withCredentials([[
-         $class           : 'AmazonWebServicesCredentialsBinding',
-         accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-         secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-         credentialsId    : 'ci@docker-qa.aws'
-     ]]) {
+    withCredentials([awsCred]) {
         sh("${awscli} s3 cp --only-show-errors '${args.name}' '${destS3Uri}'")
     }
 }
@@ -36,12 +38,7 @@ def saveS3(def Map args=[:]) {
 def loadS3(def Map args=[:]) {
     def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/${args.name}"
     def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
-    withCredentials([[
-        $class: 'AmazonWebServicesCredentialsBinding',
-        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-        credentialsId: 'ci@docker-qa.aws'
-    ]]) {
+    withCredentials([awsCred]) {
         sh("${awscli} s3 cp --only-show-errors  '${destS3Uri}' '${args.name}'")
     }
 }
@@ -49,12 +46,7 @@ def loadS3(def Map args=[:]) {
 def genBuildResult(def Map args=[:]) {
     def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
     def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
-    withCredentials([[
-        $class: 'AmazonWebServicesCredentialsBinding',
-        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-        credentialsId: 'ci@docker-qa.aws'
-    ]]) {
+    withCredentials([awsCred]) {
         sh("${awscli} s3 ls '${destS3Uri}' > build-result.txt")
     }
 }
@@ -63,12 +55,7 @@ def stashS3(def Map args=[:]) {
     def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
     def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
     sh("find . -path './${args.includes}' | tar -c -z -f '${args.name}.tar.gz' -T -")
-    withCredentials([[
-        $class: 'AmazonWebServicesCredentialsBinding',
-        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-        credentialsId: 'ci@docker-qa.aws'
-    ]]) {
+    withCredentials([awsCred]) {
         sh("${awscli} s3 cp --only-show-errors '${args.name}.tar.gz' '${destS3Uri}'")
     }
     sh("rm -f '${args.name}.tar.gz'")
@@ -77,12 +64,7 @@ def stashS3(def Map args=[:]) {
 def unstashS3(def Map args=[:]) {
     def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
     def srcS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/${args.name}.tar.gz"
-    withCredentials([[
-        $class: 'AmazonWebServicesCredentialsBinding',
-        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-        credentialsId: 'ci@docker-qa.aws'
-    ]]) {
+    withCredentials([awsCred]) {
         sh("${awscli} s3 cp --only-show-errors '${srcS3Uri}' .")
     }
     sh("tar -x -z -f '${args.name}.tar.gz'")
