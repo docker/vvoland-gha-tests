@@ -157,7 +157,8 @@ def arches = ["amd64", "armhf", "aarch64"]
 def pkgs = [
     [target: "ubuntu-xenial",            image: "ubuntu:xenial",                          arches: arches],
     [target: "ubuntu-bionic",            image: "ubuntu:bionic",                          arches: arches],
-    [target: "ubuntu-eoan",              image: "ubuntu:eoan",                            arches: arches],
+// TODO re-enable eoan once containerd.io packages are available
+//     [target: "ubuntu-eoan",              image: "ubuntu:eoan",                            arches: arches],
     [target: "debian-buster",            image: "debian:buster",                          arches: arches],
     [target: "debian-stretch",           image: "debian:stretch",                         arches: arches],
     [target: "fedora-31",                image: "fedora:31",                              arches: arches - ["armhf"]],
