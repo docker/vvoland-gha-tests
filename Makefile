@@ -40,21 +40,21 @@ cross-mac:
 cross-win:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=cross-win static
 
-debian-%: $(DEB_DEPENDENCIES)
+debian-%:
 	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
-raspbian-%: $(DEB_DEPENDENCIES)
+raspbian-%:
 	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
-ubuntu-%: $(DEB_DEPENDENCIES)
+ubuntu-%:
 	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
-fedora-%: $(RPM_DEPENDENCIES)
+fedora-%:
 	docker rmi -f $(subst -,:,$@)
 	docker pull $(subst -,:,$@)
 	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
-centos-%: $(RPM_DEPENDENCIES)
+centos-%:
 	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
 
 bundles-ce-binary.tar.gz:
