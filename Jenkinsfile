@@ -249,7 +249,6 @@ def static_arches = [
     //"ppc64le",
     "aarch64"
 ]
-post_init_steps = [:]
 
 for (arch in static_arches) {
     build_package_steps << genStaticBuildStep(arch)
@@ -264,13 +263,7 @@ def genPackageSteps(opts) {
 build_package_steps << pkgs.collectEntries { genPackageSteps(it) }
 
 try {
-    // post_init_steps build the docker images
-    // and saves the tar
-    // these steps need to be run after the init step because that
-    // is when the docker-ce tar is available and before the build_package_steps
-    // because some of those steps rely on the image tar
     parallel(init_steps)
-    parallel(post_init_steps)
     parallel(build_package_steps)
     parallel(result_steps)
 } catch (err) {
