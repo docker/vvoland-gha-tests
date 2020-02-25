@@ -18,7 +18,7 @@ PROD = params.RELEASE_PRODUCTION
 if (params.RELEASE_PRODUCTION) {
     STAGING = true
 }
-
+AWS_IMAGE = "dockereng/awscli:1.16.156"
 
 awsCred = [
     $class           : 'AmazonWebServicesCredentialsBinding',
@@ -29,7 +29,8 @@ awsCred = [
 
 def saveS3(def Map args=[:]) {
     def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
-    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
+    def awscli_image = AWS_IMAGE
+    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
     withCredentials([awsCred]) {
         sh("${awscli} s3 cp --only-show-errors '${args.name}' '${destS3Uri}'")
     }
@@ -37,15 +38,17 @@ def saveS3(def Map args=[:]) {
 
 def loadS3(def Map args=[:]) {
     def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/${args.name}"
-    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
+    def awscli_image = AWS_IMAGE
+    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
     withCredentials([awsCred]) {
         sh("${awscli} s3 cp --only-show-errors  '${destS3Uri}' '${args.name}'")
     }
 }
 
-def genBuildResult(def Map args=[:]) {
+def genBuildResult() {
     def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
-    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
+    def awscli_image = AWS_IMAGE
+    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
     withCredentials([awsCred]) {
         sh("${awscli} s3 ls '${destS3Uri}' > build-result.txt")
     }
@@ -53,7 +56,8 @@ def genBuildResult(def Map args=[:]) {
 
 def stashS3(def Map args=[:]) {
     def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
-    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
+    def awscli_image = AWS_IMAGE
+    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
     sh("find . -path './${args.includes}' | tar -c -z -f '${args.name}.tar.gz' -T -")
     withCredentials([awsCred]) {
         sh("${awscli} s3 cp --only-show-errors '${args.name}.tar.gz' '${destS3Uri}'")
@@ -62,16 +66,15 @@ def stashS3(def Map args=[:]) {
 }
 
 def unstashS3(def Map args=[:]) {
-    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${args.awscli_image}"
     def srcS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/${args.name}.tar.gz"
+    def awscli_image = AWS_IMAGE
+    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
     withCredentials([awsCred]) {
         sh("${awscli} s3 cp --only-show-errors '${srcS3Uri}' .")
     }
     sh("tar -x -z -f '${args.name}.tar.gz'")
     sh("rm -f '${args.name}.tar.gz'")
 }
-
-DEFAULT_AWS_IMAGE = "dockereng/awscli:1.16.156"
 
 def init_steps = [
     'init': { ->
@@ -89,7 +92,7 @@ def init_steps = [
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh("make DOCKER_CE_REF=${params.DOCKER_CE_REF} DOCKER_CE_REPO=${params.DOCKER_CE_REPO} docker-ce.tar.gz")
                 }
-                saveS3(name: 'docker-ce.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
+                saveS3(name: 'docker-ce.tar.gz')
             }
         }
     }
@@ -100,10 +103,10 @@ def result_steps = [
         stage('result') {
             wrappedNode(label: 'aufs', cleanWorkspace: true) {
                 checkout scm
-                unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
-                genBuildResult(awscli_image: DEFAULT_AWS_IMAGE)
+                unstashS3(name: 'docker-ce')
+                genBuildResult()
                 sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
-                saveS3(name: 'build-result.txt', awscli_image: DEFAULT_AWS_IMAGE)
+                saveS3(name: 'build-result.txt')
                 slackSend(channel: "#release-ci-feed", message: "Docker CE ${params.DOCKER_CE_REF} https://s3-us-west-2.amazonaws.com/docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/build-result.txt")
                 if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
                     // Triggers builds to go through to staging and/or production
@@ -123,13 +126,13 @@ def result_steps = [
 ]
 
 archConfig = [
-    x86_64 : [label: "x86_64&&ubuntu", awscli_image: DEFAULT_AWS_IMAGE, arch: "amd64"],
-    amd64 :  [label: "x86_64&&ubuntu", awscli_image: DEFAULT_AWS_IMAGE, arch: "amd64"],
-    armv6l : [label: "armhf", awscli_image: DEFAULT_AWS_IMAGE, arch: "armel"],
-    armv7l : [label: "armhf", awscli_image: DEFAULT_AWS_IMAGE, arch: "armhf"],
-    s390x  : [label: "s390x", awscli_image: DEFAULT_AWS_IMAGE, arch: "s390x"],
-    ppc64le: [label: "ppc64le", awscli_image: DEFAULT_AWS_IMAGE, arch: "ppc64le"],
-    aarch64: [label: "aarch64", awscli_image: DEFAULT_AWS_IMAGE, arch: "aarch64"],
+    x86_64 : [label: "x86_64&&ubuntu", arch: "amd64"],
+    amd64 :  [label: "x86_64&&ubuntu", arch: "amd64"],
+    armv6l : [label: "armhf",          arch: "armel"],
+    armv7l : [label: "armhf",          arch: "armhf"],
+    s390x  : [label: "s390x",          arch: "s390x"],
+    ppc64le: [label: "ppc64le",        arch: "ppc64le"],
+    aarch64: [label: "aarch64",        arch: "aarch64"],
 ]
 
 def arches = ["amd64", "armhf", "aarch64"]
@@ -151,20 +154,19 @@ def pkgs = [
 ]
 
 def genBuildStep(LinkedHashMap pkg, String arch) {
-    def awscli_image = DEFAULT_AWS_IMAGE
     def nodeLabel = "linux&&${arch}"
     return { ->
         stage("${pkg.target}-${arch}") {
             retry(3) {
                 wrappedNode(label: nodeLabel, cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce', awscli_image: awscli_image)
+                    unstashS3(name: 'docker-ce')
                     sshagent(['docker-jenkins.github.ssh']) {
                         def buildImage = pkg.image
                         sh("make clean ${pkg.target} bundles-ce-${pkg.target}-${arch}.tar.gz")
                         sh("docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify")
                     }
-                    saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz", awscli_image: awscli_image)
+                    saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
                 }
             }
         }
@@ -178,10 +180,10 @@ def genStaticBuildStep(String uname_arch) {
             retry(3) {
                 wrappedNode(label: config.label, cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce', awscli_image: config.awscli_image)
+                    unstashS3(name: 'docker-ce')
                     sh("make clean docker-${config.arch}.tgz")
-                    saveS3(name: "docker-${config.arch}.tgz", awscli_image: config.awscli_image)
-                    saveS3(name: "docker-rootless-extras-${config.arch}.tgz", awscli_image: config.awscli_image)
+                    saveS3(name: "docker-${config.arch}.tgz")
+                    saveS3(name: "docker-rootless-extras-${config.arch}.tgz")
                 }
             }
         }
@@ -194,10 +196,10 @@ def build_package_steps = [
             retry(3) {
                 wrappedNode(label: 'aufs', cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
+                    unstashS3(name: 'docker-ce')
                     sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz')
-                    saveS3(name: 'bundles-ce-cross-darwin.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
-                    saveS3(name: 'docker-mac.tgz', awscli_image: DEFAULT_AWS_IMAGE)
+                    saveS3(name: 'bundles-ce-cross-darwin.tar.gz')
+                    saveS3(name: 'docker-mac.tgz')
                 }
             }
         }
@@ -207,10 +209,10 @@ def build_package_steps = [
             retry(3) {
                 wrappedNode(label: 'aufs', cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
+                    unstashS3(name: 'docker-ce')
                     sh('make clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip')
-                    saveS3(name: 'bundles-ce-cross-windows.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
-                    saveS3(name: 'docker-win.zip', awscli_image: DEFAULT_AWS_IMAGE)
+                    saveS3(name: 'bundles-ce-cross-windows.tar.gz')
+                    saveS3(name: 'docker-win.zip')
                 }
             }
         }
@@ -220,9 +222,9 @@ def build_package_steps = [
             retry(3) {
                 wrappedNode(label: 'aufs', cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
+                    unstashS3(name: 'docker-ce')
                     sh('make clean bundles-ce-shell-completion.tar.gz')
-                    saveS3(name: 'bundles-ce-shell-completion.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
+                    saveS3(name: 'bundles-ce-shell-completion.tar.gz')
                 }
             }
         }
@@ -232,9 +234,9 @@ def build_package_steps = [
             retry(3) {
                 wrappedNode(label: 'aufs', cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce', awscli_image: DEFAULT_AWS_IMAGE)
+                    unstashS3(name: 'docker-ce')
                     sh('make clean static-linux bundles-ce-binary.tar.gz')
-                    saveS3(name: 'bundles-ce-binary.tar.gz', awscli_image: DEFAULT_AWS_IMAGE)
+                    saveS3(name: 'bundles-ce-binary.tar.gz')
                 }
             }
         }
