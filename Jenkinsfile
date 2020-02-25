@@ -148,8 +148,8 @@ def pkgs = [
     [target: "fedora-30",                image: "fedora:30",                              arches: arches - ["armhf"]],
     [target: "fedora-29",                image: "fedora:29",                              arches: arches - ["armhf"]],
     [target: "centos-7",                 image: "centos:7",                               arches: arches - ["armhf"]],
-    [target: "raspbian-buster",          image: "resin/rpi-raspbian:buster",              arches: arches - ["amd64", "aarch64"]],
-    [target: "raspbian-stretch",         image: "resin/rpi-raspbian:stretch",             arches: arches - ["amd64", "aarch64"]],
+    [target: "raspbian-buster",          image: "balenalib/rpi-raspbian:buster",          arches: arches - ["amd64", "aarch64"]],
+    [target: "raspbian-stretch",         image: "balenalib/rpi-raspbian:stretch",         arches: arches - ["amd64", "aarch64"]],
 
 ]
 
