@@ -138,18 +138,17 @@ archConfig = [
 def arches = ["amd64", "armhf", "aarch64"]
 
 def pkgs = [
-    [target: "ubuntu-xenial",            image: "ubuntu:xenial",                          arches: arches],
-    [target: "ubuntu-bionic",            image: "ubuntu:bionic",                          arches: arches],
+    [target: "centos-7",                 image: "centos:7",                               arches: ["aarch64", "amd64"]], // (EOL: June 30, 2024)
+    [target: "debian-stretch",           image: "debian:stretch",                         arches: ["aarch64", "amd64", "armhf"]], // Debian 9  (EOL: June, 2022)
+    [target: "debian-buster",            image: "debian:buster",                          arches: ["aarch64", "amd64", "armhf"]], // Debian 10 (EOL: 2024)
+    [target: "fedora-30",                image: "fedora:30",                              arches: ["aarch64", "amd64"]],
+    [target: "fedora-31",                image: "fedora:31",                              arches: ["aarch64", "amd64"]],
+    [target: "raspbian-stretch",         image: "resin/rpi-raspbian:stretch",             arches: ["armhf"]],
+    [target: "raspbian-buster",          image: "resin/rpi-raspbian:buster",              arches: ["armhf"]],
+    [target: "ubuntu-xenial",            image: "ubuntu:xenial",                          arches: ["aarch64", "amd64", "armhf"]], // Ubuntu 16.04 LTS (End of support: April, 2021. EOL: April, 2024)
+    [target: "ubuntu-bionic",            image: "ubuntu:bionic",                          arches: ["aarch64", "amd64", "armhf"]], // Ubuntu 18.04 LTS (End of support: April, 2023. EOL: April, 2028)
 // TODO re-enable eoan once containerd.io packages are available
 //     [target: "ubuntu-eoan",              image: "ubuntu:eoan",                            arches: arches],
-    [target: "debian-buster",            image: "debian:buster",                          arches: arches],
-    [target: "debian-stretch",           image: "debian:stretch",                         arches: arches],
-    [target: "fedora-31",                image: "fedora:31",                              arches: arches - ["armhf"]],
-    [target: "fedora-30",                image: "fedora:30",                              arches: arches - ["armhf"]],
-    [target: "fedora-29",                image: "fedora:29",                              arches: arches - ["armhf"]],
-    [target: "centos-7",                 image: "centos:7",                               arches: arches - ["armhf"]],
-    [target: "raspbian-buster",          image: "balenalib/rpi-raspbian:buster",          arches: arches - ["amd64", "aarch64"]],
-    [target: "raspbian-stretch",         image: "balenalib/rpi-raspbian:stretch",         arches: arches - ["amd64", "aarch64"]],
 
 ]
 
