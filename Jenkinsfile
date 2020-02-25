@@ -126,16 +126,14 @@ def result_steps = [
 ]
 
 archConfig = [
-    x86_64 : [label: "x86_64&&ubuntu", arch: "amd64"],
+    aarch64: [label: "aarch64",        arch: "aarch64"],
     amd64 :  [label: "x86_64&&ubuntu", arch: "amd64"],
     armv6l : [label: "armhf",          arch: "armel"],
     armv7l : [label: "armhf",          arch: "armhf"],
-    s390x  : [label: "s390x",          arch: "s390x"],
     ppc64le: [label: "ppc64le",        arch: "ppc64le"],
-    aarch64: [label: "aarch64",        arch: "aarch64"],
+    s390x  : [label: "s390x",          arch: "s390x"],
+    x86_64 : [label: "x86_64&&ubuntu", arch: "amd64"],
 ]
-
-def arches = ["amd64", "armhf", "aarch64"]
 
 def pkgs = [
     [target: "centos-7",                 image: "centos:7",                               arches: ["aarch64", "amd64"]], // (EOL: June 30, 2024)
