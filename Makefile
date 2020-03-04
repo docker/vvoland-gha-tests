@@ -5,8 +5,6 @@ VERSION=$(shell cat docker-ce/VERSION)
 ARCH=$(shell uname -m)
 GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
 LDD_RUN=ldd >/dev/null 2>/dev/null
-GO_VERSION=$(shell grep "ARG GO_VERSION" $(CURDIR)/docker-ce/components/cli/dockerfiles/Dockerfile.dev | awk -F'=' '{print $$2}')
-DOCKER_CLI_GOLANG_IMG=golang:$(GO_VERSION)
 
 STATIC_VERSION=$(shell ./docker-ce/components/packaging/static/gen-static-ver docker-ce/components/engine "$(VERSION)")
 
