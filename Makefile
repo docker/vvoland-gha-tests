@@ -1,22 +1,47 @@
 SHELL:=/bin/bash
-DOCKER_CE_REPO:=git@github.com:docker/docker-ce
-DOCKER_CE_REF:=
-VERSION=$(shell cat docker-ce/VERSION)
-GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
 LDD_RUN=ldd >/dev/null 2>/dev/null
+
+# Repositories to build from
+DOCKER_CLI_REPO:=git@github.com:docker/cli.git
+DOCKER_CLI_REF:=
+DOCKER_ENGINE_REPO:=git@github.com:moby/moby.git
+DOCKER_ENGINE_REF:=
+DOCKER_PACKAGING_REPO:=git@github.com:docker/docker-ce-packaging.git
+DOCKER_PACKAGING_REF:=
+
+# TODO: cli and engine packages should get their own git-commit listed. Temporarily using the "engine" commit
+GITCOMMIT=$(shell git -C docker-ce/components/engine rev-parse --short HEAD)
+
+# TODO: either get version for cli and engine packages separately, or require a version to be set. Temporarily using the "cli" version file
+VERSION=$(shell cat docker-ce/components/cli/VERSION)
 
 help:
 	@echo help
 
 clean:
-	make -C docker-ce clean
+	make -C docker-ce/components/cli clean
+	make -C docker-ce/components/engine clean
+	make -C docker-ce/components/packaging clean
 	$(RM) -r bundles
 	$(RM) *.gz
 	$(RM) *.tgz
 
-docker-ce:
-	git clone $(DOCKER_CE_REPO) $@
-	git -C $@ checkout $(DOCKER_CE_REF)
+docker-ce/components/cli:
+	mkdir -p $@
+	git clone $(DOCKER_CLI_REPO) $@
+	git -C $@ checkout $(DOCKER_CLI_REF)
+
+docker-ce/components/engine:
+	mkdir -p $@
+	git clone $(DOCKER_ENGINE_REPO) $@
+	git -C $@ checkout $(DOCKER_ENGINE_REF)
+
+docker-ce/components/packaging:
+	mkdir -p $@
+	git clone $(DOCKER_PACKAGING_REPO) $@
+	git -C $@ checkout $(DOCKER_PACKAGING_REF)
+
+docker-ce: docker-ce/components/cli docker-ce/components/engine docker-ce/components/packaging
 
 docker-ce.tar.gz: docker-ce
 	tar czf $@ $<
