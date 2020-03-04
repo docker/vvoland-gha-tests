@@ -157,11 +157,9 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                 wrappedNode(label: nodeLabel, cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
-                    sshagent(['docker-jenkins.github.ssh']) {
-                        def buildImage = pkg.image
-                        sh("make clean ${pkg.target} bundles-ce-${pkg.target}-${arch}.tar.gz")
-                        sh("docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify")
-                    }
+                    def buildImage = pkg.image
+                    sh("make clean ${pkg.target} bundles-ce-${pkg.target}-${arch}.tar.gz")
+                    sh("docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify")
                     saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
                 }
             }
