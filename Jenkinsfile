@@ -27,8 +27,14 @@ awsCred = [
     credentialsId    : 'ci@docker-qa.aws'
 ]
 
+def getS3Bucket() {
+    withCredentials([string(credentialsId: 'AWS_ARTIFACTS_S3_BUCKET', variable: 'awsBucket')]) {
+        return awsBucket
+    }
+}
+
 def saveS3(def Map args=[:]) {
-    def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
+    def destS3Uri = "s3://${getS3Bucket()}/${BUILD_TAG}/"
     def awscli_image = AWS_IMAGE
     def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
     withCredentials([awsCred]) {
@@ -37,7 +43,7 @@ def saveS3(def Map args=[:]) {
 }
 
 def loadS3(def Map args=[:]) {
-    def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/${args.name}"
+    def destS3Uri = "s3://${getS3Bucket()}/${BUILD_TAG}/${args.name}"
     def awscli_image = AWS_IMAGE
     def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
     withCredentials([awsCred]) {
@@ -46,7 +52,7 @@ def loadS3(def Map args=[:]) {
 }
 
 def genBuildResult() {
-    def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
+    def destS3Uri = "s3://${getS3Bucket()}/${BUILD_TAG}/"
     def awscli_image = AWS_IMAGE
     def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
     withCredentials([awsCred]) {
@@ -55,7 +61,7 @@ def genBuildResult() {
 }
 
 def stashS3(def Map args=[:]) {
-    def destS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/"
+    def destS3Uri = "s3://${getS3Bucket()}/${BUILD_TAG}/"
     def awscli_image = AWS_IMAGE
     def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
     sh("find . -path './${args.includes}' | tar -c -z -f '${args.name}.tar.gz' -T -")
@@ -66,7 +72,7 @@ def stashS3(def Map args=[:]) {
 }
 
 def unstashS3(def Map args=[:]) {
-    def srcS3Uri = "s3://docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/${args.name}.tar.gz"
+    def srcS3Uri = "s3://${getS3Bucket()}/${BUILD_TAG}/${args.name}.tar.gz"
     def awscli_image = AWS_IMAGE
     def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
     withCredentials([awsCred]) {
@@ -107,7 +113,7 @@ def result_steps = [
                 genBuildResult()
                 sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
                 saveS3(name: 'build-result.txt')
-                slackSend(channel: "#release-ci-feed", message: "Docker CE ${params.DOCKER_CE_REF} https://s3-us-west-2.amazonaws.com/docker-ci-artifacts/ci.qa.aws.dckr.io/${BUILD_TAG}/build-result.txt")
+                slackSend(channel: "#release-ci-feed", message: "Docker CE ${params.DOCKER_CE_REF} https://s3-us-west-2.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
                 if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
                     // Triggers builds to go through to staging and/or production
                     build(
