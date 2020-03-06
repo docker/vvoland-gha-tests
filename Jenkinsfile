@@ -85,7 +85,7 @@ def unstashS3(def Map args=[:]) {
 def init_steps = [
     'init': { ->
         stage('init') {
-            wrappedNode(label: 'aufs', cleanWorkspace: true) {
+            wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                 announceChannel = "#ship-builders"
                 // This is only the case on a nightly build
                 if (env.BRANCH_NAME == 'ce-nightly') {
@@ -107,7 +107,7 @@ def init_steps = [
 def result_steps = [
     'result': { ->
         stage('result') {
-            wrappedNode(label: 'aufs', cleanWorkspace: true) {
+            wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                 checkout scm
                 unstashS3(name: 'docker-ce')
                 genBuildResult()
@@ -163,11 +163,9 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                 wrappedNode(label: nodeLabel, cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
-                    sshagent(['docker-jenkins.github.ssh']) {
-                        def buildImage = pkg.image
-                        sh("make clean ${pkg.target} bundles-ce-${pkg.target}-${arch}.tar.gz")
-                        sh("docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify")
-                    }
+                    def buildImage = pkg.image
+                    sh("make clean ${pkg.target} bundles-ce-${pkg.target}-${arch}.tar.gz")
+                    sh("docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify")
                     saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
                 }
             }
@@ -196,7 +194,7 @@ def build_package_steps = [
     'cross-mac'         : { ->
         stage('cross-mac') {
             retry(3) {
-                wrappedNode(label: 'aufs', cleanWorkspace: true) {
+                wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
                     sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz')
@@ -209,7 +207,7 @@ def build_package_steps = [
     'cross-win'         : { ->
         stage('cross-win') {
             retry(3) {
-                wrappedNode(label: 'aufs', cleanWorkspace: true) {
+                wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
                     sh('make clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip')
@@ -222,7 +220,7 @@ def build_package_steps = [
     'shell-completion'  : { ->
         stage('shell-completion') {
             retry(3) {
-                wrappedNode(label: 'aufs', cleanWorkspace: true) {
+                wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
                     sh('make clean bundles-ce-shell-completion.tar.gz')
@@ -234,7 +232,7 @@ def build_package_steps = [
     'bundles-ce-binary' : { ->
         stage('bundles-ce-binary') {
             retry(3) {
-                wrappedNode(label: 'aufs', cleanWorkspace: true) {
+                wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
                     sh('make clean static-linux bundles-ce-binary.tar.gz')

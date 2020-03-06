@@ -2,18 +2,8 @@ SHELL:=/bin/bash
 DOCKER_CE_REPO:=git@github.com:docker/docker-ce
 DOCKER_CE_REF:=
 VERSION=$(shell cat docker-ce/VERSION)
-ARCH=$(shell uname -m)
 GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
 LDD_RUN=ldd >/dev/null 2>/dev/null
-GO_VERSION=$(shell grep "ARG GO_VERSION" $(CURDIR)/docker-ce/components/cli/dockerfiles/Dockerfile.dev | awk -F'=' '{print $$2}')
-DOCKER_CLI_GOLANG_IMG=golang:$(GO_VERSION)
-# Should probably find an easier way to do this
-PLATFORM=Docker Engine - Community
-export PLATFORM
-
-STATIC_VERSION=$(shell ./docker-ce/components/packaging/static/gen-static-ver docker-ce/components/engine "$(VERSION)")
-
-ARCHES?=x86_64 ppc64le aarch64 armv7l
 
 help:
 	@echo help
@@ -41,21 +31,21 @@ cross-win:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=cross-win static
 
 debian-%:
-	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
+	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
 
 raspbian-%:
-	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
+	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
 
 ubuntu-%:
-	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
+	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
 
 fedora-%:
 	docker rmi -f $(subst -,:,$@)
 	docker pull $(subst -,:,$@)
-	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
+	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
 
 centos-%:
-	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) IMAGE_TAG=$(STATIC_VERSION) $@
+	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
 
 bundles-ce-binary.tar.gz:
 	mkdir -p bundles/$(VERSION)/binary-client bundles/$(VERSION)/binary-daemon
@@ -164,6 +154,3 @@ docker-%.tgz:
 
 release:
 	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) release
-
-static_version:
-	@$(MAKE) -s -C docker-ce/components/packaging print-STATIC_VERSION
