@@ -122,7 +122,7 @@ def result_steps = [
                 unstashS3(name: 'docker-ce')
                 genBuildResult()
                 // TODO: cli and engine packages should get their own git-commit listed. Temporarily using the "engine" commit
-                sh('git -C docker-ce/components/engine rev-parse HEAD >> build-result.txt')
+                sh('git -C docker-ce/engine rev-parse HEAD >> build-result.txt')
                 saveS3(name: 'build-result.txt')
                 slackSend(channel: "#release-ci-feed", message: "Docker CE (cli: `${params.DOCKER_CLI_REF}`, engine: `${params.DOCKER_ENGINE_REF}`, packaging: `${params.DOCKER_PACKAGING_REF}`) https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
                 if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
