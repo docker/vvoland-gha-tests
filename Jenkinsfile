@@ -24,11 +24,11 @@ awsCred = [
     $class           : 'AmazonWebServicesCredentialsBinding',
     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-    credentialsId    : 'ci@docker-qa.aws'
+    credentialsId    : 'docker-ci-artifacts'
 ]
 
 def getS3Bucket() {
-    withCredentials([string(credentialsId: 'AWS_ARTIFACTS_S3_BUCKET', variable: 'awsBucket')]) {
+    withCredentials([string(credentialsId: 'AWS_DOCKER_CI_ARTIFACTS_S3_BUCKET', variable: 'awsBucket')]) {
         return awsBucket
     }
 }
@@ -113,7 +113,7 @@ def result_steps = [
                 genBuildResult()
                 sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
                 saveS3(name: 'build-result.txt')
-                slackSend(channel: "#release-ci-feed", message: "Docker CE ${params.DOCKER_CE_REF} https://s3-us-west-2.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
+                slackSend(channel: "#release-ci-feed", message: "Docker CE ${params.DOCKER_CE_REF} https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
                 if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
                     // Triggers builds to go through to staging and/or production
                     build(
