@@ -9,8 +9,8 @@ DOCKER_ENGINE_REF:=
 DOCKER_PACKAGING_REPO:=git@github.com:docker/docker-ce-packaging.git
 DOCKER_PACKAGING_REF:=
 
-# TODO: cli and engine packages should get their own git-commit listed. Temporarily using the "engine" commit
-GITCOMMIT=$(shell git -C docker-ce/engine rev-parse --short HEAD)
+ENGINE_GITCOMMIT=$(shell git -C docker-ce/engine rev-parse --short HEAD)
+CLI_GITCOMMIT=$(shell git -C docker-ce/cli rev-parse --short HEAD)
 
 # TODO: either get version for cli and engine packages separately, or require a version to be set. Temporarily using the "cli" version file
 VERSION=$(shell cat docker-ce/cli/VERSION)
@@ -47,30 +47,30 @@ docker-ce.tar.gz: docker-ce
 	tar czf $@ $<
 
 static-linux:
-	make -C docker-ce/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=static-linux static
+	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) DOCKER_BUILD_PKGS=static-linux static
 
 cross-mac:
-	make -C docker-ce/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=cross-mac static
+	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) DOCKER_BUILD_PKGS=cross-mac static
 
 cross-win:
-	make -C docker-ce/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=cross-win static
+	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) DOCKER_BUILD_PKGS=cross-win static
 
 debian-%:
-	make -C docker-ce/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
+	make -C docker-ce/packaging/deb VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
 
 raspbian-%:
-	make -C docker-ce/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
+	make -C docker-ce/packaging/deb VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
 
 ubuntu-%:
-	make -C docker-ce/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
+	make -C docker-ce/packaging/deb VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
 
 fedora-%:
 	docker rmi -f $(subst -,:,$@)
 	docker pull $(subst -,:,$@)
-	make -C docker-ce/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
+	make -C docker-ce/packaging/rpm VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
 
 centos-%:
-	make -C docker-ce/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
+	make -C docker-ce/packaging/rpm VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
 
 bundles-ce-binary.tar.gz:
 	mkdir -p bundles/$(VERSION)/binary-client bundles/$(VERSION)/binary-daemon
@@ -178,4 +178,4 @@ docker-%.tgz:
 	mv docker-ce/packaging/static/build/linux/docker-*.tgz $@
 
 release:
-	make -C docker-ce/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) release
+	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) release
