@@ -3,10 +3,14 @@ properties(
     [
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '30')),
         parameters([
-            string(name: 'DOCKER_CE_REPO', defaultValue: 'git@github.com:docker/docker-ce.git', description: 'Docker git source repository.'),
-            string(name: 'DOCKER_CE_REF', defaultValue: 'master', description: 'Docker CE reference to build from (usually a branch).'),
-            booleanParam(name: 'RELEASE_STAGING', description: 'Trigger release to staging after a successful build', defaultValue: false),
-            booleanParam(name: 'RELEASE_PRODUCTION', description: 'Trigger release to production after a successful build', defaultValue: false),
+            string(name: 'DOCKER_CLI_REPO',          defaultValue: 'git@github.com:docker/cli.git',                 description: 'Docker CLI git source repository.'),
+            string(name: 'DOCKER_CLI_REF',           defaultValue: 'master',                                        description: 'Docker CLI reference to build from (usually a branch).'),
+            string(name: 'DOCKER_ENGINE_REPO',       defaultValue: 'git@github.com:moby/moby.git',                  description: 'Docker Engine git source repository.'),
+            string(name: 'DOCKER_ENGINE_REF',        defaultValue: 'master',                                        description: 'Docker Engine reference to build from (usually a branch).'),
+            string(name: 'DOCKER_PACKAGING_REPO',    defaultValue: 'git@github.com:docker/docker-ce-packaging.git', description: 'Packaging scripts git source repository.'),
+            string(name: 'DOCKER_PACKAGING_REF',     defaultValue: 'master',                                        description: 'Packaging scripts reference to build from (usually a branch).'),
+            booleanParam(name: 'RELEASE_STAGING',    defaultValue: false,                                           description: 'Trigger release to staging after a successful build'),
+            booleanParam(name: 'RELEASE_PRODUCTION', defaultValue: false,                                           description: 'Trigger release to production after a successful build'),
         ])
     ]
 )
@@ -92,11 +96,17 @@ def init_steps = [
                     announceChannel = "#release-ci-feed"
                 }
                 if (params.RELEASE_PRODUCTION) {
-                    slackSend(channel: announceChannel, message: "Initiating build pipeline. Building packages from `docker/docker-ce:${params.DOCKER_CE_REF}`. ${env.BUILD_URL}")
+                    slackSend(channel: announceChannel, message: "Initiating build pipeline. Building packages from `docker/cli:${params.DOCKER_CLI_REF}`, `docker/docker:${params.DOCKER_ENGINE_REF}`, `docker/docker-ce-packaging:${params.DOCKER_PACKAGING_REF}`. ${env.BUILD_URL}")
                 }
                 checkout scm
                 sshagent(['docker-jenkins.github.ssh']) {
-                    sh("make DOCKER_CE_REF=${params.DOCKER_CE_REF} DOCKER_CE_REPO=${params.DOCKER_CE_REPO} docker-ce.tar.gz")
+                    sh """
+                    make \
+                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
+                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                        docker-ce.tar.gz
+                    """
                 }
                 saveS3(name: 'docker-ce.tar.gz')
             }
@@ -111,9 +121,10 @@ def result_steps = [
                 checkout scm
                 unstashS3(name: 'docker-ce')
                 genBuildResult()
-                sh('git -C docker-ce rev-parse HEAD >> build-result.txt')
+                // TODO: cli and engine packages should get their own git-commit listed. Temporarily using the "engine" commit
+                sh('git -C docker-ce/engine rev-parse HEAD >> build-result.txt')
                 saveS3(name: 'build-result.txt')
-                slackSend(channel: "#release-ci-feed", message: "Docker CE ${params.DOCKER_CE_REF} https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
+                slackSend(channel: "#release-ci-feed", message: "Docker CE (cli: `${params.DOCKER_CLI_REF}`, engine: `${params.DOCKER_ENGINE_REF}`, packaging: `${params.DOCKER_PACKAGING_REF}`) https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
                 if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
                     // Triggers builds to go through to staging and/or production
                     build(

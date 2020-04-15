@@ -1,156 +1,181 @@
 SHELL:=/bin/bash
-DOCKER_CE_REPO:=git@github.com:docker/docker-ce
-DOCKER_CE_REF:=
-VERSION=$(shell cat docker-ce/VERSION)
-GITCOMMIT=$(shell git -C docker-ce rev-parse --short HEAD)
 LDD_RUN=ldd >/dev/null 2>/dev/null
+
+# Repositories to build from
+DOCKER_CLI_REPO:=git@github.com:docker/cli.git
+DOCKER_CLI_REF:=
+DOCKER_ENGINE_REPO:=git@github.com:moby/moby.git
+DOCKER_ENGINE_REF:=
+DOCKER_PACKAGING_REPO:=git@github.com:docker/docker-ce-packaging.git
+DOCKER_PACKAGING_REF:=
+
+ENGINE_GITCOMMIT=$(shell git -C docker-ce/engine rev-parse --short HEAD)
+CLI_GITCOMMIT=$(shell git -C docker-ce/cli rev-parse --short HEAD)
+
+# TODO: either get version for cli and engine packages separately, or require a version to be set. Temporarily using the "cli" version file
+VERSION=$(shell cat docker-ce/cli/VERSION)
 
 help:
 	@echo help
 
 clean:
-	make -C docker-ce clean
+	make -C docker-ce/cli clean
+	make -C docker-ce/engine clean
+	make -C docker-ce/packaging clean
 	$(RM) -r bundles
 	$(RM) *.gz
 	$(RM) *.tgz
 
-docker-ce:
-	git clone $(DOCKER_CE_REPO) $@
-	git -C $@ checkout $(DOCKER_CE_REF)
+docker-ce/cli:
+	mkdir -p $@
+	git clone $(DOCKER_CLI_REPO) $@
+	git -C $@ checkout $(DOCKER_CLI_REF)
+
+docker-ce/engine:
+	mkdir -p $@
+	git clone $(DOCKER_ENGINE_REPO) $@
+	git -C $@ checkout $(DOCKER_ENGINE_REF)
+
+docker-ce/packaging:
+	mkdir -p $@
+	git clone $(DOCKER_PACKAGING_REPO) $@
+	git -C $@ checkout $(DOCKER_PACKAGING_REF)
+
+docker-ce: docker-ce/cli docker-ce/engine docker-ce/packaging
 
 docker-ce.tar.gz: docker-ce
 	tar czf $@ $<
 
 static-linux:
-	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=static-linux static
+	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) DOCKER_BUILD_PKGS=static-linux static
 
 cross-mac:
-	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=cross-mac static
+	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) DOCKER_BUILD_PKGS=cross-mac static
 
 cross-win:
-	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) DOCKER_BUILD_PKGS=cross-win static
+	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) DOCKER_BUILD_PKGS=cross-win static
 
 debian-%:
-	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
+	make -C docker-ce/packaging/deb VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
 
 raspbian-%:
-	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
+	make -C docker-ce/packaging/deb VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
 
 ubuntu-%:
-	make -C docker-ce/components/packaging/deb VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
+	make -C docker-ce/packaging/deb VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
 
 fedora-%:
 	docker rmi -f $(subst -,:,$@)
 	docker pull $(subst -,:,$@)
-	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
+	make -C docker-ce/packaging/rpm VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
 
 centos-%:
-	make -C docker-ce/components/packaging/rpm VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) $@
+	make -C docker-ce/packaging/rpm VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
 
 bundles-ce-binary.tar.gz:
 	mkdir -p bundles/$(VERSION)/binary-client bundles/$(VERSION)/binary-daemon
-	cp docker-ce/components/packaging/static/build/linux/docker/docker bundles/$(VERSION)/binary-client/
+	cp docker-ce/packaging/static/build/linux/docker/docker bundles/$(VERSION)/binary-client/
 	for f in dockerd docker-init docker-proxy runc containerd ctr containerd-shim; do \
-		cp docker-ce/components/packaging/static/build/linux/docker/$$f bundles/$(VERSION)/binary-daemon/; \
+		cp docker-ce/packaging/static/build/linux/docker/$$f bundles/$(VERSION)/binary-daemon/; \
 		if $(LDD_RUN) bundles/$(VERSION)/binary-daemon/$$f; then echo "$$f is not static, exiting..."; exit 1; fi \
 	done
 	tar czf $@ bundles
 
 bundles-ce-cross-darwin.tar.gz:
 	mkdir -p bundles/$(VERSION)/cross/darwin/amd64
-	cp -r docker-ce/components/packaging/static/build/mac/docker/* bundles/$(VERSION)/cross/darwin/amd64/
+	cp -r docker-ce/packaging/static/build/mac/docker/* bundles/$(VERSION)/cross/darwin/amd64/
 	tar czf $@ bundles
 
 bundles-ce-cross-windows.tar.gz:
 	mkdir -p bundles/$(VERSION)/cross/windows/amd64
-	cp -r docker-ce/components/packaging/static/build/win/docker/* bundles/$(VERSION)/cross/windows/amd64/
+	cp -r docker-ce/packaging/static/build/win/docker/* bundles/$(VERSION)/cross/windows/amd64/
 	tar czf $@ bundles
 
 bundles-ce-debian-%-amd64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/components/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
+	cp -R docker-ce/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-ubuntu-%-amd64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/components/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
+	cp -R docker-ce/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-fedora-%-amd64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-rpm/fedora-$*
-	cp -R docker-ce/components/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/fedora-$*/
-	cp -R docker-ce/components/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/fedora-$*/
+	cp -R docker-ce/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/fedora-$*/
+	cp -R docker-ce/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/fedora-$*/
 	tar czf $@ bundles
 
 bundles-ce-centos-%-amd64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-rpm/centos-$*
-	cp -R docker-ce/components/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
-	cp -R docker-ce/components/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
+	cp -R docker-ce/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
+	cp -R docker-ce/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
 	tar czf $@ bundles
 
 bundles-ce-debian-%-armhf.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/components/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
+	cp -R docker-ce/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-raspbian-%-armhf.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/components/packaging/deb/debbuild/raspbian-$* bundles/$(VERSION)/build-deb/
+	cp -R docker-ce/packaging/deb/debbuild/raspbian-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-ubuntu-%-armhf.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/components/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
+	cp -R docker-ce/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-ubuntu-%-s390x.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/components/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
+	cp -R docker-ce/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-ubuntu-%-ppc64le.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/components/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
+	cp -R docker-ce/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-ubuntu-%-aarch64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/components/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
+	cp -R docker-ce/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-debian-%-aarch64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/components/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
+	cp -R docker-ce/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-fedora-%-aarch64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-rpm/fedora-$*
-	cp -R docker-ce/components/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/fedora-$*/
-	cp -R docker-ce/components/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/fedora-$*/
+	cp -R docker-ce/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/fedora-$*/
+	cp -R docker-ce/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/fedora-$*/
 	tar czf $@ bundles
 
 bundles-ce-centos-%-aarch64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-rpm/centos-$*
-	cp -R docker-ce/components/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
-	cp -R docker-ce/components/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
+	cp -R docker-ce/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
+	cp -R docker-ce/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
 	tar czf $@ bundles
 
 bundles-ce-shell-completion.tar.gz:
-	install -D docker-ce/components/cli/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
-	install -D docker-ce/components/cli/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
-	install -D docker-ce/components/cli/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
+	install -D docker-ce/cli/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
+	install -D docker-ce/cli/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
+	install -D docker-ce/cli/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
 	tar czf $@ bundles
 
 docker-win.zip:
-	cp docker-ce/components/packaging/static/build/win/docker-*.zip $@
+	cp docker-ce/packaging/static/build/win/docker-*.zip $@
 
 docker-mac.tgz:
-	cp docker-ce/components/packaging/static/build/mac/docker-*.tgz $@
+	cp docker-ce/packaging/static/build/mac/docker-*.tgz $@
 
 docker-%.tgz:
 	$(MAKE) static-linux
-	mv docker-ce/components/packaging/static/build/linux/docker-rootless-extras-*.tgz docker-rootless-extras-$*.tgz
-	mv docker-ce/components/packaging/static/build/linux/docker-*.tgz $@
+	mv docker-ce/packaging/static/build/linux/docker-rootless-extras-*.tgz docker-rootless-extras-$*.tgz
+	mv docker-ce/packaging/static/build/linux/docker-*.tgz $@
 
 release:
-	make -C docker-ce/components/packaging VERSION=$(VERSION) GITCOMMIT=$(GITCOMMIT) release
+	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) release
