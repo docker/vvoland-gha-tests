@@ -160,6 +160,7 @@ archConfig = [
 
 def pkgs = [
     [target: "centos-7",                 image: "centos:7",                               arches: ["amd64", "aarch64"]],          // (EOL: June 30, 2024)
+    [target: "centos-8",                 image: "centos:8",                               arches: ["amd64", "aarch64"]],
     [target: "rhel-7",                   image: "dockereng/rhel:7-s390x",                 arches: ["s390x"]],
     [target: "debian-stretch",           image: "debian:stretch",                         arches: ["amd64", "aarch64", "armhf"]], // Debian 9  (EOL: June, 2022)
     [target: "debian-buster",            image: "debian:buster",                          arches: ["amd64", "aarch64", "armhf"]], // Debian 10 (EOL: 2024)
