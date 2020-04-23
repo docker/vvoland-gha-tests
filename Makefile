@@ -12,8 +12,7 @@ DOCKER_PACKAGING_REF:=
 ENGINE_GITCOMMIT=$(shell git -C docker-ce/engine rev-parse --short HEAD)
 CLI_GITCOMMIT=$(shell git -C docker-ce/cli rev-parse --short HEAD)
 
-# TODO: either get version for cli and engine packages separately, or require a version to be set. Temporarily using the "cli" version file
-VERSION=$(shell cat docker-ce/cli/VERSION)
+VERSION?=0.0.0-dev
 
 help:
 	@echo help
