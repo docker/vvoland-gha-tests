@@ -9,6 +9,7 @@ properties(
             string(name: 'DOCKER_ENGINE_REF',        defaultValue: 'master',                                        description: 'Docker Engine reference to build from (usually a branch).'),
             string(name: 'DOCKER_PACKAGING_REPO',    defaultValue: 'git@github.com:docker/docker-ce-packaging.git', description: 'Packaging scripts git source repository.'),
             string(name: 'DOCKER_PACKAGING_REF',     defaultValue: 'master',                                        description: 'Packaging scripts reference to build from (usually a branch).'),
+            string(name: 'VERSION',                  defaultValue: '0.0.0-dev',                                     description: 'Version used to build binaries and to tag Docker CLI/Docker Engine repositories'),
             booleanParam(name: 'RELEASE_STAGING',    defaultValue: false,                                           description: 'Trigger release to staging after a successful build'),
             booleanParam(name: 'RELEASE_PRODUCTION', defaultValue: false,                                           description: 'Trigger release to production after a successful build'),
         ])
@@ -21,6 +22,10 @@ PROD = params.RELEASE_PRODUCTION
 // Releasing to staging must always happen before a release to production
 if (params.RELEASE_PRODUCTION) {
     STAGING = true
+}
+// Check that VERSION parameter must be filled if we release
+if ((params.RELEASE_STAGING || params.RELEASE_PRODUCTION ) && params.VERSION == "0.0.0-dev"){
+    error("Build failed as this is a release but no VERSION has been set")
 }
 AWS_IMAGE = "dockereng/awscli:1.16.156"
 
@@ -96,10 +101,11 @@ def init_steps = [
                     announceChannel = "#release-ci-feed"
                 }
                 if (params.RELEASE_PRODUCTION) {
-                    slackSend(channel: announceChannel, message: "Initiating build pipeline. Building packages from `docker/cli:${params.DOCKER_CLI_REF}`, `docker/docker:${params.DOCKER_ENGINE_REF}`, `docker/docker-ce-packaging:${params.DOCKER_PACKAGING_REF}`. ${env.BUILD_URL}")
+                    slackSend(channel: announceChannel, message: "Initiating build pipeline. Building packages from `docker/cli:${params.DOCKER_CLI_REF}`, `docker/docker:${params.DOCKER_ENGINE_REF}`, `docker/docker-ce-packaging:${params.DOCKER_PACKAGING_REF}` for version `${params.VERSION}`. ${env.BUILD_URL}")
                 }
                 checkout scm
                 sshagent(['docker-jenkins.github.ssh']) {
+                    // Checkout source files from the CLI/ENGINE/PACKAGING repositories, tar them and upload it to S3 for further steps
                     sh """
                     make \
                         DOCKER_CLI_REF=${params.DOCKER_CLI_REF} DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
@@ -124,7 +130,7 @@ def result_steps = [
                 // TODO: cli and engine packages should get their own git-commit listed. Temporarily using the "engine" commit
                 sh('git -C docker-ce/engine rev-parse HEAD >> build-result.txt')
                 saveS3(name: 'build-result.txt')
-                slackSend(channel: "#release-ci-feed", message: "Docker CE (cli: `${params.DOCKER_CLI_REF}`, engine: `${params.DOCKER_ENGINE_REF}`, packaging: `${params.DOCKER_PACKAGING_REF}`) https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
+                slackSend(channel: "#release-ci-feed", message: "Docker CE (cli: `${params.DOCKER_CLI_REF}`, engine: `${params.DOCKER_ENGINE_REF}`, packaging: `${params.DOCKER_PACKAGING_REF}`, version: `${params.VERSION}`) https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
                 if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
                     // Triggers builds to go through to staging and/or production
                     build(
@@ -175,7 +181,7 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
                     def buildImage = pkg.image
-                    sh("make clean ${pkg.target} bundles-ce-${pkg.target}-${arch}.tar.gz")
+                    sh("""make VERSION=${params.VERSION} clean ${pkg.target} bundles-ce-${pkg.target}-${arch}.tar.gz""")
                     sh("docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify")
                     saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
                 }
@@ -192,7 +198,7 @@ def genStaticBuildStep(String uname_arch) {
                 wrappedNode(label: config.label, cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
-                    sh("make clean docker-${config.arch}.tgz")
+                    sh("""make VERSION=${params.VERSION} clean docker-${config.arch}.tgz""")
                     saveS3(name: "docker-${config.arch}.tgz")
                     saveS3(name: "docker-rootless-extras-${config.arch}.tgz")
                 }
@@ -208,7 +214,7 @@ def build_package_steps = [
                 wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
-                    sh('make clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz')
+                    sh("""make VERSION=${params.VERSION} clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz""")
                     saveS3(name: 'bundles-ce-cross-darwin.tar.gz')
                     saveS3(name: 'docker-mac.tgz')
                 }
@@ -221,7 +227,7 @@ def build_package_steps = [
                 wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
-                    sh('make clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip')
+                    sh("""make VERSION=${params.VERSION} clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip""")
                     saveS3(name: 'bundles-ce-cross-windows.tar.gz')
                     saveS3(name: 'docker-win.zip')
                 }
@@ -234,7 +240,7 @@ def build_package_steps = [
                 wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
-                    sh('make clean bundles-ce-shell-completion.tar.gz')
+                    sh("""make VERSION=${params.VERSION} clean bundles-ce-shell-completion.tar.gz""")
                     saveS3(name: 'bundles-ce-shell-completion.tar.gz')
                 }
             }
@@ -246,7 +252,7 @@ def build_package_steps = [
                 wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
-                    sh('make clean static-linux bundles-ce-binary.tar.gz')
+                    sh("""make VERSION=${params.VERSION} clean static-linux bundles-ce-binary.tar.gz""")
                     saveS3(name: 'bundles-ce-binary.tar.gz')
                 }
             }
