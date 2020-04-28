@@ -160,6 +160,7 @@ archConfig = [
 
 def pkgs = [
     [target: "centos-7",                 image: "centos:7",                               arches: ["aarch64", "amd64"]], // (EOL: June 30, 2024)
+    [target: "rhel-7",                   image: "dockereng/rhel:7-s390x",                 arches: ["s390x"]],
     [target: "debian-stretch",           image: "debian:stretch",                         arches: ["aarch64", "amd64", "armhf"]], // Debian 9  (EOL: June, 2022)
     [target: "debian-buster",            image: "debian:buster",                          arches: ["aarch64", "amd64", "armhf"]], // Debian 10 (EOL: 2024)
     [target: "fedora-30",                image: "fedora:30",                              arches: ["aarch64", "amd64"]],
@@ -167,7 +168,7 @@ def pkgs = [
     [target: "raspbian-stretch",         image: "balenalib/rpi-raspbian:stretch",         arches: ["armhf"]],
     [target: "raspbian-buster",          image: "balenalib/rpi-raspbian:buster",          arches: ["armhf"]],
     [target: "ubuntu-xenial",            image: "ubuntu:xenial",                          arches: ["aarch64", "amd64", "armhf"]], // Ubuntu 16.04 LTS (End of support: April, 2021. EOL: April, 2024)
-    [target: "ubuntu-bionic",            image: "ubuntu:bionic",                          arches: ["aarch64", "amd64", "armhf"]], // Ubuntu 18.04 LTS (End of support: April, 2023. EOL: April, 2028)
+    [target: "ubuntu-bionic",            image: "ubuntu:bionic",                          arches: ["aarch64", "amd64", "armhf", "s390x"]], // Ubuntu 18.04 LTS (End of support: April, 2023. EOL: April, 2028)
     [target: "ubuntu-eoan",              image: "ubuntu:eoan",                            arches: ["aarch64", "amd64", "armhf"]], // Ubuntu 19.10 (EOL: July, 2020)
 
 ]
@@ -181,8 +182,10 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
                     def buildImage = pkg.image
-                    sh("""make VERSION=${params.VERSION} clean ${pkg.target} bundles-ce-${pkg.target}-${arch}.tar.gz""")
-                    sh("docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify")
+                    withDockerRegistry([url: "", credentialsId: "dockerbuildbot-index.docker.io"]) {
+                        sh("""make VERSION=${params.VERSION} clean ${pkg.target} bundles-ce-${pkg.target}-${arch}.tar.gz""")
+                        sh("docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify")
+                    }
                     saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
                 }
             }

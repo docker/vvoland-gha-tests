@@ -71,6 +71,9 @@ fedora-%:
 centos-%:
 	make -C docker-ce/packaging/rpm VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
 
+rhel-%:
+	make -C docker-ce/packaging/rpm VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
+
 bundles-ce-binary.tar.gz:
 	mkdir -p bundles/$(VERSION)/binary-client bundles/$(VERSION)/binary-daemon
 	cp docker-ce/packaging/static/build/linux/docker/docker bundles/$(VERSION)/binary-client/
@@ -157,6 +160,12 @@ bundles-ce-centos-%-aarch64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-rpm/centos-$*
 	cp -R docker-ce/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
 	cp -R docker-ce/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
+	tar czf $@ bundles
+
+bundles-ce-rhel-%-s390x.tar.gz:
+	mkdir -p bundles/$(VERSION)/build-rpm/rhel-$*
+	cp -R docker-ce/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/rhel-$*/
+	cp -R docker-ce/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/rhel-$*/
 	tar czf $@ bundles
 
 bundles-ce-shell-completion.tar.gz:
