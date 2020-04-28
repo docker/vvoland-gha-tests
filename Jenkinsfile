@@ -183,8 +183,12 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                     unstashS3(name: 'docker-ce')
                     def buildImage = pkg.image
                     withDockerRegistry([url: "", credentialsId: "dockerbuildbot-index.docker.io"]) {
-                        sh("""make VERSION=${params.VERSION} clean ${pkg.target} bundles-ce-${pkg.target}-${arch}.tar.gz""")
-                        sh("docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify")
+                        sh """
+                        make clean
+                        make VERSION=${params.VERSION} ${pkg.target}
+                        make VERSION=${params.VERSION} bundles-ce-${pkg.target}-${arch}.tar.gz
+                        docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify
+                        """
                     }
                     saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
                 }
@@ -201,7 +205,10 @@ def genStaticBuildStep(String uname_arch) {
                 wrappedNode(label: config.label, cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
-                    sh("""make VERSION=${params.VERSION} clean docker-${config.arch}.tgz""")
+                    sh """
+                    make clean
+                    make VERSION=${params.VERSION} docker-${config.arch}.tgz
+                    """
                     saveS3(name: "docker-${config.arch}.tgz")
                     saveS3(name: "docker-rootless-extras-${config.arch}.tgz")
                 }
@@ -217,7 +224,12 @@ def build_package_steps = [
                 wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
-                    sh("""make VERSION=${params.VERSION} clean cross-mac bundles-ce-cross-darwin.tar.gz docker-mac.tgz""")
+                    sh """
+                    make clean
+                    make VERSION=${params.VERSION} cross-mac
+                    make VERSION=${params.VERSION} bundles-ce-cross-darwin.tar.gz
+                    make docker-mac.tgz
+                    """
                     saveS3(name: 'bundles-ce-cross-darwin.tar.gz')
                     saveS3(name: 'docker-mac.tgz')
                 }
@@ -230,7 +242,12 @@ def build_package_steps = [
                 wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
-                    sh("""make VERSION=${params.VERSION} clean cross-win bundles-ce-cross-windows.tar.gz docker-win.zip""")
+                    sh """
+                    make clean
+                    make VERSION=${params.VERSION} cross-win
+                    make VERSION=${params.VERSION} bundles-ce-cross-windows.tar.gz
+                    make docker-win.zip
+                    """
                     saveS3(name: 'bundles-ce-cross-windows.tar.gz')
                     saveS3(name: 'docker-win.zip')
                 }
@@ -243,7 +260,10 @@ def build_package_steps = [
                 wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
-                    sh("""make VERSION=${params.VERSION} clean bundles-ce-shell-completion.tar.gz""")
+                    sh """
+                    make clean
+                    make VERSION=${params.VERSION} bundles-ce-shell-completion.tar.gz
+                    """
                     saveS3(name: 'bundles-ce-shell-completion.tar.gz')
                 }
             }
@@ -255,7 +275,11 @@ def build_package_steps = [
                 wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
-                    sh("""make VERSION=${params.VERSION} clean static-linux bundles-ce-binary.tar.gz""")
+                    sh """
+                    make clean
+                    make VERSION=${params.VERSION} static-linux
+                    make VERSION=${params.VERSION} bundles-ce-binary.tar.gz
+                    """
                     saveS3(name: 'bundles-ce-binary.tar.gz')
                 }
             }
