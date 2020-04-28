@@ -12,6 +12,7 @@ properties(
             string(name: 'VERSION',                  defaultValue: '0.0.0-dev',                                     description: 'Version used to build binaries and to tag Docker CLI/Docker Engine repositories'),
             booleanParam(name: 'RELEASE_STAGING',    defaultValue: false,                                           description: 'Trigger release to staging after a successful build'),
             booleanParam(name: 'RELEASE_PRODUCTION', defaultValue: false,                                           description: 'Trigger release to production after a successful build'),
+            booleanParam(name: 'SKIP_VERIFY',        defaultValue: false,                                           description: 'Enable this boolean to skip package verification'),
         ])
     ]
 )
@@ -188,8 +189,14 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                     make clean
                     make VERSION=${params.VERSION} ${pkg.target}
                     make VERSION=${params.VERSION} bundles-ce-${pkg.target}-${arch}.tar.gz
-                    docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify
                     """
+                    // Skip verify if SKIP_VERIFY is set, to solve the chicken and egg problem
+                    // when creating new docker-ce and containerd packages for new arch and distros
+                    if (!params.SKIP_VERIFY) {
+                        sh"""
+                        docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify
+                        """
+                    }
                     saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
                 }
             }
