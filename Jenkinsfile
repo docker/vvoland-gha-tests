@@ -182,14 +182,12 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                     checkout scm
                     unstashS3(name: 'docker-ce')
                     def buildImage = pkg.image
-                    withDockerRegistry([url: "", credentialsId: "dockerbuildbot-index.docker.io"]) {
-                        sh """
-                        make clean
-                        make VERSION=${params.VERSION} ${pkg.target}
-                        make VERSION=${params.VERSION} bundles-ce-${pkg.target}-${arch}.tar.gz
-                        docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify
-                        """
-                    }
+                    sh """
+                    make clean
+                    make VERSION=${params.VERSION} ${pkg.target}
+                    make VERSION=${params.VERSION} bundles-ce-${pkg.target}-${arch}.tar.gz
+                    docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify
+                    """
                     saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
                 }
             }
