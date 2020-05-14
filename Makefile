@@ -189,6 +189,7 @@ docker-%.tgz:
 	mv docker-ce/packaging/static/build/linux/docker-rootless-extras-*.tgz docker-rootless-extras-$*.tgz
 	mv docker-ce/packaging/static/build/linux/docker-*.tgz $@
 
+.PHONY: verify
 verify:
 	# to verify using packages from staging, use: make VERIFY_PACKAGE_REPO=stage IMAGE=debian:focal verify
 	docker run --rm -i -v "$(pwd):/v" -e PACKAGE_REPO=$(VERIFY_PACKAGE_REPO) -w /v $(IMAGE) ./verify
