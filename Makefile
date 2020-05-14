@@ -192,7 +192,7 @@ docker-%.tgz:
 .PHONY: verify
 verify:
 	# to verify using packages from staging, use: make VERIFY_PACKAGE_REPO=stage IMAGE=ubuntu:focal verify
-	docker run --rm -i -v "$$(pwd):/v" -e PACKAGE_REPO=$(VERIFY_PACKAGE_REPO) -w /v $(IMAGE) ./verify
+	docker run --rm -i -v "$$(pwd):/v" -e DEBIAN_FRONTEND=noninteractive -e PACKAGE_REPO=$(VERIFY_PACKAGE_REPO) -w /v $(IMAGE) ./verify
 
 release:
 	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) release
