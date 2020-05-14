@@ -13,6 +13,7 @@ properties(
             booleanParam(name: 'RELEASE_STAGING',    defaultValue: false,                                           description: 'Trigger release to staging after a successful build'),
             booleanParam(name: 'RELEASE_PRODUCTION', defaultValue: false,                                           description: 'Trigger release to production after a successful build'),
             booleanParam(name: 'SKIP_VERIFY',        defaultValue: false,                                           description: 'Enable this boolean to skip package verification'),
+            string(name: 'VERIFY_PACKAGE_REPO',      defaultValue: 'stage',                                         description: 'Packaging repo to use for installing dependencies (default: stage=download-stage.docker.com, leave empty to use download.docker.com)'),
         ])
     ]
 )
@@ -194,7 +195,7 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                     // when creating new docker-ce and containerd packages for new arch and distros
                     if (!params.SKIP_VERIFY) {
                         sh"""
-                        docker run --rm -i -v \"\$(pwd):/v\" -w /v ${buildImage} ./verify
+                        make VERIFY_REPO=${params.VERIFY_PACKAGE_REPO} IMAGE=${buildImage} verify
                         """
                     }
                     saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
