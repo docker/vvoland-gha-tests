@@ -12,6 +12,10 @@ DOCKER_PACKAGING_REF:=
 ENGINE_GITCOMMIT=$(shell git -C docker-ce/engine rev-parse --short HEAD)
 CLI_GITCOMMIT=$(shell git -C docker-ce/cli rev-parse --short HEAD)
 
+# Use stage to install dependencies from download-stage.docker.com during the verify
+# step. Leave empty to install from download.docker.com
+VERIFY_PACKAGE_REPO:=
+
 VERSION?=0.0.0-dev
 
 help:
@@ -184,6 +188,10 @@ docker-%.tgz:
 	$(MAKE) static-linux
 	mv docker-ce/packaging/static/build/linux/docker-rootless-extras-*.tgz docker-rootless-extras-$*.tgz
 	mv docker-ce/packaging/static/build/linux/docker-*.tgz $@
+
+verify:
+	# to verify using packages from staging, use: make VERIFY_PACKAGE_REPO=stage IMAGE=debian:focal verify
+	docker run --rm -i -v "$(pwd):/v" -e PACKAGE_REPO=$(VERIFY_PACKAGE_REPO) -w /v $(IMAGE) ./verify
 
 release:
 	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) release
