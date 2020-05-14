@@ -195,7 +195,7 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                     // when creating new docker-ce and containerd packages for new arch and distros
                     if (!params.SKIP_VERIFY) {
                         sh"""
-                        make VERIFY_REPO=${params.VERIFY_PACKAGE_REPO} IMAGE=${buildImage} verify
+                        make VERIFY_PACKAGE_REPO=${params.VERIFY_PACKAGE_REPO} IMAGE=${buildImage} verify
                         """
                     }
                     saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
