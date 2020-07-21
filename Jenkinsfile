@@ -138,7 +138,6 @@ def pkgs = [
     [target: "raspbian-buster",          image: "balenalib/rpi-raspbian:buster",          arches: ["armhf"]],
     [target: "ubuntu-xenial",            image: "ubuntu:xenial",                          arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 16.04 LTS (End of support: April, 2021. EOL: April, 2024)
     [target: "ubuntu-bionic",            image: "ubuntu:bionic",                          arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 18.04 LTS (End of support: April, 2023. EOL: April, 2028)
-    [target: "ubuntu-eoan",              image: "ubuntu:eoan",                            arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 19.10 (EOL: July, 2020)
     [target: "ubuntu-focal",             image: "ubuntu:focal",                           arches: ["amd64", "aarch64"]],          // Ubuntu 20.04 LTS (End of support: April, 2025. EOL: April, 2030)
 ]
 
