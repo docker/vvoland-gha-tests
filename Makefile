@@ -172,6 +172,9 @@ bundles-ce-rhel-%-s390x.tar.gz:
 	cp -R docker-ce/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/rhel-$*/
 	tar czf $@ bundles
 
+# Bundle the completion files here are used by Docker Desktop
+# https://github.com/docker/pinata/blob/553b07bebc444d493502e8ae9fe36cc2f490b793/tools/cmd/pinata/versionpacks/remotedependencies.go#L211-L229
+# TODO consider including these with the CLI in the "cross-win", "cross-mac", and "static" bundles and/or embedding them in the CLI
 bundles-ce-shell-completion.tar.gz:
 	install -D docker-ce/cli/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
 	install -D docker-ce/cli/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
