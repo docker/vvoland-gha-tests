@@ -9,9 +9,6 @@ DOCKER_ENGINE_REF:=
 DOCKER_PACKAGING_REPO:=git@github.com:docker/docker-ce-packaging.git
 DOCKER_PACKAGING_REF:=
 
-ENGINE_GITCOMMIT=$(shell git -C docker-ce/engine rev-parse --short HEAD)
-CLI_GITCOMMIT=$(shell git -C docker-ce/cli rev-parse --short HEAD)
-
 # Use stage to install dependencies from download-stage.docker.com during the verify
 # step. Leave empty to install from download.docker.com
 VERIFY_PACKAGE_REPO:=
@@ -22,61 +19,62 @@ help:
 	@echo help
 
 clean:
-	make -C docker-ce/cli clean
-	make -C docker-ce/engine clean
-	make -C docker-ce/packaging clean
-	$(RM) -r bundles
-	$(RM) *.gz
-	$(RM) *.tgz
+	-make -C docker-ce/packaging clean
+	-$(RM) -r docker-ce/packaging
+	-$(RM) -r bundles
+	-$(RM) *.gz
+	-$(RM) *.tgz
 
-docker-ce/cli:
-	mkdir -p $@
-	git clone $(DOCKER_CLI_REPO) $@
-	git -C $@ checkout $(DOCKER_CLI_REF)
+.PHONY: docker-ce/packaging/src
+docker-ce/packaging/src: docker-ce/packaging docker-ce/packaging/src/github.com/docker/cli docker-ce/packaging/src/github.com/docker/docker
+	@echo checked out source
 
-docker-ce/engine:
-	mkdir -p $@
-	git clone $(DOCKER_ENGINE_REPO) $@
-	git -C $@ checkout $(DOCKER_ENGINE_REF)
+docker-ce/packaging/src/github.com/docker/cli: docker-ce/packaging
+	make -C docker-ce/packaging \
+		DOCKER_CLI_REPO=$(DOCKER_CLI_REPO) \
+		DOCKER_CLI_REF=$(DOCKER_CLI_REF) \
+		checkout-cli
+
+docker-ce/packaging/src/github.com/docker/docker: docker-ce/packaging
+	make -C docker-ce/packaging \
+		DOCKER_ENGINE_REPO=$(DOCKER_ENGINE_REPO) \
+		DOCKER_ENGINE_REF=$(DOCKER_ENGINE_REF) \
+		checkout-docker
 
 docker-ce/packaging:
 	mkdir -p $@
 	git clone $(DOCKER_PACKAGING_REPO) $@
 	git -C $@ checkout $(DOCKER_PACKAGING_REF)
 
-docker-ce: docker-ce/cli docker-ce/engine docker-ce/packaging
+static-linux: docker-ce/packaging/src
+	make -C docker-ce/packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=static-linux static
 
-docker-ce.tar.gz: docker-ce
-	tar czf $@ $<
+# TODO cross-mac should only need the CLI source code, but also calls "static"?
+cross-mac: docker-ce/packaging/src
+	make -C docker-ce/packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=cross-mac static
 
-static-linux:
-	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) DOCKER_BUILD_PKGS=static-linux static
+cross-win: docker-ce/packaging/src
+	make -C docker-ce/packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=cross-win static
 
-cross-mac:
-	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) DOCKER_BUILD_PKGS=cross-mac static
+debian-%: docker-ce/packaging/src
+	make -C docker-ce/packaging/deb VERSION=$(VERSION) $@
 
-cross-win:
-	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) DOCKER_BUILD_PKGS=cross-win static
+raspbian-%: docker-ce/packaging/src
+	make -C docker-ce/packaging/deb VERSION=$(VERSION) $@
 
-debian-%:
-	make -C docker-ce/packaging/deb VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
+ubuntu-%: docker-ce/packaging/src
+	make -C docker-ce/packaging/deb VERSION=$(VERSION) $@
 
-raspbian-%:
-	make -C docker-ce/packaging/deb VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
-
-ubuntu-%:
-	make -C docker-ce/packaging/deb VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
-
-fedora-%:
+fedora-%: docker-ce/packaging/src
 	docker rmi -f $(subst -,:,$@)
 	docker pull $(subst -,:,$@)
-	make -C docker-ce/packaging/rpm VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
+	make -C docker-ce/packaging/rpm VERSION=$(VERSION) $@
 
-centos-%:
-	make -C docker-ce/packaging/rpm VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
+centos-%: docker-ce/packaging/src
+	make -C docker-ce/packaging/rpm VERSION=$(VERSION) $@
 
-rhel-%:
-	make -C docker-ce/packaging/rpm VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) $@
+rhel-%: docker-ce/packaging/src
+	make -C docker-ce/packaging/rpm VERSION=$(VERSION) $@
 
 bundles-ce-binary.tar.gz:
 	mkdir -p bundles/$(VERSION)/binary-client bundles/$(VERSION)/binary-daemon
@@ -175,10 +173,10 @@ bundles-ce-rhel-%-s390x.tar.gz:
 # Bundle the completion files here are used by Docker Desktop
 # https://github.com/docker/pinata/blob/553b07bebc444d493502e8ae9fe36cc2f490b793/tools/cmd/pinata/versionpacks/remotedependencies.go#L211-L229
 # TODO consider including these with the CLI in the "cross-win", "cross-mac", and "static" bundles and/or embedding them in the CLI
-bundles-ce-shell-completion.tar.gz:
-	install -D docker-ce/cli/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
-	install -D docker-ce/cli/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
-	install -D docker-ce/cli/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
+bundles-ce-shell-completion.tar.gz: docker-ce/packaging/src/github.com/docker/cli
+	install -D docker-ce/packaging/src/github.com/docker/cli/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
+	install -D docker-ce/packaging/src/github.com/docker/cli/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
+	install -D docker-ce/packaging/src/github.com/docker/cli/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
 	tar czf $@ bundles
 
 docker-win.zip:
@@ -198,4 +196,4 @@ verify:
 	docker run --rm -i -v "$$(pwd):/v" -e DEBIAN_FRONTEND=noninteractive -e PACKAGE_REPO=$(VERIFY_PACKAGE_REPO) -w /v $(IMAGE) ./verify
 
 release:
-	make -C docker-ce/packaging VERSION=$(VERSION) ENGINE_GITCOMMIT=$(ENGINE_GITCOMMIT) CLI_GITCOMMIT=$(CLI_GITCOMMIT) release
+	make -C docker-ce/packaging VERSION=$(VERSION) release

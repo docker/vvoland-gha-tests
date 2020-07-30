@@ -53,15 +53,6 @@ def saveS3(def Map args=[:]) {
     }
 }
 
-def loadS3(def Map args=[:]) {
-    def destS3Uri = "s3://${getS3Bucket()}/${BUILD_TAG}/${args.name}"
-    def awscli_image = AWS_IMAGE
-    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
-    withCredentials([awsCred]) {
-        sh("${awscli} s3 cp --only-show-errors  '${destS3Uri}' '${args.name}'")
-    }
-}
-
 def genBuildResult() {
     def destS3Uri = "s3://${getS3Bucket()}/${BUILD_TAG}/"
     def awscli_image = AWS_IMAGE
@@ -71,32 +62,11 @@ def genBuildResult() {
     }
 }
 
-def stashS3(def Map args=[:]) {
-    def destS3Uri = "s3://${getS3Bucket()}/${BUILD_TAG}/"
-    def awscli_image = AWS_IMAGE
-    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
-    sh("find . -path './${args.includes}' | tar -c -z -f '${args.name}.tar.gz' -T -")
-    withCredentials([awsCred]) {
-        sh("${awscli} s3 cp --only-show-errors '${args.name}.tar.gz' '${destS3Uri}'")
-    }
-    sh("rm -f '${args.name}.tar.gz'")
-}
-
-def unstashS3(def Map args=[:]) {
-    def srcS3Uri = "s3://${getS3Bucket()}/${BUILD_TAG}/${args.name}.tar.gz"
-    def awscli_image = AWS_IMAGE
-    def awscli = "docker run --rm -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID -v `pwd`:/z -w /z ${awscli_image}"
-    withCredentials([awsCred]) {
-        sh("${awscli} s3 cp --only-show-errors '${srcS3Uri}' .")
-    }
-    sh("tar -x -z -f '${args.name}.tar.gz'")
-    sh("rm -f '${args.name}.tar.gz'")
-}
-
 def init_steps = [
     'init': { ->
         stage('init') {
             wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
+                checkout scm
                 announceChannel = "#ship-builders"
                 // This is only the case on a nightly build
                 if (env.BRANCH_NAME == 'ce-nightly') {
@@ -105,18 +75,6 @@ def init_steps = [
                 if (params.RELEASE_PRODUCTION) {
                     slackSend(channel: announceChannel, message: "Initiating build pipeline. Building packages from `docker/cli:${params.DOCKER_CLI_REF}`, `docker/docker:${params.DOCKER_ENGINE_REF}`, `docker/docker-ce-packaging:${params.DOCKER_PACKAGING_REF}` for version `${params.VERSION}`. ${env.BUILD_URL}")
                 }
-                checkout scm
-                sshagent(['docker-jenkins.github.ssh']) {
-                    // Checkout source files from the CLI/ENGINE/PACKAGING repositories, tar them and upload it to S3 for further steps
-                    sh """
-                    make \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        docker-ce.tar.gz
-                    """
-                }
-                saveS3(name: 'docker-ce.tar.gz')
             }
         }
     }
@@ -127,10 +85,20 @@ def result_steps = [
         stage('result') {
             wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                 checkout scm
-                unstashS3(name: 'docker-ce')
                 genBuildResult()
                 // TODO: cli and engine packages should get their own git-commit listed. Temporarily using the "engine" commit
-                sh('git -C docker-ce/engine rev-parse HEAD >> build-result.txt')
+                sshagent(['docker-jenkins.github.ssh']) {
+                    sh """
+                    make clean
+                    make \
+                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
+                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
+                        docker-ce/packaging/src/github.com/docker/docker
+                    """
+                }
+                sh('git -C docker-ce/packaging/src/github.com/docker/docker rev-parse HEAD >> build-result.txt')
                 saveS3(name: 'build-result.txt')
                 slackSend(channel: "#release-ci-feed", message: "Docker CE (cli: `${params.DOCKER_CLI_REF}`, engine: `${params.DOCKER_ENGINE_REF}`, packaging: `${params.DOCKER_PACKAGING_REF}`, version: `${params.VERSION}`) https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
                 if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
@@ -184,15 +152,24 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
             retry(3) {
                 wrappedNode(label: nodeLabel, cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce')
-                    def buildImage = pkg.image
-                    sh """
-                    make clean
-                    make VERSION=${params.VERSION} ${pkg.target}
-                    make VERSION=${params.VERSION} bundles-ce-${pkg.target}-${arch}.tar.gz
-                    """
+                    sshagent(['docker-jenkins.github.ssh']) {
+                        sh """
+                        make clean
+                        make \
+                            DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                            DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                            DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                            DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
+                            DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
+                            DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
+                            VERSION=${params.VERSION} \
+                            ${pkg.target}
+                        make VERSION=${params.VERSION} bundles-ce-${pkg.target}-${arch}.tar.gz
+                        """
+                    }
                     // Skip verify if SKIP_VERIFY is set, to solve the chicken and egg problem
                     // when creating new docker-ce and containerd packages for new arch and distros
+                    def buildImage = pkg.image
                     if (!params.SKIP_VERIFY) {
                         sh"""
                         make VERIFY_PACKAGE_REPO=${params.VERIFY_PACKAGE_REPO} IMAGE=${buildImage} verify
@@ -212,11 +189,20 @@ def genStaticBuildStep(String uname_arch) {
             retry(3) {
                 wrappedNode(label: config.label, cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce')
-                    sh """
-                    make clean
-                    make VERSION=${params.VERSION} docker-${config.arch}.tgz
-                    """
+                    sshagent(['docker-jenkins.github.ssh']) {
+                        sh """
+                        make clean
+                        make \
+                            DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                            DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                            DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                            DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
+                            DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
+                            DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
+                            VERSION=${params.VERSION} \
+                            docker-${config.arch}.tgz
+                        """
+                    }
                     saveS3(name: "docker-${config.arch}.tgz")
                     saveS3(name: "docker-rootless-extras-${config.arch}.tgz")
                 }
@@ -231,10 +217,21 @@ def build_package_steps = [
             retry(3) {
                 wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce')
+                    sshagent(['docker-jenkins.github.ssh']) {
+                        sh """
+                        make clean
+                        make \
+                            DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                            DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                            DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                            DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
+                            DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
+                            DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
+                            VERSION=${params.VERSION} \
+                            cross-mac
+                        """
+                    }
                     sh """
-                    make clean
-                    make VERSION=${params.VERSION} cross-mac
                     make VERSION=${params.VERSION} bundles-ce-cross-darwin.tar.gz
                     make docker-mac.tgz
                     """
@@ -249,10 +246,21 @@ def build_package_steps = [
             retry(3) {
                 wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce')
+                    sshagent(['docker-jenkins.github.ssh']) {
+                        sh """
+                        make clean
+                        make \
+                            DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                            DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                            DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                            DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
+                            DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
+                            DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
+                            VERSION=${params.VERSION} \
+                            cross-win
+                        """
+                    }
                     sh """
-                    make clean
-                    make VERSION=${params.VERSION} cross-win
                     make VERSION=${params.VERSION} bundles-ce-cross-windows.tar.gz
                     make docker-win.zip
                     """
@@ -267,11 +275,18 @@ def build_package_steps = [
             retry(3) {
                 wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce')
-                    sh """
-                    make clean
-                    make VERSION=${params.VERSION} bundles-ce-shell-completion.tar.gz
-                    """
+                    sshagent(['docker-jenkins.github.ssh']) {
+                        sh """
+                        make clean
+                        make \
+                            DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                            DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                            DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                            DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
+                            VERSION=${params.VERSION} \
+                            bundles-ce-shell-completion.tar.gz
+                        """
+                    }
                     saveS3(name: 'bundles-ce-shell-completion.tar.gz')
                 }
             }
@@ -282,10 +297,21 @@ def build_package_steps = [
             retry(3) {
                 wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                     checkout scm
-                    unstashS3(name: 'docker-ce')
+                    sshagent(['docker-jenkins.github.ssh']) {
+                        sh """
+                        make clean
+                        make \
+                            DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                            DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                            DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                            DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
+                            DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
+                            DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
+                            VERSION=${params.VERSION} \
+                            static-linux
+                        """
+                    }
                     sh """
-                    make clean
-                    make VERSION=${params.VERSION} static-linux
                     make VERSION=${params.VERSION} bundles-ce-binary.tar.gz
                     """
                     saveS3(name: 'bundles-ce-binary.tar.gz')
