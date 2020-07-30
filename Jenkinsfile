@@ -95,10 +95,10 @@ def result_steps = [
                         DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
                         DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
                         DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                        docker-ce/packaging/src/github.com/docker/docker
+                        packaging/src/github.com/docker/docker
                     """
                 }
-                sh('git -C docker-ce/packaging/src/github.com/docker/docker rev-parse HEAD >> build-result.txt')
+                sh('git -C packaging/src/github.com/docker/docker rev-parse HEAD >> build-result.txt')
                 saveS3(name: 'build-result.txt')
                 slackSend(channel: "#release-ci-feed", message: "Docker CE (cli: `${params.DOCKER_CLI_REF}`, engine: `${params.DOCKER_ENGINE_REF}`, packaging: `${params.DOCKER_PACKAGING_REF}`, version: `${params.VERSION}`) https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
                 if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {

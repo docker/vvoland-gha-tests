@@ -19,176 +19,176 @@ help:
 	@echo help
 
 clean:
-	-make -C docker-ce/packaging clean
-	-$(RM) -r docker-ce/packaging
+	-make -C packaging clean
+	-$(RM) -r packaging
 	-$(RM) -r bundles
 	-$(RM) *.gz
 	-$(RM) *.tgz
 
-.PHONY: docker-ce/packaging/src
-docker-ce/packaging/src: docker-ce/packaging docker-ce/packaging/src/github.com/docker/cli docker-ce/packaging/src/github.com/docker/docker
+.PHONY: packaging/src
+packaging/src: packaging packaging/src/github.com/docker/cli packaging/src/github.com/docker/docker
 	@echo checked out source
 
-docker-ce/packaging/src/github.com/docker/cli: docker-ce/packaging
-	make -C docker-ce/packaging \
+packaging/src/github.com/docker/cli: packaging
+	make -C packaging \
 		DOCKER_CLI_REPO=$(DOCKER_CLI_REPO) \
 		DOCKER_CLI_REF=$(DOCKER_CLI_REF) \
 		checkout-cli
 
-docker-ce/packaging/src/github.com/docker/docker: docker-ce/packaging
-	make -C docker-ce/packaging \
+packaging/src/github.com/docker/docker: packaging
+	make -C packaging \
 		DOCKER_ENGINE_REPO=$(DOCKER_ENGINE_REPO) \
 		DOCKER_ENGINE_REF=$(DOCKER_ENGINE_REF) \
 		checkout-docker
 
-docker-ce/packaging:
+packaging:
 	mkdir -p $@
 	git clone $(DOCKER_PACKAGING_REPO) $@
 	git -C $@ checkout $(DOCKER_PACKAGING_REF)
 
-static-linux: docker-ce/packaging/src
-	make -C docker-ce/packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=static-linux static
+static-linux: packaging/src
+	make -C packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=static-linux static
 
 # TODO cross-mac should only need the CLI source code, but also calls "static"?
-cross-mac: docker-ce/packaging/src
-	make -C docker-ce/packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=cross-mac static
+cross-mac: packaging/src
+	make -C packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=cross-mac static
 
-cross-win: docker-ce/packaging/src
-	make -C docker-ce/packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=cross-win static
+cross-win: packaging/src
+	make -C packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=cross-win static
 
-debian-%: docker-ce/packaging/src
-	make -C docker-ce/packaging/deb VERSION=$(VERSION) $@
+debian-%: packaging/src
+	make -C packaging/deb VERSION=$(VERSION) $@
 
-raspbian-%: docker-ce/packaging/src
-	make -C docker-ce/packaging/deb VERSION=$(VERSION) $@
+raspbian-%: packaging/src
+	make -C packaging/deb VERSION=$(VERSION) $@
 
-ubuntu-%: docker-ce/packaging/src
-	make -C docker-ce/packaging/deb VERSION=$(VERSION) $@
+ubuntu-%: packaging/src
+	make -C packaging/deb VERSION=$(VERSION) $@
 
-fedora-%: docker-ce/packaging/src
+fedora-%: packaging/src
 	docker rmi -f $(subst -,:,$@)
 	docker pull $(subst -,:,$@)
-	make -C docker-ce/packaging/rpm VERSION=$(VERSION) $@
+	make -C packaging/rpm VERSION=$(VERSION) $@
 
-centos-%: docker-ce/packaging/src
-	make -C docker-ce/packaging/rpm VERSION=$(VERSION) $@
+centos-%: packaging/src
+	make -C packaging/rpm VERSION=$(VERSION) $@
 
-rhel-%: docker-ce/packaging/src
-	make -C docker-ce/packaging/rpm VERSION=$(VERSION) $@
+rhel-%: packaging/src
+	make -C packaging/rpm VERSION=$(VERSION) $@
 
 bundles-ce-binary.tar.gz:
 	mkdir -p bundles/$(VERSION)/binary-client bundles/$(VERSION)/binary-daemon
-	cp docker-ce/packaging/static/build/linux/docker/docker bundles/$(VERSION)/binary-client/
+	cp packaging/static/build/linux/docker/docker bundles/$(VERSION)/binary-client/
 	for f in dockerd docker-init docker-proxy runc containerd ctr containerd-shim; do \
-		cp docker-ce/packaging/static/build/linux/docker/$$f bundles/$(VERSION)/binary-daemon/; \
+		cp packaging/static/build/linux/docker/$$f bundles/$(VERSION)/binary-daemon/; \
 		if $(LDD_RUN) bundles/$(VERSION)/binary-daemon/$$f; then echo "$$f is not static, exiting..."; exit 1; fi \
 	done
 	tar czf $@ bundles
 
 bundles-ce-cross-darwin.tar.gz:
 	mkdir -p bundles/$(VERSION)/cross/darwin/amd64
-	cp -r docker-ce/packaging/static/build/mac/docker/* bundles/$(VERSION)/cross/darwin/amd64/
+	cp -r packaging/static/build/mac/docker/* bundles/$(VERSION)/cross/darwin/amd64/
 	tar czf $@ bundles
 
 bundles-ce-cross-windows.tar.gz:
 	mkdir -p bundles/$(VERSION)/cross/windows/amd64
-	cp -r docker-ce/packaging/static/build/win/docker/* bundles/$(VERSION)/cross/windows/amd64/
+	cp -r packaging/static/build/win/docker/* bundles/$(VERSION)/cross/windows/amd64/
 	tar czf $@ bundles
 
 bundles-ce-debian-%-amd64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
+	cp -R packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-ubuntu-%-amd64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
+	cp -R packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-fedora-%-amd64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-rpm/fedora-$*
-	cp -R docker-ce/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/fedora-$*/
-	cp -R docker-ce/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/fedora-$*/
+	cp -R packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/fedora-$*/
+	cp -R packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/fedora-$*/
 	tar czf $@ bundles
 
 bundles-ce-centos-%-amd64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-rpm/centos-$*
-	cp -R docker-ce/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
-	cp -R docker-ce/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
+	cp -R packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
+	cp -R packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
 	tar czf $@ bundles
 
 bundles-ce-debian-%-armhf.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
+	cp -R packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-raspbian-%-armhf.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/packaging/deb/debbuild/raspbian-$* bundles/$(VERSION)/build-deb/
+	cp -R packaging/deb/debbuild/raspbian-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-ubuntu-%-armhf.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
+	cp -R packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-ubuntu-%-s390x.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
+	cp -R packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-ubuntu-%-ppc64le.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
+	cp -R packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-ubuntu-%-aarch64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
+	cp -R packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-debian-%-aarch64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R docker-ce/packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
+	cp -R packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
 	tar czf $@ bundles
 
 bundles-ce-fedora-%-aarch64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-rpm/fedora-$*
-	cp -R docker-ce/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/fedora-$*/
-	cp -R docker-ce/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/fedora-$*/
+	cp -R packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/fedora-$*/
+	cp -R packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/fedora-$*/
 	tar czf $@ bundles
 
 bundles-ce-centos-%-aarch64.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-rpm/centos-$*
-	cp -R docker-ce/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
-	cp -R docker-ce/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
+	cp -R packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
+	cp -R packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
 	tar czf $@ bundles
 
 bundles-ce-rhel-%-s390x.tar.gz:
 	mkdir -p bundles/$(VERSION)/build-rpm/rhel-$*
-	cp -R docker-ce/packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/rhel-$*/
-	cp -R docker-ce/packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/rhel-$*/
+	cp -R packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/rhel-$*/
+	cp -R packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/rhel-$*/
 	tar czf $@ bundles
 
 # Bundle the completion files here are used by Docker Desktop
 # https://github.com/docker/pinata/blob/553b07bebc444d493502e8ae9fe36cc2f490b793/tools/cmd/pinata/versionpacks/remotedependencies.go#L211-L229
 # TODO consider including these with the CLI in the "cross-win", "cross-mac", and "static" bundles and/or embedding them in the CLI
-bundles-ce-shell-completion.tar.gz: docker-ce/packaging/src/github.com/docker/cli
-	install -D docker-ce/packaging/src/github.com/docker/cli/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
-	install -D docker-ce/packaging/src/github.com/docker/cli/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
-	install -D docker-ce/packaging/src/github.com/docker/cli/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
+bundles-ce-shell-completion.tar.gz: packaging/src/github.com/docker/cli
+	install -D packaging/src/github.com/docker/cli/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
+	install -D packaging/src/github.com/docker/cli/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
+	install -D packaging/src/github.com/docker/cli/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
 	tar czf $@ bundles
 
 docker-win.zip:
-	cp docker-ce/packaging/static/build/win/docker-*.zip $@
+	cp packaging/static/build/win/docker-*.zip $@
 
 docker-mac.tgz:
-	cp docker-ce/packaging/static/build/mac/docker-*.tgz $@
+	cp packaging/static/build/mac/docker-*.tgz $@
 
 docker-%.tgz:
 	$(MAKE) static-linux
-	mv docker-ce/packaging/static/build/linux/docker-rootless-extras-*.tgz docker-rootless-extras-$*.tgz
-	mv docker-ce/packaging/static/build/linux/docker-*.tgz $@
+	mv packaging/static/build/linux/docker-rootless-extras-*.tgz docker-rootless-extras-$*.tgz
+	mv packaging/static/build/linux/docker-*.tgz $@
 
 .PHONY: verify
 verify:
@@ -196,4 +196,4 @@ verify:
 	docker run --rm -i -v "$$(pwd):/v" -e DEBIAN_FRONTEND=noninteractive -e PACKAGE_REPO=$(VERIFY_PACKAGE_REPO) -w /v $(IMAGE) ./verify
 
 release:
-	make -C docker-ce/packaging VERSION=$(VERSION) release
+	make -C packaging VERSION=$(VERSION) release
