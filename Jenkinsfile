@@ -100,6 +100,8 @@ def result_steps = [
                 }
                 sh('git -C packaging/src/github.com/docker/docker rev-parse HEAD >> build-result.txt')
                 saveS3(name: 'build-result.txt')
+                sh("echo '${params.VERSION}' > VERSION")
+                saveS3(name: 'VERSION')
                 slackSend(channel: "#release-ci-feed", message: "Docker CE (cli: `${params.DOCKER_CLI_REF}`, engine: `${params.DOCKER_ENGINE_REF}`, packaging: `${params.DOCKER_PACKAGING_REF}`, version: `${params.VERSION}`) https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
                 if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
                     // Triggers builds to go through to staging and/or production
