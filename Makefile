@@ -13,6 +13,9 @@ DOCKER_PACKAGING_REF:=
 # step. Leave empty to install from download.docker.com
 VERIFY_PACKAGE_REPO:=
 
+# Optional flags like --platform=linux/armhf
+VERIFY_PLATFORM:=
+
 VERSION?=0.0.0-dev
 
 help:
@@ -193,7 +196,7 @@ docker-%.tgz:
 .PHONY: verify
 verify:
 	# to verify using packages from staging, use: make VERIFY_PACKAGE_REPO=stage IMAGE=ubuntu:focal verify
-	docker run --rm -i -v "$$(pwd):/v" -e DEBIAN_FRONTEND=noninteractive -e PACKAGE_REPO=$(VERIFY_PACKAGE_REPO) -w /v $(IMAGE) ./verify
+	docker run $(VERIFY_PLATFORM) --rm -i -v "$$(pwd):/v" -e DEBIAN_FRONTEND=noninteractive -e PACKAGE_REPO=$(VERIFY_PACKAGE_REPO) -w /v $(IMAGE) ./verify
 
 release:
 	make -C packaging VERSION=$(VERSION) release
