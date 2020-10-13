@@ -149,6 +149,12 @@ def pkgs = [
 
 def genBuildStep(LinkedHashMap pkg, String arch) {
     def nodeLabel = "linux&&${arch}"
+    def platform = ""
+    if (arch == 'armhf') {
+        // Running armhf builds on EC2 requires --platform parameter
+        // Otherwise it accidentally pulls armel images which then breaks the verify step
+        platform = "--platform=linux/${arch}"
+    }
     return { ->
         stage("${pkg.target}-${arch}") {
             retry(3) {
@@ -174,7 +180,7 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                     def buildImage = pkg.image
                     if (!params.SKIP_VERIFY) {
                         sh"""
-                        make VERIFY_PACKAGE_REPO=${params.VERIFY_PACKAGE_REPO} IMAGE=${buildImage} verify
+                        make VERIFY_PACKAGE_REPO=${params.VERIFY_PACKAGE_REPO} VERIFY_PLATFORM=${platform} IMAGE=${buildImage} verify
                         """
                     }
                     saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
