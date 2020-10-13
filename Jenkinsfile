@@ -86,7 +86,6 @@ def result_steps = [
             wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
                 checkout scm
                 genBuildResult()
-                // TODO: cli and engine packages should get their own git-commit listed. Temporarily using the "engine" commit
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
@@ -95,10 +94,14 @@ def result_steps = [
                         DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
                         DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
                         DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                        packaging/src/github.com/docker/docker
+                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
+                        packaging/src/github.com/docker/docker \
+                        packaging/src/github.com/docker/cli
                     """
                 }
                 sh('git -C packaging/src/github.com/docker/docker rev-parse HEAD >> build-result.txt')
+                sh('git -C packaging/src/github.com/docker/cli rev-parse HEAD >> build-result.txt')
                 saveS3(name: 'build-result.txt')
                 sh("echo '${params.VERSION}' > VERSION")
                 saveS3(name: 'VERSION')
