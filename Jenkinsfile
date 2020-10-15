@@ -300,33 +300,6 @@ def build_package_steps = [
             }
         }
     },
-    'bundles-ce-binary' : { ->
-        stage('bundles-ce-binary') {
-            retry(3) {
-                wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
-                    checkout scm
-                    sshagent(['docker-jenkins.github.ssh']) {
-                        sh """
-                        make clean
-                        make \
-                            DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                            DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                            DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                            DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                            DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                            DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                            VERSION=${params.VERSION} \
-                            static-linux
-                        """
-                    }
-                    sh """
-                    make VERSION=${params.VERSION} bundles-ce-binary.tar.gz
-                    """
-                    saveS3(name: 'bundles-ce-binary.tar.gz')
-                }
-            }
-        }
-    },
 ]
 
 def static_arches = [

@@ -79,15 +79,6 @@ centos-%: packaging/src
 rhel-%: packaging/src
 	make -C packaging/rpm VERSION=$(VERSION) $@
 
-bundles-ce-binary.tar.gz:
-	mkdir -p bundles/$(VERSION)/binary-client bundles/$(VERSION)/binary-daemon
-	cp packaging/static/build/linux/docker/docker bundles/$(VERSION)/binary-client/
-	for f in dockerd docker-init docker-proxy runc containerd ctr containerd-shim; do \
-		cp packaging/static/build/linux/docker/$$f bundles/$(VERSION)/binary-daemon/; \
-		if $(LDD_RUN) bundles/$(VERSION)/binary-daemon/$$f; then echo "$$f is not static, exiting..."; exit 1; fi \
-	done
-	tar czf $@ bundles
-
 bundles-ce-cross-darwin.tar.gz:
 	mkdir -p bundles/$(VERSION)/cross/darwin/amd64
 	cp -r packaging/static/build/mac/docker/* bundles/$(VERSION)/cross/darwin/amd64/
