@@ -143,6 +143,7 @@ def pkgs = [
     [target: "debian-buster",            image: "debian:buster",                          arches: ["amd64", "aarch64", "armhf"]], // Debian 10 (EOL: 2024)
     [target: "fedora-31",                image: "fedora:31",                              arches: ["amd64", "aarch64"]],
     [target: "fedora-32",                image: "fedora:32",                              arches: ["amd64", "aarch64"]],
+    [target: "fedora-33",                image: "fedora:33",                              arches: ["amd64", "aarch64"]],
     [target: "raspbian-buster",          image: "balenalib/rpi-raspbian:buster",          arches: ["armhf"]],
     [target: "ubuntu-xenial",            image: "ubuntu:xenial",                          arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 16.04 LTS (End of support: April, 2021. EOL: April, 2024)
     [target: "ubuntu-bionic",            image: "ubuntu:bionic",                          arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 18.04 LTS (End of support: April, 2023. EOL: April, 2028)
