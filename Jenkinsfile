@@ -100,6 +100,8 @@ def result_steps = [
                         packaging/src/github.com/docker/cli
                     """
                 }
+                // TODO these build-result.txt lines should not be here in Jenkinsfile, but result from a Makefile target.
+                sh('git -C packaging rev-parse HEAD >> build-result.txt')
                 sh('git -C packaging/src/github.com/docker/docker rev-parse HEAD >> build-result.txt')
                 sh('git -C packaging/src/github.com/docker/cli rev-parse HEAD >> build-result.txt')
                 saveS3(name: 'build-result.txt')
