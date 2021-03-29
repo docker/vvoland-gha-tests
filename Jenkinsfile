@@ -159,10 +159,14 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
         platform = "--platform=linux/${arch}"
     }
     return { ->
-        stage("${pkg.target}-${arch}") {
-            retry(3) {
-                wrappedNode(label: nodeLabel, cleanWorkspace: true) {
-                    checkout scm
+        wrappedNode(label: nodeLabel, cleanWorkspace: true) {
+            stage("info") {
+                sh 'docker version'
+                sh 'docker info'
+            }
+            stage("build") {
+                checkout scm
+                retry(3) {
                     sshagent(['docker-jenkins.github.ssh']) {
                         sh """
                         make clean
@@ -175,19 +179,30 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                             DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
                             VERSION=${params.VERSION} \
                             ${pkg.target}
-                        make VERSION=${params.VERSION} bundles-ce-${pkg.target}-${arch}.tar.gz
                         """
                     }
-                    // Skip verify if SKIP_VERIFY is set, to solve the chicken and egg problem
-                    // when creating new docker-ce and containerd packages for new arch and distros
-                    def buildImage = pkg.image
-                    if (!params.SKIP_VERIFY) {
-                        sh"""
-                        make VERIFY_PACKAGE_REPO=${params.VERIFY_PACKAGE_REPO} VERIFY_PLATFORM=${platform} IMAGE=${buildImage} verify
-                        """
-                    }
-                    saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
                 }
+            }
+            stage("verify") {
+                // Skip verify if SKIP_VERIFY is set, to solve the chicken and egg problem
+                // when creating new docker-ce and containerd packages for new arch and distros
+                def buildImage = pkg.image
+                if (!params.SKIP_VERIFY) {
+                    sh"""
+                    make \
+                        VERIFY_PACKAGE_REPO=${params.VERIFY_PACKAGE_REPO} \
+                        VERIFY_PLATFORM=${platform} IMAGE=${buildImage} \
+                        verify
+                    """
+                }
+            }
+            stage("bundle") {
+                sh """
+                make VERSION=${params.VERSION} bundles-ce-${pkg.target}-${arch}.tar.gz
+                """
+            }
+            stage("upload") {
+                saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
             }
         }
     }
@@ -196,10 +211,10 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
 def genStaticBuildStep(String uname_arch) {
     def config = archConfig[uname_arch]
     return [ "static-linux-${config.arch}": { ->
-        stage("static-linux-${config.arch}") {
-            retry(3) {
-                wrappedNode(label: config.label, cleanWorkspace: true) {
-                    checkout scm
+        wrappedNode(label: config.label, cleanWorkspace: true) {
+            stage("static") {
+                checkout scm
+                retry(3) {
                     sshagent(['docker-jenkins.github.ssh']) {
                         sh """
                         make clean
@@ -214,9 +229,11 @@ def genStaticBuildStep(String uname_arch) {
                             docker-${config.arch}.tgz
                         """
                     }
-                    saveS3(name: "docker-${config.arch}.tgz")
-                    saveS3(name: "docker-rootless-extras-${config.arch}.tgz")
                 }
+            }
+            stage("upload") {
+                saveS3(name: "docker-${config.arch}.tgz")
+                saveS3(name: "docker-rootless-extras-${config.arch}.tgz")
             }
         }
     }]
@@ -224,10 +241,10 @@ def genStaticBuildStep(String uname_arch) {
 
 def build_package_steps = [
     'cross-mac'         : { ->
-        stage('cross-mac') {
-            retry(3) {
-                wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
-                    checkout scm
+        wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
+            stage('cross-mac') {
+                checkout scm
+                retry(3) {
                     sshagent(['docker-jenkins.github.ssh']) {
                         sh """
                         make clean
@@ -242,21 +259,25 @@ def build_package_steps = [
                             cross-mac
                         """
                     }
-                    sh """
-                    make VERSION=${params.VERSION} bundles-ce-cross-darwin.tar.gz
-                    make docker-mac.tgz
-                    """
-                    saveS3(name: 'bundles-ce-cross-darwin.tar.gz')
-                    saveS3(name: 'docker-mac.tgz')
                 }
+            }
+            stage("bundle") {
+                sh """
+                make VERSION=${params.VERSION} bundles-ce-cross-darwin.tar.gz
+                make docker-mac.tgz
+                """
+            }
+            stage('upload') {
+                saveS3(name: 'bundles-ce-cross-darwin.tar.gz')
+                saveS3(name: 'docker-mac.tgz')
             }
         }
     },
     'cross-win'         : { ->
-        stage('cross-win') {
-            retry(3) {
-                wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
-                    checkout scm
+        wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
+            stage('cross-win') {
+                checkout scm
+                retry(3) {
                     sshagent(['docker-jenkins.github.ssh']) {
                         sh """
                         make clean
@@ -271,21 +292,25 @@ def build_package_steps = [
                             cross-win
                         """
                     }
-                    sh """
-                    make VERSION=${params.VERSION} bundles-ce-cross-windows.tar.gz
-                    make docker-win.zip
-                    """
-                    saveS3(name: 'bundles-ce-cross-windows.tar.gz')
-                    saveS3(name: 'docker-win.zip')
                 }
+            }
+            stage("bundle") {
+                sh """
+                make VERSION=${params.VERSION} bundles-ce-cross-windows.tar.gz
+                make docker-win.zip
+                """
+            }
+            stage('upload') {
+                saveS3(name: 'bundles-ce-cross-windows.tar.gz')
+                saveS3(name: 'docker-win.zip')
             }
         }
     },
     'shell-completion'  : { ->
-        stage('shell-completion') {
-            retry(3) {
-                wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
-                    checkout scm
+        wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
+            stage('shell-completion') {
+                checkout scm
+                retry(3) {
                     sshagent(['docker-jenkins.github.ssh']) {
                         sh """
                         make clean
@@ -298,8 +323,10 @@ def build_package_steps = [
                             bundles-ce-shell-completion.tar.gz
                         """
                     }
-                    saveS3(name: 'bundles-ce-shell-completion.tar.gz')
                 }
+            }
+            stage('upload') {
+                saveS3(name: 'bundles-ce-shell-completion.tar.gz')
             }
         }
     },
