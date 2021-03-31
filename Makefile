@@ -59,26 +59,6 @@ cross-mac: packaging/src
 cross-win: packaging/src
 	make -C packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=cross-win static
 
-debian-%: packaging/src
-	make -C packaging/deb VERSION=$(VERSION) $@
-
-raspbian-%: packaging/src
-	make -C packaging/deb VERSION=$(VERSION) $@
-
-ubuntu-%: packaging/src
-	make -C packaging/deb VERSION=$(VERSION) $@
-
-fedora-%: packaging/src
-	docker rmi -f $(subst -,:,$@)
-	docker pull $(subst -,:,$@)
-	make -C packaging/rpm VERSION=$(VERSION) $@
-
-centos-%: packaging/src
-	make -C packaging/rpm VERSION=$(VERSION) $@
-
-rhel-%: packaging/src
-	make -C packaging/rpm VERSION=$(VERSION) $@
-
 bundles-ce-cross-darwin.tar.gz:
 	mkdir -p bundles/$(VERSION)/cross/darwin/amd64
 	cp -r packaging/static/build/mac/docker/* bundles/$(VERSION)/cross/darwin/amd64/
@@ -89,80 +69,17 @@ bundles-ce-cross-windows.tar.gz:
 	cp -r packaging/static/build/win/docker/* bundles/$(VERSION)/cross/windows/amd64/
 	tar czf $@ bundles
 
-bundles-ce-debian-%-amd64.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
-	tar czf $@ bundles
+DEB_BUNDLES:=bundles-ce-ubuntu-%.tar.gz bundles-ce-debian-%.tar.gz bundles-ce-raspbian-%.tar.gz
 
-bundles-ce-ubuntu-%-amd64.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
-	tar czf $@ bundles
+$(DEB_BUNDLES): packaging/src
+	make -C packaging/deb VERSION=$(VERSION) debbuild/$@
+	mv packaging/deb/debbuild/$@ .
 
-bundles-ce-fedora-%-amd64.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-rpm/fedora-$*
-	cp -R packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/fedora-$*/
-	cp -R packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/fedora-$*/
-	tar czf $@ bundles
+RPM_BUNDLES:=bundles-ce-fedora-%.tar.gz bundles-ce-centos-%.tar.gz bundles-ce-rhel-%.tar.gz
 
-bundles-ce-centos-%-amd64.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-rpm/centos-$*
-	cp -R packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
-	cp -R packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
-	tar czf $@ bundles
-
-bundles-ce-debian-%-armhf.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
-	tar czf $@ bundles
-
-bundles-ce-raspbian-%-armhf.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R packaging/deb/debbuild/raspbian-$* bundles/$(VERSION)/build-deb/
-	tar czf $@ bundles
-
-bundles-ce-ubuntu-%-armhf.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
-	tar czf $@ bundles
-
-bundles-ce-ubuntu-%-s390x.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
-	tar czf $@ bundles
-
-bundles-ce-ubuntu-%-ppc64le.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
-	tar czf $@ bundles
-
-bundles-ce-ubuntu-%-aarch64.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R packaging/deb/debbuild/ubuntu-$* bundles/$(VERSION)/build-deb/
-	tar czf $@ bundles
-
-bundles-ce-debian-%-aarch64.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-deb
-	cp -R packaging/deb/debbuild/debian-$* bundles/$(VERSION)/build-deb/
-	tar czf $@ bundles
-
-bundles-ce-fedora-%-aarch64.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-rpm/fedora-$*
-	cp -R packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/fedora-$*/
-	cp -R packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/fedora-$*/
-	tar czf $@ bundles
-
-bundles-ce-centos-%-aarch64.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-rpm/centos-$*
-	cp -R packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/centos-$*/
-	cp -R packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/centos-$*/
-	tar czf $@ bundles
-
-bundles-ce-rhel-%-s390x.tar.gz:
-	mkdir -p bundles/$(VERSION)/build-rpm/rhel-$*
-	cp -R packaging/rpm/rpmbuild/RPMS bundles/$(VERSION)/build-rpm/rhel-$*/
-	cp -R packaging/rpm/rpmbuild/SRPMS bundles/$(VERSION)/build-rpm/rhel-$*/
-	tar czf $@ bundles
+$(RPM_BUNDLES): packaging/src
+	make -C packaging/rpm VERSION=$(VERSION) rpmbuild/$@
+	mv packaging/rpm/rpmbuild/$@ .
 
 # Bundle the completion files here are used by Docker Desktop
 # https://github.com/docker/pinata/blob/553b07bebc444d493502e8ae9fe36cc2f490b793/tools/cmd/pinata/versionpacks/remotedependencies.go#L211-L229

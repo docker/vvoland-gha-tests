@@ -164,7 +164,7 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                 sh 'docker version'
                 sh 'docker info'
             }
-            stage("build") {
+            stage("build bundle") {
                 checkout scm
                 retry(3) {
                     sshagent(['docker-jenkins.github.ssh']) {
@@ -178,7 +178,7 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                             DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
                             DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
                             VERSION=${params.VERSION} \
-                            ${pkg.target}
+                            bundles-ce-${pkg.target}-${arch}.tar.gz
                         """
                     }
                 }
@@ -195,11 +195,6 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                         verify
                     """
                 }
-            }
-            stage("bundle") {
-                sh """
-                make VERSION=${params.VERSION} bundles-ce-${pkg.target}-${arch}.tar.gz
-                """
             }
             stage("upload") {
                 saveS3(name: "bundles-ce-${pkg.target}-${arch}.tar.gz")
