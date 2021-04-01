@@ -142,8 +142,9 @@ def pkgs = [
     [target: "rhel-7",                   image: "dockereng/rhel:7-s390x",                 arches: ["s390x"]],
     [target: "debian-buster",            image: "debian:buster",                          arches: ["amd64", "aarch64", "armhf"]], // Debian 10 (EOL: 2024)
     [target: "debian-bullseye",          image: "debian:bullseye",                        arches: ["amd64", "aarch64", "armhf"]], // Debian 11 (Next stable)
-    [target: "fedora-32",                image: "fedora:32",                              arches: ["amd64", "aarch64"]],
+    [target: "fedora-32",                image: "fedora:32",                              arches: ["amd64", "aarch64"]],          // Fedora 32 (EOL: 18 May 2021)
     [target: "fedora-33",                image: "fedora:33",                              arches: ["amd64", "aarch64"]],
+    [target: "fedora-34",                image: "fedora:34",                              arches: ["amd64", "aarch64"]],
     [target: "raspbian-buster",          image: "balenalib/rpi-raspbian:buster",          arches: ["armhf"]],                     // Debian/Raspbian 10 (EOL: 2024)
     [target: "raspbian-bullseye",        image: "balenalib/rpi-raspbian:bullseye",        arches: ["armhf"]],                     // Debian/Raspbian 11 (Next stable)
     [target: "ubuntu-xenial",            image: "ubuntu:xenial",                          arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 16.04 LTS (End of support: April, 2021. EOL: April, 2024)
