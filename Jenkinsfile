@@ -213,6 +213,13 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
 
 def genStaticBuildStep(String uname_arch) {
     def config = archConfig[uname_arch]
+
+    // TODO: figure out why building arm on arm64 machines does not work with cgo enabled
+    def cgo_enabled = ''
+    if (config.arch == 'armhf' || config.arch == 'armel') {
+        cgo_enabled = '0'
+    }
+
     return [ "static-linux-${config.arch}": { ->
         wrappedNode(label: config.label, cleanWorkspace: true) {
             stage("static") {
@@ -222,6 +229,7 @@ def genStaticBuildStep(String uname_arch) {
                         sh """
                         make clean
                         make \
+                            CGO_ENABLED=${cgo_enabled} \
                             DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
                             DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
                             DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
@@ -266,13 +274,16 @@ def build_package_steps = [
             }
             stage("bundle") {
                 sh """
-                make VERSION=${params.VERSION} bundles-ce-cross-darwin.tar.gz
-                make docker-mac.tgz
+                make VERSION=${params.VERSION} bundles-ce-cross-darwin-amd64.tar.gz
+                make VERSION=${params.VERSION} bundles-ce-cross-darwin-arm64.tar.gz
+                make docker-mac-amd64.tgz docker-mac-aarch64.tgz
                 """
             }
             stage('upload') {
-                saveS3(name: 'bundles-ce-cross-darwin.tar.gz')
-                saveS3(name: 'docker-mac.tgz')
+                saveS3(name: 'bundles-ce-cross-darwin-amd64.tar.gz')
+                saveS3(name: 'bundles-ce-cross-darwin-arm64.tar.gz')
+                saveS3(name: 'docker-mac-amd64.tgz')
+                saveS3(name: 'docker-mac-aarch64.tgz')
             }
         }
     },
