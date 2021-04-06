@@ -65,8 +65,7 @@ def genBuildResult() {
 def init_steps = [
     'init': { ->
         stage('init') {
-            wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
-                checkout scm
+            wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2') {
                 announceChannel = "#ship-builders"
                 // This is only the case on a nightly build
                 if (env.BRANCH_NAME == 'ce-nightly') {
