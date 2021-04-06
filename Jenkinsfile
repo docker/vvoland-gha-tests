@@ -164,6 +164,11 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
     }
     return { ->
         wrappedNode(label: nodeLabel, cleanWorkspace: true) {
+           stage("${pkg.target}-${arch}") {
+                // This is just a "dummy" stage to make the distro/arch visible
+                // in Jenkins' BlueOcean view, which truncates names....
+                sh 'echo starting...'
+            }
             stage("info") {
                 sh 'docker version'
                 sh 'docker info'
