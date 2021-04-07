@@ -310,13 +310,13 @@ def build_package_steps = [
             }
             stage("bundle") {
                 sh """
-                make VERSION=${params.VERSION} bundles-ce-cross-windows.tar.gz
-                make docker-win.zip
+                make VERSION=${params.VERSION} bundles-ce-cross-windows-amd64.tar.gz
+                make docker-win-amd64.zip
                 """
             }
             stage('upload') {
-                saveS3(name: 'bundles-ce-cross-windows.tar.gz')
-                saveS3(name: 'docker-win.zip')
+                saveS3(name: 'bundles-ce-cross-windows-amd64.tar.gz')
+                saveS3(name: 'docker-win-amd64.zip')
             }
         }
     },

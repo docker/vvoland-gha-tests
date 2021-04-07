@@ -69,9 +69,9 @@ bundles-ce-cross-darwin-%.tar.gz:
 	cp -r packaging/static/build/mac/$*/docker/* bundles/$(VERSION)/cross/darwin/$*/
 	tar czf $@ bundles
 
-bundles-ce-cross-windows.tar.gz:
-	mkdir -p bundles/$(VERSION)/cross/windows/amd64
-	cp -r packaging/static/build/win/docker/* bundles/$(VERSION)/cross/windows/amd64/
+bundles-ce-cross-windows-%.tar.gz:
+	mkdir -p bundles/$(VERSION)/cross/windows/$*
+	cp -r packaging/static/build/win/$*/docker/* bundles/$(VERSION)/cross/windows/$*/
 	tar czf $@ bundles
 
 DEB_BUNDLES:=bundles-ce-ubuntu-%.tar.gz bundles-ce-debian-%.tar.gz bundles-ce-raspbian-%.tar.gz
@@ -95,8 +95,8 @@ bundles-ce-shell-completion.tar.gz: packaging/src/github.com/docker/cli
 	install -D packaging/src/github.com/docker/cli/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
 	tar czf $@ bundles
 
-docker-win.zip:
-	cp packaging/static/build/win/docker-*.zip $@
+docker-win-amd64.zip:
+	cp packaging/static/build/win/amd64/docker-*.zip $@
 
 docker-mac-amd64.tgz:
 	cp packaging/static/build/mac/amd64/docker-*.tgz $@
