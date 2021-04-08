@@ -65,7 +65,7 @@ def genBuildResult() {
 def init_steps = [
     'init': { ->
         stage('init') {
-            wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2') {
+            wrappedNode(label: 'amd64 && overlay2') {
                 announceChannel = "#ship-builders"
                 // This is only the case on a nightly build
                 if (env.BRANCH_NAME == 'ce-nightly') {
@@ -82,7 +82,7 @@ def init_steps = [
 def result_steps = [
     'result': { ->
         stage('result') {
-            wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
+            wrappedNode(label: 'amd64 && overlay2', cleanWorkspace: true) {
                 checkout scm
                 genBuildResult()
                 sshagent(['docker-jenkins.github.ssh']) {
@@ -156,10 +156,19 @@ def pkgs = [
 def genBuildStep(LinkedHashMap pkg, String arch) {
     def nodeLabel = "linux&&${arch}"
     def platform = ""
+
+    // As of writing only ubuntu nodes have Docker updated to 20.10
+    // Needed for the seccomp chicken and egg issue: new distros use new syscalls,
+    // but old versions of runc returned the wrong error preventing fallback.
+    // So let's add ubuntu label when possible (not s390x) and ubuntu-2004 for non-armhf.
+
     if (arch == 'armhf') {
         // Running armhf builds on EC2 requires --platform parameter
         // Otherwise it accidentally pulls armel images which then breaks the verify step
         platform = "--platform=linux/${arch}"
+        nodeLabel = "${nodeLabel}&&ubuntu"
+    } else if (arch != 's390x') {
+        nodeLabel = "${nodeLabel}&&ubuntu-2004"
     }
     return { ->
         wrappedNode(label: nodeLabel, cleanWorkspace: true) {
@@ -252,7 +261,7 @@ def genStaticBuildStep(String uname_arch) {
 
 def build_package_steps = [
     'cross-mac'         : { ->
-        wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
+        wrappedNode(label: 'amd64 && overlay2', cleanWorkspace: true) {
             stage('cross-mac') {
                 checkout scm
                 retry(3) {
@@ -288,7 +297,7 @@ def build_package_steps = [
         }
     },
     'cross-win'         : { ->
-        wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
+        wrappedNode(label: 'amd64 && overlay2', cleanWorkspace: true) {
             stage('cross-win') {
                 checkout scm
                 retry(3) {
@@ -321,7 +330,7 @@ def build_package_steps = [
         }
     },
     'shell-completion'  : { ->
-        wrappedNode(label: 'amd64 && ubuntu-1804 && overlay2', cleanWorkspace: true) {
+        wrappedNode(label: 'amd64 && overlay2', cleanWorkspace: true) {
             stage('shell-completion') {
                 checkout scm
                 retry(3) {
