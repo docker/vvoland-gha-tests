@@ -54,7 +54,7 @@ packaging:
 	git -C $@ checkout $(DOCKER_PACKAGING_REF)
 
 static-linux: packaging/src
-	make -C packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=static-linux static
+	make -C packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=static-linux TARGETPLATFORM=$(TARGETPLATFORM) static
 
 # TODO cross-mac should only need the CLI source code, but also calls "static"?
 cross-mac: packaging/src
@@ -63,14 +63,15 @@ cross-mac: packaging/src
 cross-win: packaging/src
 	make -C packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=cross-win static
 
-bundles-ce-cross-darwin.tar.gz:
-	mkdir -p bundles/$(VERSION)/cross/darwin/amd64
-	cp -r packaging/static/build/mac/docker/* bundles/$(VERSION)/cross/darwin/amd64/
+# Note that this is consumed by pinata, thus assuming arch suffix is in GOARCH format, unlike in docker-mac-$arch.tgz
+bundles-ce-cross-darwin-%.tar.gz:
+	mkdir -p bundles/$(VERSION)/cross/darwin/$*
+	cp -r packaging/static/build/mac/$*/docker/* bundles/$(VERSION)/cross/darwin/$*/
 	tar czf $@ bundles
 
-bundles-ce-cross-windows.tar.gz:
-	mkdir -p bundles/$(VERSION)/cross/windows/amd64
-	cp -r packaging/static/build/win/docker/* bundles/$(VERSION)/cross/windows/amd64/
+bundles-ce-cross-windows-%.tar.gz:
+	mkdir -p bundles/$(VERSION)/cross/windows/$*
+	cp -r packaging/static/build/win/$*/docker/* bundles/$(VERSION)/cross/windows/$*/
 	tar czf $@ bundles
 
 DEB_BUNDLES:=bundles-ce-ubuntu-%.tar.gz bundles-ce-debian-%.tar.gz bundles-ce-raspbian-%.tar.gz
@@ -94,14 +95,19 @@ bundles-ce-shell-completion.tar.gz: packaging/src/github.com/docker/cli
 	install -D packaging/src/github.com/docker/cli/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
 	tar czf $@ bundles
 
-docker-win.zip:
-	cp packaging/static/build/win/docker-*.zip $@
+docker-win-amd64.zip:
+	cp packaging/static/build/win/amd64/docker-*.zip $@
 
-docker-mac.tgz:
-	cp packaging/static/build/mac/docker-*.tgz $@
+docker-mac-amd64.tgz:
+	cp packaging/static/build/mac/amd64/docker-*.tgz $@
+docker-mac-aarch64.tgz:
+	cp packaging/static/build/mac/arm64/docker-*.tgz $@
 
 docker-%.tgz:
-	$(MAKE) static-linux
+	arch=$*; if test $$arch = armhf; then arch=arm/v7; \
+		elif test $$arch = armel; then arch=arm/v6; \
+		elif test $$arch = aarch64; then arch=arm64; fi; \
+		$(MAKE) TARGETPLATFORM=linux/$$arch static-linux
 	mv packaging/static/build/linux/docker-rootless-extras-*.tgz docker-rootless-extras-$*.tgz
 	mv packaging/static/build/linux/docker-*.tgz $@
 
