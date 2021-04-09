@@ -13,7 +13,7 @@ properties(
             booleanParam(name: 'RELEASE_STAGING',    defaultValue: false,                                           description: 'Trigger release to staging after a successful build'),
             booleanParam(name: 'RELEASE_PRODUCTION', defaultValue: false,                                           description: 'Trigger release to production after a successful build'),
             booleanParam(name: 'SKIP_VERIFY',        defaultValue: false,                                           description: 'Enable this boolean to skip package verification'),
-            string(name: 'VERIFY_PACKAGE_REPO',      defaultValue: 'stage',                                         description: 'Packaging repo to use for installing dependencies (default: stage=download-stage.docker.com, leave empty to use download.docker.com)'),
+            string(name: 'VERIFY_PACKAGE_REPO',      defaultValue: 'prod',                                          description: 'Packaging repo to use for installing dependencies (stage=download-stage.docker.com or prod=download.docker.com (default))'),
         ])
     ]
 )
