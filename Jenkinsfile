@@ -113,9 +113,10 @@ def result_steps = [
                     build(
                         job: "release-repo/ce",
                         parameters: [
-                            [$class: 'StringParameterValue', name: 'ARTIFACT_BUILD_TAG', value: "${BUILD_TAG}"],
-                            [$class: 'BooleanParameterValue', name: 'RELEASE_STAGING', value: STAGING],
-                            [$class: 'BooleanParameterValue', name: 'RELEASE_PRODUCTION', value: PROD],
+                            [$class: 'StringParameterValue',  name: 'ARTIFACT_BUILD_TAG',      value: "${BUILD_TAG}"],
+                            [$class: 'StringParameterValue',  name: 'EXPECTED_DOCKER_VERSION', value: "${VERSION}"],
+                            [$class: 'BooleanParameterValue', name: 'RELEASE_STAGING',         value: STAGING],
+                            [$class: 'BooleanParameterValue', name: 'RELEASE_PRODUCTION',      value: PROD],
                         ],
                         wait: false,
                     )
