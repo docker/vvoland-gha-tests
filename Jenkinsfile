@@ -9,10 +9,10 @@ properties(
             string(name: 'DOCKER_ENGINE_REF',        defaultValue: 'master',                                        description: 'Docker Engine reference to build from (usually a branch).'),
             string(name: 'DOCKER_PACKAGING_REPO',    defaultValue: 'git@github.com:docker/docker-ce-packaging.git', description: 'Packaging scripts git source repository.'),
             string(name: 'DOCKER_PACKAGING_REF',     defaultValue: 'master',                                        description: 'Packaging scripts reference to build from (usually a branch).'),
-            string(name: 'VERSION',                  defaultValue: '0.0.0-dev',                                     description: 'Version used to build binaries and to tag Docker CLI/Docker Engine repositories'),
-            booleanParam(name: 'RELEASE_STAGING',    defaultValue: false,                                           description: 'Trigger release to staging after a successful build'),
-            booleanParam(name: 'RELEASE_PRODUCTION', defaultValue: false,                                           description: 'Trigger release to production after a successful build'),
-            booleanParam(name: 'SKIP_VERIFY',        defaultValue: false,                                           description: 'Enable this boolean to skip package verification'),
+            string(name: 'VERSION',                  defaultValue: '0.0.0-dev',                                     description: 'Version used to build binaries and to tag Docker CLI/Docker Engine repositories when doing a release to production, e.g. "20.10.6" (no v-prefix). Required when releasing Docker'),
+            booleanParam(name: 'RELEASE_STAGING',    defaultValue: false,                                           description: 'Trigger release to staging after a successful build. Leave unchecked to only build artifacts (and manually start a release from the release-repo build pipeline)'),
+            booleanParam(name: 'RELEASE_PRODUCTION', defaultValue: false,                                           description: 'Trigger release to production after a successful build. Leave unchecked to only build artifacts (and manually start a release from the release-repo build pipeline)'),
+            booleanParam(name: 'SKIP_VERIFY',        defaultValue: false,                                           description: 'Skip package verification. Use this when testing builds of a new distro for which no containerd.io packages are available yet.'),
             string(name: 'VERIFY_PACKAGE_REPO',      defaultValue: 'prod',                                          description: 'Packaging repo to use for installing dependencies (stage=download-stage.docker.com or prod=download.docker.com (default))'),
         ])
     ]
