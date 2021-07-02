@@ -53,8 +53,9 @@ function install_debian_containerd() {
 
 	curl -fsSL "${REPO_URL}/gpg" | apt-key add -
 
-	if [[ ${DIST_VERSION} == "sid" ]]; then
-		DIST_VERSION='buster'
+	if [ "${DIST_VERSION}" = "sid" ]; then
+		echo 'Debian sid ("unstable") cannot be used for packaging: replace with the actual codename'
+		exit 1
 	fi
 	ARCH=$(dpkg --print-architecture)
 
