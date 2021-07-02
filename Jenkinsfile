@@ -146,7 +146,6 @@ def pkgs = [
     [target: "fedora-34",                image: "fedora:34",                              arches: ["amd64", "aarch64"]],
     [target: "raspbian-buster",          image: "balenalib/rpi-raspbian:buster",          arches: ["armhf"]],                     // Debian/Raspbian 10 (EOL: 2024)
     [target: "raspbian-bullseye",        image: "balenalib/rpi-raspbian:bullseye",        arches: ["armhf"]],                     // Debian/Raspbian 11 (Next stable)
-    [target: "ubuntu-xenial",            image: "ubuntu:xenial",                          arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 16.04 LTS (End of support: April, 2021. EOL: April, 2024)
     [target: "ubuntu-bionic",            image: "ubuntu:bionic",                          arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 18.04 LTS (End of support: April, 2023. EOL: April, 2028)
     [target: "ubuntu-focal",             image: "ubuntu:focal",                           arches: ["amd64", "aarch64"]],          // Ubuntu 20.04 LTS (End of support: April, 2025. EOL: April, 2030)
     [target: "ubuntu-groovy",            image: "ubuntu:groovy",                          arches: ["amd64", "aarch64"]],          // Ubuntu 20.10 (EOL: July, 2021)
