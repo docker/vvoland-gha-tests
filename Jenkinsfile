@@ -139,7 +139,6 @@ archConfig = [
 def pkgs = [
     [target: "centos-7",                 image: "centos:7",                               arches: ["amd64", "aarch64"]],          // (EOL: June 30, 2024)
     [target: "centos-8",                 image: "centos:8",                               arches: ["amd64", "aarch64"]],
-    [target: "rhel-7",                   image: "dockereng/rhel:7-s390x",                 arches: ["s390x"]],
     [target: "debian-buster",            image: "debian:buster",                          arches: ["amd64", "aarch64", "armhf"]], // Debian 10 (EOL: 2024)
     [target: "debian-bullseye",          image: "debian:bullseye",                        arches: ["amd64", "aarch64", "armhf"]], // Debian 11 (Next stable)
     [target: "fedora-33",                image: "fedora:33",                              arches: ["amd64", "aarch64"]],
@@ -156,17 +155,12 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
     def nodeLabel = "linux&&${arch}"
     def platform = ""
 
-    // As of writing only ubuntu nodes have Docker updated to 20.10
-    // Needed for the seccomp chicken and egg issue: new distros use new syscalls,
-    // but old versions of runc returned the wrong error preventing fallback.
-    // So let's add ubuntu label when possible (not s390x) and ubuntu-2004 for non-armhf.
-
     if (arch == 'armhf') {
         // Running armhf builds on EC2 requires --platform parameter
         // Otherwise it accidentally pulls armel images which then breaks the verify step
         platform = "--platform=linux/${arch}"
         nodeLabel = "${nodeLabel}&&ubuntu"
-    } else if (arch != 's390x') {
+    } else {
         nodeLabel = "${nodeLabel}&&ubuntu-2004"
     }
     return { ->
@@ -358,8 +352,6 @@ def static_arches = [
     "x86_64",
     "armv6l",
     "armv7l",
-    // "s390x",
-    //"ppc64le",
     "aarch64"
 ]
 
