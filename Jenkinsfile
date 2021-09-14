@@ -252,6 +252,15 @@ def build_package_steps = [
     'cross-mac'         : { ->
         wrappedNode(label: 'amd64 && overlay2', cleanWorkspace: true) {
             stage('cross-mac') {
+                // This is just a "dummy" stage to make the distro/arch visible
+                // in Jenkins' BlueOcean view, which truncates names....
+                sh 'echo starting...'
+            }
+            stage("info") {
+                sh 'docker version'
+                sh 'docker info'
+            }
+            stage('build') {
                 checkout scm
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
@@ -286,6 +295,15 @@ def build_package_steps = [
     'cross-win'         : { ->
         wrappedNode(label: 'amd64 && overlay2', cleanWorkspace: true) {
             stage('cross-win') {
+                // This is just a "dummy" stage to make the distro/arch visible
+                // in Jenkins' BlueOcean view, which truncates names....
+                sh 'echo starting...'
+            }
+            stage("info") {
+                sh 'docker version'
+                sh 'docker info'
+            }
+            stage('build') {
                 checkout scm
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
