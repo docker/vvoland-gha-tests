@@ -29,7 +29,7 @@ clean:
 	-$(RM) *.tgz
 
 .PHONY: packaging/src
-packaging/src: packaging packaging/src/github.com/docker/cli packaging/src/github.com/docker/docker packaging/src/github.com/docker/scan-cli-plugin
+packaging/src: packaging packaging/src/github.com/docker/cli packaging/src/github.com/docker/docker packaging/src/github.com/docker/compose packaging/src/github.com/docker/scan-cli-plugin
 	@echo checked out source
 
 packaging/src/github.com/docker/cli: packaging
@@ -47,6 +47,10 @@ packaging/src/github.com/docker/docker: packaging
 packaging/src/github.com/docker/scan-cli-plugin: packaging
 	make -C packaging \
 		checkout-scan-cli-plugin
+
+packaging/src/github.com/docker/compose: packaging
+	make -C packaging \
+		checkout-compose
 
 packaging:
 	mkdir -p $@
