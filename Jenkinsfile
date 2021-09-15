@@ -176,21 +176,19 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
             }
             stage("build bundle") {
                 checkout scm
-                retry(3) {
-                    sshagent(['docker-jenkins.github.ssh']) {
-                        sh """
-                        make clean
-                        make \
-                            DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                            DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                            DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                            DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                            DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                            DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                            VERSION=${params.VERSION} \
-                            bundles-ce-${pkg.target}-${arch}.tar.gz
-                        """
-                    }
+                sshagent(['docker-jenkins.github.ssh']) {
+                    sh """
+                    make clean
+                    make \
+                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
+                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
+                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
+                        VERSION=${params.VERSION} \
+                        bundles-ce-${pkg.target}-${arch}.tar.gz
+                    """
                 }
             }
             stage("verify") {
@@ -226,22 +224,20 @@ def genStaticBuildStep(String uname_arch) {
         wrappedNode(label: config.label, cleanWorkspace: true) {
             stage("static") {
                 checkout scm
-                retry(3) {
-                    sshagent(['docker-jenkins.github.ssh']) {
-                        sh """
-                        make clean
-                        make \
-                            CGO_ENABLED=${cgo_enabled} \
-                            DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                            DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                            DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                            DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                            DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                            DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                            VERSION=${params.VERSION} \
-                            docker-${config.arch}.tgz
-                        """
-                    }
+                sshagent(['docker-jenkins.github.ssh']) {
+                    sh """
+                    make clean
+                    make \
+                        CGO_ENABLED=${cgo_enabled} \
+                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
+                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
+                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
+                        VERSION=${params.VERSION} \
+                        docker-${config.arch}.tgz
+                    """
                 }
             }
             stage("upload") {
@@ -256,22 +252,29 @@ def build_package_steps = [
     'cross-mac'         : { ->
         wrappedNode(label: 'amd64 && overlay2', cleanWorkspace: true) {
             stage('cross-mac') {
+                // This is just a "dummy" stage to make the distro/arch visible
+                // in Jenkins' BlueOcean view, which truncates names....
+                sh 'echo starting...'
+            }
+            stage("info") {
+                sh 'docker version'
+                sh 'docker info'
+            }
+            stage('build') {
                 checkout scm
-                retry(3) {
-                    sshagent(['docker-jenkins.github.ssh']) {
-                        sh """
-                        make clean
-                        make \
-                            DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                            DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                            DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                            DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                            DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                            DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                            VERSION=${params.VERSION} \
-                            cross-mac
-                        """
-                    }
+                sshagent(['docker-jenkins.github.ssh']) {
+                    sh """
+                    make clean
+                    make \
+                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
+                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
+                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
+                        VERSION=${params.VERSION} \
+                        cross-mac
+                    """
                 }
             }
             stage("bundle") {
@@ -292,22 +295,29 @@ def build_package_steps = [
     'cross-win'         : { ->
         wrappedNode(label: 'amd64 && overlay2', cleanWorkspace: true) {
             stage('cross-win') {
+                // This is just a "dummy" stage to make the distro/arch visible
+                // in Jenkins' BlueOcean view, which truncates names....
+                sh 'echo starting...'
+            }
+            stage("info") {
+                sh 'docker version'
+                sh 'docker info'
+            }
+            stage('build') {
                 checkout scm
-                retry(3) {
-                    sshagent(['docker-jenkins.github.ssh']) {
-                        sh """
-                        make clean
-                        make \
-                            DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                            DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                            DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                            DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                            DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                            DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                            VERSION=${params.VERSION} \
-                            cross-win
-                        """
-                    }
+                sshagent(['docker-jenkins.github.ssh']) {
+                    sh """
+                    make clean
+                    make \
+                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
+                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
+                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
+                        VERSION=${params.VERSION} \
+                        cross-win
+                    """
                 }
             }
             stage("bundle") {
@@ -326,19 +336,17 @@ def build_package_steps = [
         wrappedNode(label: 'amd64 && overlay2', cleanWorkspace: true) {
             stage('shell-completion') {
                 checkout scm
-                retry(3) {
-                    sshagent(['docker-jenkins.github.ssh']) {
-                        sh """
-                        make clean
-                        make \
-                            DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                            DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                            DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                            DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                            VERSION=${params.VERSION} \
-                            bundles-ce-shell-completion.tar.gz
-                        """
-                    }
+                sshagent(['docker-jenkins.github.ssh']) {
+                    sh """
+                    make clean
+                    make \
+                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
+                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
+                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
+                        VERSION=${params.VERSION} \
+                        bundles-ce-shell-completion.tar.gz
+                    """
                 }
             }
             stage('upload') {
