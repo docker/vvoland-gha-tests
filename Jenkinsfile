@@ -10,6 +10,8 @@ properties(
             string(name: 'DOCKER_PACKAGING_REPO',    defaultValue: 'git@github.com:docker/docker-ce-packaging.git', description: 'Packaging scripts git source repository.'),
             string(name: 'DOCKER_PACKAGING_REF',     defaultValue: 'master',                                        description: 'Packaging scripts reference to build from (usually a branch).'),
             string(name: 'VERSION',                  defaultValue: '0.0.0-dev',                                     description: 'Version used to build binaries and to tag Docker CLI/Docker Engine repositories when doing a release to production, e.g. "20.10.6" (no v-prefix). Required when releasing Docker'),
+            string(name: 'CONTAINERD_VERSION',       defaultValue: '',                                              description: 'Containerd version to build for the static packages. Leave empty to build the default version as specified in the Dockerfile in moby/moby.'),
+            string(name: 'RUNC_VERSION',             defaultValue: '',                                              description: 'Runc version to build for the static packages. Leave empty to build the default version as specified in the Dockerfile in moby/moby.'),
             booleanParam(name: 'RELEASE_STAGING',    defaultValue: false,                                           description: 'Trigger release to staging after a successful build. Leave unchecked to only build artifacts (and manually start a release from the release-repo build pipeline)'),
             booleanParam(name: 'RELEASE_PRODUCTION', defaultValue: false,                                           description: 'Trigger release to production after a successful build. Leave unchecked to only build artifacts (and manually start a release from the release-repo build pipeline)'),
             booleanParam(name: 'SKIP_VERIFY',        defaultValue: false,                                           description: 'Skip package verification. Use this when testing builds of a new distro for which no containerd.io packages are available yet.'),
@@ -235,6 +237,8 @@ def genStaticBuildStep(String uname_arch) {
                         DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
                         DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
                         VERSION=${params.VERSION} \
+                        CONTAINERD_VERSION=${params.CONTAINERD_VERSION} \
+                        RUNC_VERSION=${params.RUNC_VERSION} \
                         docker-${config.arch}.tgz
                     """
                 }

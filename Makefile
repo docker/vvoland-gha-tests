@@ -54,7 +54,7 @@ packaging:
 	git -C $@ checkout $(DOCKER_PACKAGING_REF)
 
 static-linux: packaging/src
-	make -C packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=static-linux TARGETPLATFORM=$(TARGETPLATFORM) static
+	make -C packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=static-linux TARGETPLATFORM=$(TARGETPLATFORM) CONTAINERD_VERSION=$(CONTAINERD_VERSION) RUNC_VERSION=$(RUNC_VERSION) static
 
 # TODO cross-mac should only need the CLI source code, but also calls "static"?
 cross-mac: packaging/src
