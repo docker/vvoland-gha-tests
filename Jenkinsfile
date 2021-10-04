@@ -223,6 +223,15 @@ def genStaticBuildStep(String uname_arch) {
 
     return [ "static-linux-${config.arch}": { ->
         wrappedNode(label: config.label, cleanWorkspace: true) {
+           stage("static-linux-${config.arch}") {
+                // This is just a "dummy" stage to make the distro/arch visible
+                // in Jenkins' BlueOcean view, which truncates names....
+                sh 'echo starting...'
+            }
+            stage("info") {
+                sh 'docker version'
+                sh 'docker info'
+            }
             stage("static") {
                 checkout scm
                 sshagent(['docker-jenkins.github.ssh']) {
