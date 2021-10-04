@@ -226,6 +226,10 @@ def genStaticBuildStep(String uname_arch) {
                 // in Jenkins' BlueOcean view, which truncates names....
                 sh 'echo starting...'
             }
+            stage("info") {
+                sh 'docker version'
+                sh 'docker info'
+            }
             stage("static") {
                 checkout scm
                 sshagent(['docker-jenkins.github.ssh']) {
