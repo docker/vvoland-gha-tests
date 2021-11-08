@@ -168,7 +168,7 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
     }
     return { ->
         wrappedNode(label: nodeLabel, cleanWorkspace: true) {
-           stage("${pkg.target}-${arch}") {
+            stage("${pkg.target}-${arch}") {
                 // This is just a "dummy" stage to make the distro/arch visible
                 // in Jenkins' BlueOcean view, which truncates names....
                 sh 'echo starting...'
@@ -225,7 +225,7 @@ def genStaticBuildStep(String uname_arch) {
 
     return [ "static-linux-${config.arch}": { ->
         wrappedNode(label: config.label, cleanWorkspace: true) {
-           stage("static-linux-${config.arch}") {
+            stage("static-linux-${config.arch}") {
                 // This is just a "dummy" stage to make the distro/arch visible
                 // in Jenkins' BlueOcean view, which truncates names....
                 sh 'echo starting...'
