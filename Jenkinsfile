@@ -12,8 +12,6 @@ properties(
             string(name: 'VERSION',                  defaultValue: '0.0.0-dev',                                     description: 'Version used to build binaries and to tag Docker CLI/Docker Engine repositories when doing a release to production, e.g. "20.10.6" (no v-prefix). Required when releasing Docker'),
             string(name: 'CONTAINERD_VERSION',       defaultValue: '',                                              description: 'Containerd version to build for the static packages. Leave empty to build the default version as specified in the Dockerfile in moby/moby.'),
             string(name: 'RUNC_VERSION',             defaultValue: '',                                              description: 'Runc version to build for the static packages. Leave empty to build the default version as specified in the Dockerfile in moby/moby.'),
-            booleanParam(name: 'RELEASE_STAGING',    defaultValue: false,                                           description: 'Trigger release to staging after a successful build. Leave unchecked to only build artifacts (and manually start a release from the release-repo build pipeline)'),
-            booleanParam(name: 'RELEASE_PRODUCTION', defaultValue: false,                                           description: 'Trigger release to production after a successful build. Leave unchecked to only build artifacts (and manually start a release from the release-repo build pipeline)'),
             booleanParam(name: 'SKIP_VERIFY',        defaultValue: false,                                           description: 'Skip package verification. Use this when testing builds of a new distro for which no containerd.io packages are available yet.'),
             string(name: 'VERIFY_PACKAGE_REPO',      defaultValue: 'prod',                                          description: 'Packaging repo to use for installing dependencies (stage=download-stage.docker.com or prod=download.docker.com (default))'),
         ])
@@ -21,16 +19,6 @@ properties(
 )
 
 BUILD_TAG="${env.BUILD_TAG}"
-STAGING = params.RELEASE_STAGING
-PROD = params.RELEASE_PRODUCTION
-// Releasing to staging must always happen before a release to production
-if (params.RELEASE_PRODUCTION) {
-    STAGING = true
-}
-// Check that VERSION parameter must be filled if we release
-if ((params.RELEASE_STAGING || params.RELEASE_PRODUCTION ) && params.VERSION == "0.0.0-dev"){
-    error("Build failed as this is a release but no VERSION has been set")
-}
 AWS_IMAGE = "dockereng/awscli:1.16.156"
 
 awsCred = [
@@ -68,13 +56,8 @@ def init_steps = [
     'init': { ->
         stage('init') {
             wrappedNode(label: 'amd64 && overlay2') {
-                announceChannel = "#ship-builders"
-                // This is only the case on a nightly build
-                if (env.BRANCH_NAME == 'ce-nightly') {
-                    announceChannel = "#release-ci-feed"
-                }
-                if (params.RELEASE_PRODUCTION) {
-                    slackSend(channel: announceChannel, message: "Initiating build pipeline. Building packages from `docker/cli:${params.DOCKER_CLI_REF}`, `docker/docker:${params.DOCKER_ENGINE_REF}`, `docker/docker-ce-packaging:${params.DOCKER_PACKAGING_REF}` for version `${params.VERSION}`. ${env.BUILD_URL}")
+                if (env.BRANCH_NAME != 'ce-nightly' && params.VERSION != '0.0.0-dev') {
+                    slackSend(channel: "#release", message: "Initiating build pipeline. Building packages from `docker/cli:${params.DOCKER_CLI_REF}`, `docker/docker:${params.DOCKER_ENGINE_REF}`, `docker/docker-ce-packaging:${params.DOCKER_PACKAGING_REF}` for version `${params.VERSION}`. ${env.BUILD_URL}")
                 }
             }
         }
@@ -109,20 +92,7 @@ def result_steps = [
                 // Note: gen-static-ver only adds git commit and git date info to a `*-dev` version, in which case the CLI's git is used.
                 sh("./packaging/static/gen-static-ver packaging/src/github.com/docker/cli '${params.VERSION}' > VERSION")
                 saveS3(name: 'VERSION')
-                slackSend(channel: "#release-ci-feed", message: "Docker CE (cli: `${params.DOCKER_CLI_REF}`, engine: `${params.DOCKER_ENGINE_REF}`, packaging: `${params.DOCKER_PACKAGING_REF}`, version: `${params.VERSION}`) https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
-                if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
-                    // Triggers builds to go through to staging and/or production
-                    build(
-                        job: "release-repo/ce",
-                        parameters: [
-                            [$class: 'StringParameterValue',  name: 'ARTIFACT_BUILD_TAG',      value: "${BUILD_TAG}"],
-                            [$class: 'StringParameterValue',  name: 'EXPECTED_DOCKER_VERSION', value: "${VERSION}"],
-                            [$class: 'BooleanParameterValue', name: 'RELEASE_STAGING',         value: STAGING],
-                            [$class: 'BooleanParameterValue', name: 'RELEASE_PRODUCTION',      value: PROD],
-                        ],
-                        wait: false,
-                    )
-                }
+                slackSend(channel: "#release", message: "Docker CE (cli: `${params.DOCKER_CLI_REF}`, engine: `${params.DOCKER_ENGINE_REF}`, packaging: `${params.DOCKER_PACKAGING_REF}`, version: `${params.VERSION}`) https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
             }
         }
     }
@@ -394,12 +364,6 @@ try {
     parallel(build_package_steps)
     parallel(result_steps)
 } catch (err) {
-    def failChannel = "#release-announce-test"
-    def notify = ""
-    if (params.RELEASE_STAGING || params.RELEASE_PRODUCTION) {
-        failChannel = "#release-ci-feed"
-        notify = "@sf-release-eng"
-    }
-    slackSend(channel: failChannel, color: 'danger', message: "${notify}Release Packaging job ${env.JOB_NAME} failed. ${env.BUILD_URL}")
+    slackSend(channel: "#release", color: 'danger', message: "Release Packaging job ${env.JOB_NAME} failed. ${env.BUILD_URL}")
     throw err
 }
