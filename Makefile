@@ -28,37 +28,29 @@ clean:
 	-$(RM) *.gz
 	-$(RM) *.tgz
 
-.PHONY: packaging/src
-packaging/src: packaging packaging/src/github.com/docker/cli packaging/src/github.com/docker/docker packaging/src/github.com/docker/compose packaging/src/github.com/docker/scan-cli-plugin
-	@echo checked out source
-
-packaging/src/github.com/docker/cli: packaging
-	make -C packaging \
-		DOCKER_CLI_REPO=$(DOCKER_CLI_REPO) \
-		DOCKER_CLI_REF=$(DOCKER_CLI_REF) \
-		checkout-cli
-
-packaging/src/github.com/docker/docker: packaging
-	make -C packaging \
-		DOCKER_ENGINE_REPO=$(DOCKER_ENGINE_REPO) \
-		DOCKER_ENGINE_REF=$(DOCKER_ENGINE_REF) \
-		checkout-docker
-
-packaging/src/github.com/docker/scan-cli-plugin: packaging
-	make -C packaging \
-		checkout-scan-cli-plugin
-
-packaging/src/github.com/docker/compose: packaging
-	make -C packaging \
-		checkout-compose
-
 packaging:
 	mkdir -p $@
 	git clone $(DOCKER_PACKAGING_REPO) $@
 	git -C $@ checkout $(DOCKER_PACKAGING_REF)
 
+.PHONY: packaging/src
+packaging/src: packaging
+	make -C packaging \
+		DOCKER_CLI_REPO=$(DOCKER_CLI_REPO) \
+		DOCKER_CLI_REF=$(DOCKER_CLI_REF) \
+		DOCKER_ENGINE_REPO=$(DOCKER_ENGINE_REPO) \
+		DOCKER_ENGINE_REF=$(DOCKER_ENGINE_REF) \
+		checkout
+	@echo checked out source
+
 static-linux: packaging/src
-	make -C packaging VERSION=$(VERSION) DOCKER_BUILD_PKGS=static-linux TARGETPLATFORM=$(TARGETPLATFORM) CONTAINERD_VERSION=$(CONTAINERD_VERSION) RUNC_VERSION=$(RUNC_VERSION) static
+	make -C packaging \
+		VERSION=$(VERSION) \
+		DOCKER_BUILD_PKGS=static-linux \
+		TARGETPLATFORM=$(TARGETPLATFORM) \
+		CONTAINERD_VERSION=$(CONTAINERD_VERSION) \
+		RUNC_VERSION=$(RUNC_VERSION) \
+		static
 
 # TODO cross-mac should only need the CLI source code, but also calls "static"?
 cross-mac: packaging/src
@@ -93,7 +85,9 @@ $(RPM_BUNDLES): packaging/src
 # Bundle the completion files here are used by Docker Desktop
 # https://github.com/docker/pinata/blob/553b07bebc444d493502e8ae9fe36cc2f490b793/tools/cmd/pinata/versionpacks/remotedependencies.go#L211-L229
 # TODO consider including these with the CLI in the "cross-win", "cross-mac", and "static" bundles and/or embedding them in the CLI
-bundles-ce-shell-completion.tar.gz: packaging/src/github.com/docker/cli
+bundles-ce-shell-completion.tar.gz: packaging
+	make -C packaging DOCKER_CLI_REF=$(DOCKER_CLI_REF) checkout-cli
+
 	install -D packaging/src/github.com/docker/cli/contrib/completion/bash/docker bundles/$(VERSION)/tgz/amd64/docker/completion/bash/docker
 	install -D packaging/src/github.com/docker/cli/contrib/completion/zsh/_docker bundles/$(VERSION)/tgz/amd64/docker/completion/zsh/_docker
 	install -D packaging/src/github.com/docker/cli/contrib/completion/fish/docker.fish bundles/$(VERSION)/tgz/amd64/docker/completion/fish/docker.fish
@@ -104,6 +98,7 @@ docker-win-amd64.zip:
 
 docker-mac-amd64.tgz:
 	cp packaging/static/build/mac/amd64/docker-*.tgz $@
+
 docker-mac-aarch64.tgz:
 	cp packaging/static/build/mac/arm64/docker-*.tgz $@
 
@@ -119,6 +114,3 @@ docker-%.tgz:
 verify:
 	# to verify using packages from staging, use: make VERIFY_PACKAGE_REPO=stage IMAGE=ubuntu:focal verify
 	docker run $(VERIFY_PLATFORM) --rm -i -v "$$(pwd):/v" -e DEBIAN_FRONTEND=noninteractive -e PACKAGE_REPO=$(VERIFY_PACKAGE_REPO) -w /v $(IMAGE) ./verify
-
-release:
-	make -C packaging VERSION=$(VERSION) release
