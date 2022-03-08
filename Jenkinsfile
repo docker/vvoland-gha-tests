@@ -73,18 +73,9 @@ def result_steps = [
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make \
-                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                        packaging
+                    make packaging
 
-                    make -C packaging \
-                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        checkout-cli \
-                        checkout-docker
+                    make -C packaging checkout-cli checkout-docker
                     """
                 }
                 // TODO these build-result.txt lines should not be here in Jenkinsfile, but result from a Makefile target.
@@ -157,18 +148,8 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make \
-                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                        packaging
-
-                    make \
-                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                        VERSION=${params.VERSION} \
-                        bundles-ce-${pkg.target}-${arch}.tar.gz
+                    make packaging
+                    make bundles-ce-${pkg.target}-${arch}.tar.gz
                     """
                 }
             }
@@ -218,21 +199,8 @@ def genStaticBuildStep(String uname_arch) {
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make \
-                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                        packaging
-
-                    make \
-                        CGO_ENABLED=${cgo_enabled} \
-                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                        VERSION=${params.VERSION} \
-                        CONTAINERD_VERSION=${params.CONTAINERD_VERSION} \
-                        RUNC_VERSION=${params.RUNC_VERSION} \
-                        docker-${config.arch}.tgz
+                    make packaging
+                    make CGO_ENABLED=${cgo_enabled} docker-${config.arch}.tgz
                     """
                 }
             }
@@ -262,25 +230,15 @@ def build_package_steps = [
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make \
-                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                        packaging
-
-                    make \
-                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                        VERSION=${params.VERSION} \
-                        cross-mac
+                    make packaging
+                    make cross-mac
                     """
                 }
             }
             stage("bundle") {
                 sh """
-                make VERSION=${params.VERSION} bundles-ce-cross-darwin-amd64.tar.gz
-                make VERSION=${params.VERSION} bundles-ce-cross-darwin-arm64.tar.gz
+                make bundles-ce-cross-darwin-amd64.tar.gz
+                make bundles-ce-cross-darwin-arm64.tar.gz
                 make docker-mac-amd64.tgz docker-mac-aarch64.tgz
                 """
             }
@@ -309,24 +267,14 @@ def build_package_steps = [
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make \
-                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                        packaging
-
-                    make \
-                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                        VERSION=${params.VERSION} \
-                        cross-win
+                    make packaging
+                    make cross-win
                     """
                 }
             }
             stage("bundle") {
                 sh """
-                make VERSION=${params.VERSION} bundles-ce-cross-windows-amd64.tar.gz
+                make bundles-ce-cross-windows-amd64.tar.gz
                 make docker-win-amd64.zip
                 """
             }
@@ -343,16 +291,8 @@ def build_package_steps = [
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make \
-                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                        packaging
-
-                    make \
-                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        VERSION=${params.VERSION} \
-                        bundles-ce-shell-completion.tar.gz
+                    make packaging
+                    make bundles-ce-shell-completion.tar.gz
                     """
                 }
             }
