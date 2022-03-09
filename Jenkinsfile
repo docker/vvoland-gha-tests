@@ -76,12 +76,15 @@ def result_steps = [
                     make \
                         DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
                         DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                        packaging
+
+                    make -C packaging \
                         DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
                         DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
                         DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
                         DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        packaging/src/github.com/docker/docker \
-                        packaging/src/github.com/docker/cli
+                        checkout-cli \
+                        checkout-docker
                     """
                 }
                 // TODO these build-result.txt lines should not be here in Jenkinsfile, but result from a Makefile target.
@@ -145,6 +148,7 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
             stage("info") {
                 sh 'docker version'
                 sh 'docker info'
+                sh 'env'
             }
             stage("build bundle") {
                 checkout scm
@@ -154,6 +158,9 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                     make \
                         DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
                         DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                        packaging
+
+                    make \
                         DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
                         DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
                         DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
@@ -210,9 +217,12 @@ def genStaticBuildStep(String uname_arch) {
                     sh """
                     make clean
                     make \
-                        CGO_ENABLED=${cgo_enabled} \
                         DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
                         DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                        packaging
+
+                    make \
+                        CGO_ENABLED=${cgo_enabled} \
                         DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
                         DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
                         DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
@@ -243,6 +253,7 @@ def build_package_steps = [
             stage("info") {
                 sh 'docker version'
                 sh 'docker info'
+                sh 'env'
             }
             stage('build') {
                 checkout scm
@@ -252,6 +263,9 @@ def build_package_steps = [
                     make \
                         DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
                         DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                        packaging
+
+                    make \
                         DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
                         DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
                         DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
@@ -286,6 +300,7 @@ def build_package_steps = [
             stage("info") {
                 sh 'docker version'
                 sh 'docker info'
+                sh 'env'
             }
             stage('build') {
                 checkout scm
@@ -295,6 +310,9 @@ def build_package_steps = [
                     make \
                         DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
                         DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                        packaging
+
+                    make \
                         DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
                         DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
                         DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
@@ -326,6 +344,9 @@ def build_package_steps = [
                     make \
                         DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
                         DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
+                        packaging
+
+                    make \
                         DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
                         DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
                         VERSION=${params.VERSION} \
