@@ -1,5 +1,4 @@
 SHELL:=/bin/bash
-LDD_RUN=ldd >/dev/null 2>/dev/null
 
 # Repositories to build from
 DOCKER_CLI_REPO:=git@github.com:docker/cli.git
