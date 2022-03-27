@@ -41,7 +41,7 @@ DOCKER_PACKAGING_REF?=HEAD
 VERSION?=0.0.0-dev
 
 clean:
-	-make -C packaging clean
+	-if [ -d "packaging" ]; then make -C packaging clean; fi
 	-$(RM) -r packaging
 	-$(RM) -r bundles
 	-$(RM) *.gz
