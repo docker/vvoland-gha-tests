@@ -120,23 +120,21 @@ def pkgs = [
 ]
 
 def genBuildStep(LinkedHashMap pkg, String arch) {
-    def nodeLabel = "linux&&${arch}"
-    def platform = ""
+    def nodeLabel = "linux&&${arch}&&ubuntu-2004"
 
-    if (arch == 'armhf') {
-        // Running armhf builds on EC2 requires --platform parameter
-        // Otherwise it accidentally pulls armel images which then breaks the verify step
-        platform = "--platform=linux/${arch}"
-        nodeLabel = "${nodeLabel}&&ubuntu"
-    } else {
-        nodeLabel = "${nodeLabel}&&ubuntu-2004"
-    }
+    // Running armhf builds on EC2 requires --platform parameter, otherwise it
+    // accidentally pulls armel images which then breaks the verify step.
+    //
+    // Setting the platform explicitly for all architectures shouldn't hurt
+    // though, so always passing it here.
+    def platform = "--platform=linux/${arch}"
+
     return { ->
         wrappedNode(label: nodeLabel, cleanWorkspace: true) {
             stage("${pkg.target}-${arch}") {
                 // This is just a "dummy" stage to make the distro/arch visible
                 // in Jenkins' BlueOcean view, which truncates names....
-                sh 'echo starting...'
+                echo "starting ${pkg.target}-${arch}..."
             }
             stage("info") {
                 sh 'docker version'
@@ -148,7 +146,6 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make packaging
                     make bundles-ce-${pkg.target}-${arch}.tar.gz
                     """
                 }
@@ -160,7 +157,6 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                 if (!params.SKIP_VERIFY) {
                     sh"""
                     make -C packaging \
-                        VERIFY_PACKAGE_REPO=${params.VERIFY_PACKAGE_REPO} \
                         VERIFY_PLATFORM=${platform} \
                         IMAGE=${buildImage} \
                         verify
@@ -188,18 +184,18 @@ def genStaticBuildStep(String uname_arch) {
             stage("static-linux-${config.arch}") {
                 // This is just a "dummy" stage to make the distro/arch visible
                 // in Jenkins' BlueOcean view, which truncates names....
-                sh 'echo starting...'
+                echo "starting static-linux-${config.arch}..."
             }
             stage("info") {
                 sh 'docker version'
                 sh 'docker info'
+                sh 'env'
             }
             stage("static") {
                 checkout scm
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make packaging
                     make CGO_ENABLED=${cgo_enabled} docker-${config.arch}.tgz
                     """
                 }
@@ -218,7 +214,7 @@ def build_package_steps = [
             stage('cross-mac') {
                 // This is just a "dummy" stage to make the distro/arch visible
                 // in Jenkins' BlueOcean view, which truncates names....
-                sh 'echo starting...'
+                echo "starting cross-mac..."
             }
             stage("info") {
                 sh 'docker version'
@@ -230,7 +226,6 @@ def build_package_steps = [
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make packaging
                     make cross-mac
                     """
                 }
@@ -239,7 +234,8 @@ def build_package_steps = [
                 sh """
                 make bundles-ce-cross-darwin-amd64.tar.gz
                 make bundles-ce-cross-darwin-arm64.tar.gz
-                make docker-mac-amd64.tgz docker-mac-aarch64.tgz
+                make docker-mac-amd64.tgz
+                make docker-mac-aarch64.tgz
                 """
             }
             stage('upload') {
@@ -255,7 +251,7 @@ def build_package_steps = [
             stage('cross-win') {
                 // This is just a "dummy" stage to make the distro/arch visible
                 // in Jenkins' BlueOcean view, which truncates names....
-                sh 'echo starting...'
+                echo "starting cross-win..."
             }
             stage("info") {
                 sh 'docker version'
@@ -267,7 +263,6 @@ def build_package_steps = [
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make packaging
                     make cross-win
                     """
                 }
@@ -291,7 +286,6 @@ def build_package_steps = [
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make packaging
                     make bundles-ce-shell-completion.tar.gz
                     """
                 }
