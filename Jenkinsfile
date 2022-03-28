@@ -70,20 +70,17 @@ def result_steps = [
             wrappedNode(label: 'amd64 && overlay2', cleanWorkspace: true) {
                 checkout scm
                 genBuildResult()
+
+                // Append the git commit information of docker and cli to build-result.txt
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make packaging
-
-                    make -C packaging checkout-cli checkout-docker
+                    make build-result.txt
                     """
                 }
-                // TODO these build-result.txt lines should not be here in Jenkinsfile, but result from a Makefile target.
-                sh('git -C packaging rev-parse HEAD >> build-result.txt')
-                sh('git -C packaging/src/github.com/docker/docker rev-parse HEAD >> build-result.txt')
-                sh('git -C packaging/src/github.com/docker/cli rev-parse HEAD >> build-result.txt')
                 saveS3(name: 'build-result.txt')
                 // Note: gen-static-ver only adds git commit and git date info to a `*-dev` version, in which case the CLI's git is used.
+                // TODO do we use this VERSION file anywhere? Should this be part of build-result.txt as well?
                 sh("./packaging/static/gen-static-ver packaging/src/github.com/docker/cli '${params.VERSION}' > VERSION")
                 saveS3(name: 'VERSION')
                 slackSend(channel: "#release", message: "Docker CE (cli: `${params.DOCKER_CLI_REF}`, engine: `${params.DOCKER_ENGINE_REF}`, packaging: `${params.DOCKER_PACKAGING_REF}`, version: `${params.VERSION}`) https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")

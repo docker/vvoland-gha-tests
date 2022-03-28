@@ -118,3 +118,28 @@ docker-%.tgz:
 	rm packaging/static/build/linux/docker-buildx-*.tgz || true # FIXME: temp fix. will be solved by https://github.com/docker/release-packaging/pull/643
 	mv packaging/static/build/linux/docker-rootless-extras-*.tgz docker-rootless-extras-$*.tgz
 	mv packaging/static/build/linux/docker-*.tgz $@
+
+# Marking this as PHONY because build-result.txt is created in the Jenkinsfile,
+# so already exists.
+#
+# The Jenkinsfile creates this file, and adds the list of packages that were created:
+#
+# - genBuildResult() writes the contents: https://github.com/docker/release-packaging/blob/2016a9f8b03d50fe37fe220b8fc334ac6bfb62fc/Jenkinsfile#L46-L53
+# - the `result` stage saves it in s3: https://github.com/docker/release-packaging/blob/2016a9f8b03d50fe37fe220b8fc334ac6bfb62fc/Jenkinsfile#L94
+# - and includes it in the slack announce message: https://github.com/docker/release-packaging/blob/2016a9f8b03d50fe37fe220b8fc334ac6bfb62fc/Jenkinsfile#L98
+#
+# We should consider using a more structured format for this, instead of a .txt
+# file (where "last X lines contain the commits"). Effectively, this is a build-
+# manifest of the things that were produced, and it may be useful to add _more_
+# information to it (e.g. checksum of each file).
+#
+# TODO(thaJeztah) look where this build-result.txt file is used, and what it's used for (is this an alternative to the "don't @ me list?"
+.PHONY: build-result.txt
+
+# Append the git commit information of docker and cli to build-result.txt
+# TODO(thaJeztah) should the git-commits of other sources (packaging, containerd-packaging, containerd, compose, buildx, scan) also be included here?
+build-result.txt: packaging
+	make -C packaging checkout-cli checkout-docker
+	git -C packaging rev-parse HEAD >> build-result.txt
+	git -C packaging/src/github.com/docker/docker rev-parse HEAD >> build-result.txt
+	git -C packaging/src/github.com/docker/cli rev-parse HEAD >> build-result.txt
