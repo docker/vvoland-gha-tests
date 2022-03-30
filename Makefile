@@ -106,6 +106,7 @@ docker-%.tgz:
 		elif test $$arch = armel; then arch=arm/v6; \
 		elif test $$arch = aarch64; then arch=arm64; fi; \
 		$(MAKE) TARGETPLATFORM=linux/$$arch static-linux
+	rm packaging/static/build/linux/docker-buildx-*.tgz || true # FIXME: temp fix. will be solved by https://github.com/docker/release-packaging/pull/643
 	mv packaging/static/build/linux/docker-rootless-extras-*.tgz docker-rootless-extras-$*.tgz
 	mv packaging/static/build/linux/docker-*.tgz $@
 
