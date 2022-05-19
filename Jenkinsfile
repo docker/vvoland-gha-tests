@@ -178,7 +178,7 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                 def buildImage = pkg.image
                 if (!params.SKIP_VERIFY) {
                     sh"""
-                    make \
+                    make -C packaging \
                         VERIFY_PACKAGE_REPO=${params.VERIFY_PACKAGE_REPO} \
                         VERIFY_PLATFORM=${platform} \
                         IMAGE=${buildImage} \
