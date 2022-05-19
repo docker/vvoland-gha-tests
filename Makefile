@@ -8,13 +8,6 @@ DOCKER_ENGINE_REF:=
 DOCKER_PACKAGING_REPO:=git@github.com:docker/docker-ce-packaging.git
 DOCKER_PACKAGING_REF:=
 
-# Use stage to install dependencies from download-stage.docker.com during the verify
-# step. Leave empty to install from download.docker.com
-VERIFY_PACKAGE_REPO:=
-
-# Optional flags like --platform=linux/armhf
-VERIFY_PLATFORM:=
-
 VERSION?=0.0.0-dev
 
 help:
@@ -109,8 +102,3 @@ docker-%.tgz:
 	rm packaging/static/build/linux/docker-buildx-*.tgz || true # FIXME: temp fix. will be solved by https://github.com/docker/release-packaging/pull/643
 	mv packaging/static/build/linux/docker-rootless-extras-*.tgz docker-rootless-extras-$*.tgz
 	mv packaging/static/build/linux/docker-*.tgz $@
-
-.PHONY: verify
-verify:
-	# to verify using packages from staging, use: make VERIFY_PACKAGE_REPO=stage IMAGE=ubuntu:focal verify
-	docker run $(VERIFY_PLATFORM) --rm -i -v "$$(pwd):/v" -e DEBIAN_FRONTEND=noninteractive -e PACKAGE_REPO=$(VERIFY_PACKAGE_REPO) -w /v $(IMAGE) ./verify
