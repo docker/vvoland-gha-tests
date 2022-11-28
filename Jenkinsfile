@@ -70,29 +70,17 @@ def result_steps = [
             wrappedNode(label: 'amd64 && overlay2', cleanWorkspace: true) {
                 checkout scm
                 genBuildResult()
+
+                // Append the git commit information of docker and cli to build-result.txt
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make \
-                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                        packaging
-
-                    make -C packaging \
-                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        checkout-cli \
-                        checkout-docker
+                    make build-result.txt
                     """
                 }
-                // TODO these build-result.txt lines should not be here in Jenkinsfile, but result from a Makefile target.
-                sh('git -C packaging rev-parse HEAD >> build-result.txt')
-                sh('git -C packaging/src/github.com/docker/docker rev-parse HEAD >> build-result.txt')
-                sh('git -C packaging/src/github.com/docker/cli rev-parse HEAD >> build-result.txt')
                 saveS3(name: 'build-result.txt')
                 // Note: gen-static-ver only adds git commit and git date info to a `*-dev` version, in which case the CLI's git is used.
+                // TODO do we use this VERSION file anywhere? Should this be part of build-result.txt as well?
                 sh("./packaging/static/gen-static-ver packaging/src/github.com/docker/cli '${params.VERSION}' > VERSION")
                 saveS3(name: 'VERSION')
                 slackSend(channel: "#release", message: "Docker CE (cli: `${params.DOCKER_CLI_REF}`, engine: `${params.DOCKER_ENGINE_REF}`, packaging: `${params.DOCKER_PACKAGING_REF}`, version: `${params.VERSION}`) https://s3.us-east-1.amazonaws.com/${getS3Bucket()}/${BUILD_TAG}/build-result.txt")
@@ -129,23 +117,21 @@ def pkgs = [
 ]
 
 def genBuildStep(LinkedHashMap pkg, String arch) {
-    def nodeLabel = "linux&&${arch}"
-    def platform = ""
+    def nodeLabel = "linux&&${arch}&&ubuntu-2004"
 
-    if (arch == 'armhf') {
-        // Running armhf builds on EC2 requires --platform parameter
-        // Otherwise it accidentally pulls armel images which then breaks the verify step
-        platform = "--platform=linux/${arch}"
-        nodeLabel = "${nodeLabel}&&ubuntu"
-    } else {
-        nodeLabel = "${nodeLabel}&&ubuntu-2004"
-    }
+    // Running armhf builds on EC2 requires --platform parameter, otherwise it
+    // accidentally pulls armel images which then breaks the verify step.
+    //
+    // Setting the platform explicitly for all architectures shouldn't hurt
+    // though, so always passing it here.
+    def platform = "--platform=linux/${arch}"
+
     return { ->
         wrappedNode(label: nodeLabel, cleanWorkspace: true) {
             stage("${pkg.target}-${arch}") {
                 // This is just a "dummy" stage to make the distro/arch visible
                 // in Jenkins' BlueOcean view, which truncates names....
-                sh 'echo starting...'
+                echo "starting ${pkg.target}-${arch}..."
             }
             stage("info") {
                 sh 'docker version'
@@ -157,18 +143,7 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make \
-                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                        packaging
-
-                    make \
-                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                        VERSION=${params.VERSION} \
-                        bundles-ce-${pkg.target}-${arch}.tar.gz
+                    make bundles-ce-${pkg.target}-${arch}.tar.gz
                     """
                 }
             }
@@ -179,7 +154,6 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                 if (!params.SKIP_VERIFY) {
                     sh"""
                     make -C packaging \
-                        VERIFY_PACKAGE_REPO=${params.VERIFY_PACKAGE_REPO} \
                         VERIFY_PLATFORM=${platform} \
                         IMAGE=${buildImage} \
                         verify
@@ -207,32 +181,19 @@ def genStaticBuildStep(String uname_arch) {
             stage("static-linux-${config.arch}") {
                 // This is just a "dummy" stage to make the distro/arch visible
                 // in Jenkins' BlueOcean view, which truncates names....
-                sh 'echo starting...'
+                echo "starting static-linux-${config.arch}..."
             }
             stage("info") {
                 sh 'docker version'
                 sh 'docker info'
+                sh 'env'
             }
             stage("static") {
                 checkout scm
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make \
-                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                        packaging
-
-                    make \
-                        CGO_ENABLED=${cgo_enabled} \
-                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                        VERSION=${params.VERSION} \
-                        CONTAINERD_VERSION=${params.CONTAINERD_VERSION} \
-                        RUNC_VERSION=${params.RUNC_VERSION} \
-                        docker-${config.arch}.tgz
+                    make CGO_ENABLED=${cgo_enabled} docker-${config.arch}.tgz
                     """
                 }
             }
@@ -250,7 +211,7 @@ def build_package_steps = [
             stage('cross-mac') {
                 // This is just a "dummy" stage to make the distro/arch visible
                 // in Jenkins' BlueOcean view, which truncates names....
-                sh 'echo starting...'
+                echo "starting cross-mac..."
             }
             stage("info") {
                 sh 'docker version'
@@ -262,26 +223,16 @@ def build_package_steps = [
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make \
-                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                        packaging
-
-                    make \
-                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                        VERSION=${params.VERSION} \
-                        cross-mac
+                    make cross-mac
                     """
                 }
             }
             stage("bundle") {
                 sh """
-                make VERSION=${params.VERSION} bundles-ce-cross-darwin-amd64.tar.gz
-                make VERSION=${params.VERSION} bundles-ce-cross-darwin-arm64.tar.gz
-                make docker-mac-amd64.tgz docker-mac-aarch64.tgz
+                make bundles-ce-cross-darwin-amd64.tar.gz
+                make bundles-ce-cross-darwin-arm64.tar.gz
+                make docker-mac-amd64.tgz
+                make docker-mac-aarch64.tgz
                 """
             }
             stage('upload') {
@@ -297,7 +248,7 @@ def build_package_steps = [
             stage('cross-win') {
                 // This is just a "dummy" stage to make the distro/arch visible
                 // in Jenkins' BlueOcean view, which truncates names....
-                sh 'echo starting...'
+                echo "starting cross-win..."
             }
             stage("info") {
                 sh 'docker version'
@@ -309,24 +260,13 @@ def build_package_steps = [
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make \
-                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                        packaging
-
-                    make \
-                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        DOCKER_ENGINE_REPO=${params.DOCKER_ENGINE_REPO} \
-                        DOCKER_ENGINE_REF=${params.DOCKER_ENGINE_REF} \
-                        VERSION=${params.VERSION} \
-                        cross-win
+                    make cross-win
                     """
                 }
             }
             stage("bundle") {
                 sh """
-                make VERSION=${params.VERSION} bundles-ce-cross-windows-amd64.tar.gz
+                make bundles-ce-cross-windows-amd64.tar.gz
                 make docker-win-amd64.zip
                 """
             }
@@ -343,16 +283,7 @@ def build_package_steps = [
                 sshagent(['docker-jenkins.github.ssh']) {
                     sh """
                     make clean
-                    make \
-                        DOCKER_PACKAGING_REPO=${params.DOCKER_PACKAGING_REPO} \
-                        DOCKER_PACKAGING_REF=${params.DOCKER_PACKAGING_REF} \
-                        packaging
-
-                    make \
-                        DOCKER_CLI_REPO=${params.DOCKER_CLI_REPO} \
-                        DOCKER_CLI_REF=${params.DOCKER_CLI_REF} \
-                        VERSION=${params.VERSION} \
-                        bundles-ce-shell-completion.tar.gz
+                    make bundles-ce-shell-completion.tar.gz
                     """
                 }
             }
