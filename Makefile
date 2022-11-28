@@ -40,6 +40,16 @@ DOCKER_PACKAGING_REF?=HEAD
 # commit date.
 VERSION?=0.0.0-dev
 
+# Packager name sets CompanyName in the manifest metadata for Windows binaries.
+PACKAGER_NAME?=Docker Inc.
+export PACKAGER_NAME
+
+DEFAULT_PRODUCT_LICENSE?=Community Engine
+export DEFAULT_PRODUCT_LICENSE
+
+PLATFORM?=Docker Engine - Community
+export PLATFORM
+
 clean:
 	-if [ -d "packaging" ]; then make -C packaging clean; fi
 	-$(RM) -r packaging
