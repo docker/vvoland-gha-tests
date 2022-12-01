@@ -35,9 +35,9 @@ DOCKER_PACKAGING_REF?=HEAD
 # - https://github.com/docker/docker-ce-packaging/blob/ad85fb059403230307ccd81888caba273d93dcbf/rpm/Makefile#L3-L11
 # - https://github.com/docker/docker-ce-packaging/blob/ad85fb059403230307ccd81888caba273d93dcbf/static/Makefile#L3-L27
 
-# Version to use for the packages and as version for the `--version` output.
-# The default (0.0.0-dev) generates a "pseudo-version" based on commit sha and
-# commit date.
+# VERSION is the version to use for the packages and as version for the `--version`
+# output. The default (0.0.0-dev) generates a "pseudo-version" based on commit
+# sha and commit date.
 VERSION?=0.0.0-dev
 
 # PACKAGER_NAME sets CompanyName in the manifest metadata for Windows binaries.
@@ -48,9 +48,16 @@ VERSION?=0.0.0-dev
 PACKAGER_NAME?=Docker Inc
 export PACKAGER_NAME
 
+# DEFAULT_PRODUCT_LICENSE is used to propagate the ProductLicense field in the
+# /info response. See:
+# https://github.com/moby/moby/blob/5fd603ce60e3d7afcb55bd042374b77d50b0453f/daemon/licensing.go#L9
+# https://github.com/moby/moby/blob/5fd603ce60e3d7afcb55bd042374b77d50b0453f/hack/make/.go-autogen#L10
 DEFAULT_PRODUCT_LICENSE?=Community Engine
 export DEFAULT_PRODUCT_LICENSE
 
+# PLATFORM is used to propagate the ProductLicense field in the /version response
+# and the "docker version" output on the CLI:
+# https://github.com/moby/moby/blob/5fd603ce60e3d7afcb55bd042374b77d50b0453f/api/types/types.go#L224
 PLATFORM?=Docker Engine - Community
 export PLATFORM
 
