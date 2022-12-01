@@ -35,18 +35,37 @@ DOCKER_PACKAGING_REF?=HEAD
 # - https://github.com/docker/docker-ce-packaging/blob/ad85fb059403230307ccd81888caba273d93dcbf/rpm/Makefile#L3-L11
 # - https://github.com/docker/docker-ce-packaging/blob/ad85fb059403230307ccd81888caba273d93dcbf/static/Makefile#L3-L27
 
-# Version to use for the packages and as version for the `--version` output.
-# The default (0.0.0-dev) generates a "pseudo-version" based on commit sha and
-# commit date.
+# VERSION is the version to use for the packages and as version for the `--version`
+# output. The default (0.0.0-dev) generates a "pseudo-version" based on commit
+# sha and commit date.
 VERSION?=0.0.0-dev
 
-# Packager name sets CompanyName in the manifest metadata for Windows binaries.
-PACKAGER_NAME?=Docker Inc.
+# PACKAGER_NAME sets CompanyName in the manifest metadata for Windows binaries.
+# This currently matches what's used in the certificate used in Docker Desktop
+# to sign the binaries; for further details, refer to the GitHub discussion on:
+# https://github.com/docker/for-win/issues/13039#issuecomment-1330371223
+# and https://github.com/docker/for-win/issues/10866
+PACKAGER_NAME?=Docker Inc
 export PACKAGER_NAME
 
+# PRODUCT sets the ProductName in the manifest metadata for Windows binaries.
+# It is currently only used in the Docker Engine builds;
+# https://github.com/moby/moby/blob/5fd603ce60e3d7afcb55bd042374b77d50b0453f/hack/make/.mkwinres#L63-L69
+# For the Docker CLI, the name is currently hard-coded;
+# https://github.com/docker/cli/blob/d7e872ed6408b0532764c21e43192439199d6199/scripts/build/mkversioninfo#L42-L53
+PRODUCT?=Docker Engine
+export PRODUCT
+
+# DEFAULT_PRODUCT_LICENSE is used to propagate the ProductLicense field in the
+# /info response. See:
+# https://github.com/moby/moby/blob/5fd603ce60e3d7afcb55bd042374b77d50b0453f/daemon/licensing.go#L9
+# https://github.com/moby/moby/blob/5fd603ce60e3d7afcb55bd042374b77d50b0453f/hack/make/.go-autogen#L10
 DEFAULT_PRODUCT_LICENSE?=Community Engine
 export DEFAULT_PRODUCT_LICENSE
 
+# PLATFORM is used to propagate the ProductLicense field in the /version response
+# and the "docker version" output on the CLI:
+# https://github.com/moby/moby/blob/5fd603ce60e3d7afcb55bd042374b77d50b0453f/api/types/types.go#L224
 PLATFORM?=Docker Engine - Community
 export PLATFORM
 
