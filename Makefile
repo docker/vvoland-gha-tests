@@ -40,8 +40,12 @@ DOCKER_PACKAGING_REF?=HEAD
 # commit date.
 VERSION?=0.0.0-dev
 
-# Packager name sets CompanyName in the manifest metadata for Windows binaries.
-PACKAGER_NAME?=Docker Inc.
+# PACKAGER_NAME sets CompanyName in the manifest metadata for Windows binaries.
+# This currently matches what's used in the certificate used in Docker Desktop
+# to sign the binaries; for further details, refer to the GitHub discussion on:
+# https://github.com/docker/for-win/issues/13039#issuecomment-1330371223
+# and https://github.com/docker/for-win/issues/10866
+PACKAGER_NAME?=Docker Inc
 export PACKAGER_NAME
 
 DEFAULT_PRODUCT_LICENSE?=Community Engine
