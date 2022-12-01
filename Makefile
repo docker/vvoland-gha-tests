@@ -48,6 +48,14 @@ VERSION?=0.0.0-dev
 PACKAGER_NAME?=Docker Inc
 export PACKAGER_NAME
 
+# PRODUCT sets the ProductName in the manifest metadata for Windows binaries.
+# It is currently only used in the Docker Engine builds;
+# https://github.com/moby/moby/blob/5fd603ce60e3d7afcb55bd042374b77d50b0453f/hack/make/.mkwinres#L63-L69
+# For the Docker CLI, the name is currently hard-coded;
+# https://github.com/docker/cli/blob/d7e872ed6408b0532764c21e43192439199d6199/scripts/build/mkversioninfo#L42-L53
+PRODUCT?=Docker Engine
+export PRODUCT
+
 # DEFAULT_PRODUCT_LICENSE is used to propagate the ProductLicense field in the
 # /info response. See:
 # https://github.com/moby/moby/blob/5fd603ce60e3d7afcb55bd042374b77d50b0453f/daemon/licensing.go#L9
