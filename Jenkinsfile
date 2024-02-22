@@ -144,7 +144,7 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
                     withCredentials([ usernamePassword(credentialsId: 'redhat-credentials', usernameVariable: 'RH_USER', passwordVariable: 'RH_PASS') ]) {
                         sh """
                         make clean
-                        make bundles-ce-${pkg.target}-${arch}.tar.gz
+                        make ARCH=${arch} bundles-ce-${pkg.target}-${arch}.tar.gz
                         """
                     }
                 }
