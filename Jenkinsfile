@@ -141,10 +141,12 @@ def genBuildStep(LinkedHashMap pkg, String arch) {
             stage("build bundle") {
                 checkout scm
                 sshagent(['docker-jenkins.github.ssh']) {
-                    sh """
-                    make clean
-                    make bundles-ce-${pkg.target}-${arch}.tar.gz
-                    """
+                    withCredentials([ usernamePassword(credentialsId: 'redhat-credentials', usernameVariable: 'RH_USER', passwordVariable: 'RH_PASS') ]) {
+                        sh """
+                        make clean
+                        make bundles-ce-${pkg.target}-${arch}.tar.gz
+                        """
+                    }
                 }
             }
             stage("verify") {
