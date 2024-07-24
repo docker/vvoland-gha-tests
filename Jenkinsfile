@@ -109,7 +109,6 @@ def pkgs = [
     [target: "raspbian-bookworm",        image: "balenalib/rpi-raspbian:bookworm",        arches: ["armhf"]],                     // Debian/Raspbian 12 (next stable)
     [target: "ubuntu-focal",             image: "ubuntu:focal",                           arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 20.04 LTS (End of support: April, 2025. EOL: April, 2030)
     [target: "ubuntu-jammy",             image: "ubuntu:jammy",                           arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 22.04 LTS (End of support: April, 2027. EOL: April, 2032)
-    [target: "ubuntu-mantic",            image: "ubuntu:mantic",                          arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 23.10 (EOL: July, 2024)
     [target: "ubuntu-noble",             image: "ubuntu:noble",                           arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 24.04 LTS (End of support: June,  2029. EOL: April, 2034)
     [target: "rhel-8",                   image: "registry.access.redhat.com/ubi8/ubi",    arches: ["amd64", "aarch64"]],
     [target: "rhel-9",                   image: "registry.access.redhat.com/ubi9/ubi",    arches: ["amd64", "aarch64"]],
