@@ -101,7 +101,7 @@ archConfig = [
 
 def pkgs = [
     [target: "centos-9",                 image: "quay.io/centos/centos:stream9",          arches: ["amd64", "aarch64"]],
-    [target: "centos-10",                image: "quay.io/centos/centos:stream10-development",         arches: ["amd64", "aarch64"]], // CentOS Stream 10 (EOL: 2030)
+    [target: "centos-10",                image: "quay.io/centos/centos:stream10",         arches: ["amd64", "aarch64"]],          // CentOS Stream 10 (EOL: 2030)
     [target: "debian-bullseye",          image: "debian:bullseye",                        arches: ["amd64", "aarch64", "armhf"]], // Debian 11 (stable)
     [target: "debian-bookworm",          image: "debian:bookworm",                        arches: ["amd64", "aarch64", "armhf"]], // Debian 12 (Next stable)
     [target: "fedora-40",                image: "fedora:40",                              arches: ["amd64", "aarch64"]],          // EOL: May 13, 2025
