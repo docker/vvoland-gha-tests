@@ -43,10 +43,6 @@ func TestContainerList(t *testing.T) {
 
 func TestContainerList_Annotations(t *testing.T) {
 	ctx := setupTest(t)
-	apiClient := request.NewAPIClient(t)
-
-	// remove any existing containers
-	container.RemoveAll(ctx, t, apiClient)
 
 	annotations := map[string]string{
 		"foo":                       "bar",
@@ -81,9 +77,6 @@ func TestContainerList_Annotations(t *testing.T) {
 func TestContainerList_Filter(t *testing.T) {
 	ctx := setupTest(t)
 	apiClient := testEnv.APIClient()
-
-	// remove any existing containers
-	container.RemoveAll(ctx, t, apiClient)
 
 	prev := container.Create(ctx, t, apiClient)
 	top := container.Create(ctx, t, apiClient)
@@ -132,9 +125,6 @@ func TestContainerList_ImageManifestPlatform(t *testing.T) {
 
 	ctx := setupTest(t)
 	apiClient := testEnv.APIClient()
-
-	// remove any existing containers
-	container.RemoveAll(ctx, t, apiClient)
 
 	id := container.Create(ctx, t, apiClient)
 	defer container.Remove(ctx, t, apiClient, id, containertypes.RemoveOptions{Force: true})
