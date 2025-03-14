@@ -80,8 +80,7 @@ func TestWaitBlocked(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.doc, func(t *testing.T) {
-			// TODO(vvoland): Verify why this helps for flakiness
-			// t.Parallel()
+			t.Parallel()
 			ctx := testutil.StartSpan(ctx, t)
 			containerID := container.Run(ctx, t, cli, container.WithCmd("sh", "-c", tc.cmd))
 			waitResC, errC := cli.ContainerWait(ctx, containerID, "")
@@ -130,8 +129,7 @@ func TestWaitConditions(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.doc, func(t *testing.T) {
-			// TODO(vvoland): Verify why this helps for flakiness
-			// t.Parallel()
+			t.Parallel()
 			ctx := testutil.StartSpan(ctx, t)
 			opts := append([]func(*container.TestContainerConfig){
 				container.WithCmd("sh", "-c", "read -r; exit 99"),
@@ -202,8 +200,7 @@ func TestWaitRestartedContainer(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.doc, func(t *testing.T) {
-			// TODO(vvoland): Verify why this helps for flakiness
-			// t.Parallel()
+			t.Parallel()
 			ctx := testutil.StartSpan(ctx, t)
 			containerID := container.Run(ctx, t, cli,
 				container.WithCmd("sh", "-c", "trap 'exit 5' SIGTERM; while true; do sleep 0.1; done"),
