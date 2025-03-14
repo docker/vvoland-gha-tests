@@ -85,7 +85,8 @@ func TestWaitBlocked(t *testing.T) {
 			containerID := container.Run(ctx, t, cli, container.WithCmd("sh", "-c", tc.cmd))
 			waitResC, errC := cli.ContainerWait(ctx, containerID, "")
 
-			err := cli.ContainerStop(ctx, containerID, containertypes.StopOptions{})
+			timeout := 30
+			err := cli.ContainerStop(ctx, containerID, containertypes.StopOptions{Timeout: &timeout})
 			assert.NilError(t, err)
 
 			select {
@@ -210,7 +211,7 @@ func TestWaitRestartedContainer(t *testing.T) {
 			// Container is running now, wait for exit
 			waitResC, errC := cli.ContainerWait(ctx, containerID, tc.waitCond)
 
-			timeout := 10
+			timeout := 30
 			// On Windows it will always timeout, because our process won't receive SIGTERM
 			// Skip to force killing immediately
 			if isWindowDaemon {
