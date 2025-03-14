@@ -14,6 +14,12 @@ import (
 	"gotest.tools/v3/skip"
 )
 
+func tRun(t *testing.T, doc string, f func(t *testing.T)) {
+	for i := 0; i < 100; i++ {
+		t.Run(doc, f)
+	}
+}
+
 func TestWaitNonBlocked(t *testing.T) {
 	ctx := setupTest(t)
 
@@ -37,7 +43,7 @@ func TestWaitNonBlocked(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.doc, func(t *testing.T) {
+		tRun(t, tc.doc, func(t *testing.T) {
 			t.Parallel()
 
 			ctx := testutil.StartSpan(ctx, t)
@@ -79,7 +85,7 @@ func TestWaitBlocked(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		t.Run(tc.doc, func(t *testing.T) {
+		tRun(t, tc.doc, func(t *testing.T) {
 			t.Parallel()
 			ctx := testutil.StartSpan(ctx, t)
 			containerID := container.Run(ctx, t, cli, container.WithCmd("sh", "-c", tc.cmd))
@@ -129,7 +135,7 @@ func TestWaitConditions(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.doc, func(t *testing.T) {
+		tRun(t, tc.doc, func(t *testing.T) {
 			t.Parallel()
 			ctx := testutil.StartSpan(ctx, t)
 			opts := append([]func(*container.TestContainerConfig){
@@ -200,7 +206,7 @@ func TestWaitRestartedContainer(t *testing.T) {
 	isWindowDaemon := testEnv.DaemonInfo.OSType == "windows"
 
 	for _, tc := range tests {
-		t.Run(tc.doc, func(t *testing.T) {
+		tRun(t, tc.doc, func(t *testing.T) {
 			t.Parallel()
 			ctx := testutil.StartSpan(ctx, t)
 			containerID := container.Run(ctx, t, cli,
