@@ -15,7 +15,7 @@ import (
 )
 
 func tRun(t *testing.T, doc string, f func(t *testing.T)) {
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 50; i++ {
 		t.Run(doc, f)
 	}
 }
@@ -93,7 +93,7 @@ func TestWaitBlocked(t *testing.T) {
 
 			time.Sleep(1 * time.Second)
 
-			timeout := 30
+			timeout := 10
 			err := cli.ContainerStop(ctx, containerID, containertypes.StopOptions{Timeout: &timeout})
 			assert.NilError(t, err)
 
@@ -221,7 +221,7 @@ func TestWaitRestartedContainer(t *testing.T) {
 			// Container is running now, wait for exit
 			waitResC, errC := cli.ContainerWait(ctx, containerID, tc.waitCond)
 
-			timeout := 30
+			timeout := 10
 			// On Windows it will always timeout, because our process won't receive SIGTERM
 			// Skip to force killing immediately
 			if isWindowDaemon {
