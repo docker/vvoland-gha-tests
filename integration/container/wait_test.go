@@ -14,6 +14,12 @@ import (
 	"gotest.tools/v3/skip"
 )
 
+func tRun(t *testing.T, doc string, f func(t *testing.T)) {
+	for i := 0; i < 50; i++ {
+		t.Run(doc, f)
+	}
+}
+
 func TestWaitNonBlocked(t *testing.T) {
 	ctx := setupTest(t)
 
@@ -37,7 +43,7 @@ func TestWaitNonBlocked(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.doc, func(t *testing.T) {
+		tRun(t, tc.doc, func(t *testing.T) {
 			t.Parallel()
 
 			ctx := testutil.StartSpan(ctx, t)
@@ -79,13 +85,16 @@ func TestWaitBlocked(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		t.Run(tc.doc, func(t *testing.T) {
+		tRun(t, tc.doc, func(t *testing.T) {
 			t.Parallel()
 			ctx := testutil.StartSpan(ctx, t)
 			containerID := container.Run(ctx, t, cli, container.WithCmd("sh", "-c", tc.cmd))
 			waitResC, errC := cli.ContainerWait(ctx, containerID, "")
 
-			err := cli.ContainerStop(ctx, containerID, containertypes.StopOptions{})
+			time.Sleep(1 * time.Second)
+
+			timeout := 10
+			err := cli.ContainerStop(ctx, containerID, containertypes.StopOptions{Timeout: &timeout})
 			assert.NilError(t, err)
 
 			select {
@@ -128,7 +137,7 @@ func TestWaitConditions(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.doc, func(t *testing.T) {
+		tRun(t, tc.doc, func(t *testing.T) {
 			t.Parallel()
 			ctx := testutil.StartSpan(ctx, t)
 			opts := append([]func(*container.TestContainerConfig){
@@ -199,7 +208,7 @@ func TestWaitRestartedContainer(t *testing.T) {
 	isWindowDaemon := testEnv.DaemonInfo.OSType == "windows"
 
 	for _, tc := range tests {
-		t.Run(tc.doc, func(t *testing.T) {
+		tRun(t, tc.doc, func(t *testing.T) {
 			t.Parallel()
 			ctx := testutil.StartSpan(ctx, t)
 			containerID := container.Run(ctx, t, cli,
@@ -207,10 +216,12 @@ func TestWaitRestartedContainer(t *testing.T) {
 			)
 			defer cli.ContainerRemove(ctx, containerID, containertypes.RemoveOptions{Force: true})
 
+			time.Sleep(1 * time.Second)
+
 			// Container is running now, wait for exit
 			waitResC, errC := cli.ContainerWait(ctx, containerID, tc.waitCond)
 
-			timeout := 5
+			timeout := 10
 			// On Windows it will always timeout, because our process won't receive SIGTERM
 			// Skip to force killing immediately
 			if isWindowDaemon {
