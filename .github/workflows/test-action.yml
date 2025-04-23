@@ -41,3 +41,14 @@ jobs:
         run: |
           docker run --rm hello-world
 
+  setup-buildx:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+      -
+        name: Run test
+        run: |
+          docker buildx create --use
+          printf 'FROM alpine\nRUN apk add fish' | docker buildx build - --platform linux/amd64,linux/arm64 -t hello-world:latest
