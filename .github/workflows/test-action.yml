@@ -23,21 +23,20 @@ on:
     #  - 'contrib/**'
 
 jobs:
-  rootful:
+  setup-docker:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rootless: [false, true]
     steps:
       -
         name: Set up Docker
         uses: docker/setup-docker-action@v4
         with:
           target: ${{ github.ref_name }}
+          rootless: ${{ matrix.rootless }}
+      -
+        name: Run test
+        run: |
+          docker run --rm hello-world
 
-  rootless:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Set up Docker
-        uses: docker/setup-docker-action@v4
-        with:
-          target: ${{ github.ref_name }}
-          rootless: true
