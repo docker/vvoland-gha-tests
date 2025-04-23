@@ -1,0 +1,55 @@
+name: Test setup-docker action
+
+# Default to 'contents: read', which grants actions to read commits.
+#
+# If any permission is set, any permission not included in the list is
+# implicitly set to "none".
+#
+# see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'master'
+      - '[0-9]+.[0-9]+'
+      - '[0-9]+.x'
+    #paths:
+    #  - 'contrib/**'
+  pull_request:
+    #paths:
+    #  - 'contrib/**'
+
+jobs:
+  setup-docker:
+    runs-on: ubuntu-latest
+    name: "Set up Docker (rootless: ${{ matrix.rootless }}, version: ${{ matrix.version }})"
+    strategy:
+      matrix:
+        rootless: [false, true]
+        version: ["type=image,tag=master", "type=image,tag=latest", "28.1.1"]
+    steps:
+      -
+        name: Set up Docker
+        uses: docker/setup-docker-action@v4
+        with:
+          rootless: ${{ matrix.rootless }}
+          version: ${{ matrix.version }}
+      -
+        name: Run test
+        run: |
+          docker run --rm hello-world
+
+  setup-buildx:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+      -
+        name: Run test
+        run: |
+          docker buildx create --use
+          printf 'FROM alpine\nRUN apk add fish' | docker buildx build - --platform linux/amd64,linux/arm64 -t hello-world:latest
