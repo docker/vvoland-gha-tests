@@ -25,11 +25,11 @@ on:
 jobs:
   setup-docker:
     runs-on: ubuntu-latest
-    name: "Set up Docker (rootless: ${{ matrix.rootless }})"
+    name: "Set up Docker (rootless: ${{ matrix.rootless }}, version: ${{ matrix.version }})"
     strategy:
       matrix:
         rootless: [false, true]
-        version: ["master", "latest", "28.1.1"]
+        version: ["type=image,tag=master", "type=image,tag=latest", "28.1.1"]
     steps:
       -
         name: Set up Docker
