@@ -23,7 +23,7 @@ on:
     #  - 'contrib/**'
 
 jobs:
-  docker:
+  rootful:
     runs-on: ubuntu-latest
     steps:
       -
@@ -31,3 +31,13 @@ jobs:
         uses: docker/setup-docker-action@v4
         with:
           target: ${{ github.ref_name }}
+
+  rootless:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up Docker
+        uses: docker/setup-docker-action@v4
+        with:
+          target: ${{ github.ref_name }}
+          rootless: true
