@@ -25,6 +25,7 @@ on:
 jobs:
   setup-docker:
     runs-on: ubuntu-latest
+    name: "Set up Docker (rootless: ${{ matrix.rootless }})"
     strategy:
       matrix:
         rootless: [false, true]
