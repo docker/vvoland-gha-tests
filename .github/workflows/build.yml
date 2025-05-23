@@ -1,0 +1,526 @@
+name: Build packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      DOCKER_CLI_REPO:
+        description: 'Docker CLI git source repository.'
+        required: true
+        default: 'https://github.com/docker/cli.git'
+      DOCKER_CLI_REF:
+        description: 'Docker CLI reference to build from (usually a branch).'
+        required: true
+        default: 'master'
+      DOCKER_ENGINE_REPO:
+        description: 'Docker Engine git source repository.'
+        required: true
+        default: 'https://github.com/moby/moby.git'
+      DOCKER_ENGINE_REF:
+        description: 'Docker Engine reference to build from (usually a branch).'
+        required: true
+        default: 'master'
+      DOCKER_PACKAGING_REPO:
+        description: 'Packaging scripts git source repository.'
+        required: true
+        default: 'https://github.com/docker/docker-ce-packaging.git'
+      DOCKER_PACKAGING_REF:
+        description: 'Packaging scripts reference to build from (usually a branch).'
+        required: true
+        default: 'master'
+      VERSION:
+        description: 'Version used to build binaries and to tag repositories, e.g. "20.10.6" (no v-prefix).'
+        required: true
+        default: '0.0.0-dev'
+      CONTAINERD_VERSION:
+        description: 'Containerd version for static packages. Leave empty for default.'
+        required: false
+        default: ''
+      RUNC_VERSION:
+        description: 'Runc version for static packages. Leave empty for default.'
+        required: false
+        default: ''
+
+env:
+  # TODO: use amazon/aws-cli:2.27.21
+  AWS_IMAGE: dockereng/awscli:1.16.156
+  BUILD_TAG: gha-release-packaging-${{ github.run_number }}
+  AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+  SKIP_VERIFY: false
+  VERIFY_PACKAGE_REPO: prod
+
+jobs:
+  linux-package-build:
+    name: Build Linux Pkg ${{ matrix.target }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.arch == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # CentOS
+          - target: "centos-9"
+            image: "quay.io/centos/centos:stream9"
+            arch: "amd64"
+          - target: "centos-9"
+            image: "quay.io/centos/centos:stream9"
+            arch: "aarch64"
+          - target: "centos-10"
+            image: "quay.io/centos/centos:stream10"
+            arch: "amd64"
+          - target: "centos-10"
+            image: "quay.io/centos/centos:stream10"
+            arch: "aarch64"
+
+          # Debian
+          - target: "debian-bullseye"
+            image: "debian:bullseye"
+            arch: "amd64"
+          - target: "debian-bullseye"
+            image: "debian:bullseye"
+            arch: "aarch64"
+          - target: "debian-bullseye"
+            image: "debian:bullseye"
+            arch: "armhf"
+          - target: "debian-bookworm"
+            image: "debian:bookworm"
+            arch: "amd64"
+          - target: "debian-bookworm"
+            image: "debian:bookworm"
+            arch: "aarch64"
+          - target: "debian-bookworm"
+            image: "debian:bookworm"
+            arch: "armhf"
+          - target: "debian-trixie"
+            image: "debian:trixie"
+            arch: "amd64"
+          - target: "debian-trixie"
+            image: "debian:trixie"
+            arch: "aarch64"
+          - target: "debian-trixie"
+            image: "debian:trixie"
+            arch: "armhf"
+
+          # Fedora
+          - target: "fedora-41"
+            image: "fedora:41"
+            arch: "amd64"
+          - target: "fedora-41"
+            image: "fedora:41"
+            arch: "aarch64"
+          - target: "fedora-42"
+            image: "fedora:42"
+            arch: "amd64"
+          - target: "fedora-42"
+            image: "fedora:42"
+            arch: "aarch64"
+
+          # Raspbian
+          - target: "raspbian-bullseye"
+            image: "balenalib/rpi-raspbian:bullseye"
+            arch: "armhf"
+          - target: "raspbian-bookworm"
+            image: "balenalib/rpi-raspbian:bookworm"
+            arch: "armhf"
+
+          # Ubuntu
+          - target: "ubuntu-jammy"
+            image: "ubuntu:jammy"
+            arch: "amd64"
+          - target: "ubuntu-jammy"
+            image: "ubuntu:jammy"
+            arch: "aarch64"
+          - target: "ubuntu-jammy"
+            image: "ubuntu:jammy"
+            arch: "armhf"
+          - target: "ubuntu-noble"
+            image: "ubuntu:noble"
+            arch: "amd64"
+          - target: "ubuntu-noble"
+            image: "ubuntu:noble"
+            arch: "aarch64"
+          - target: "ubuntu-noble"
+            image: "ubuntu:noble"
+            arch: "armhf"
+          - target: "ubuntu-oracular"
+            image: "ubuntu:oracular"
+            arch: "amd64"
+          - target: "ubuntu-oracular"
+            image: "ubuntu:oracular"
+            arch: "aarch64"
+          - target: "ubuntu-oracular"
+            image: "ubuntu:oracular"
+            arch: "armhf"
+          - target: "ubuntu-plucky"
+            image: "ubuntu:plucky"
+            arch: "amd64"
+          - target: "ubuntu-plucky"
+            image: "ubuntu:plucky"
+            arch: "aarch64"
+          - target: "ubuntu-plucky"
+            image: "ubuntu:plucky"
+            arch: "armhf"
+
+          # RHEL
+          # Temporarily disabled
+          # See: https://docker.slack.com/archives/C06QC8Y0NMS/p1747421561805699?thread_ts=1747405473.865109&cid=C06QC8Y0NMS
+          # - target: "rhel-8"
+          #   image: "registry.access.redhat.com/ubi8/ubi"
+          #   arch: ["amd64", "aarch64"]
+          # - target: "rhel-9"
+          #   image: "registry.access.redhat.com/ubi9/ubi"
+          #   arch: ["amd64", "aarch64"]
+
+    env:
+      DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
+      DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
+      DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
+      DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
+      DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
+      DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
+      VERSION: ${{ github.event.inputs.VERSION }}
+      CONTAINERD_VERSION: ${{ github.event.inputs.CONTAINERD_VERSION }}
+      RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
+      RH_USER: ${{ secrets.RH_USER }}
+      RH_PASS: ${{ secrets.RH_PASS }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      TARGET_ARCH: ${{ matrix.arch }}
+
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Checkout release-packaging repository
+        uses: actions/checkout@v4
+
+      - name: Docker Info
+        run: |
+          docker version
+          docker info
+          env
+
+      - name: Build Bundle
+        run: |
+          make clean
+          make ARCH=${{ matrix.arch }} bundles-ce-${{ matrix.target }}-${{ matrix.arch }}.tar.gz
+
+      - name: Verify Package
+        if: env.SKIP_VERIFY == 'false'
+        run: |
+          make -C packaging \
+            VERIFY_PLATFORM=--platform=linux/${{ env.TARGET_ARCH }} \
+            IMAGE=${{ matrix.image }} \
+            verify
+
+      - name: Upload Bundle to S3
+        run: |
+          ARTIFACT_NAME="bundles-ce-${{ matrix.target }}-${{ matrix.arch }}.tar.gz"
+          S3_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/${ARTIFACT_NAME}"
+          docker run --rm \
+            -e AWS_ACCESS_KEY_ID \
+            -e AWS_SECRET_ACCESS_KEY \
+            -v ${{ github.workspace }}:/z \
+            -w /z \
+            ${{ env.AWS_IMAGE }} \
+            aws s3 cp --only-show-errors "${ARTIFACT_NAME}" "${S3_URI}"
+
+  static-linux-build:
+    name: Build Static Linux ${{ matrix.arch_name }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch_name: "amd64"
+            build_arch: "amd64"
+            cgo_enabled: ""
+          - arch_name: "armel" # from Jenkins armv6l
+            build_arch: "armel"
+            cgo_enabled: "0"
+          - arch_name: "armhf" # from Jenkins armv7l
+            build_arch: "armhf"
+            cgo_enabled: "0"
+          - arch_name: "aarch64"
+            build_arch: "aarch64"
+            cgo_enabled: ""
+    env:
+      DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
+      DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
+      DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
+      DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
+      DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
+      DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
+      VERSION: ${{ github.event.inputs.VERSION }}
+      CONTAINERD_VERSION: ${{ github.event.inputs.CONTAINERD_VERSION }}
+      RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Checkout release-packaging repository
+        uses: actions/checkout@v4
+
+      - name: Docker Info
+        run: |
+          docker version
+          docker info
+          env
+
+      - name: Build Static Binaries
+        run: |
+          make clean
+          make CGO_ENABLED=${{ matrix.cgo_enabled }} docker-${{ matrix.build_arch }}.tgz
+
+      - name: Upload Static Binaries to S3
+        run: |
+          ARTIFACT_TGZ="docker-${{ matrix.build_arch }}.tgz"
+          ARTIFACT_ROOTLESS_TGZ="docker-rootless-extras-${{ matrix.build_arch }}.tgz"
+          S3_URI_BASE="s3://${AWS_S3_BUCKET}/${BUILD_TAG}"
+
+          docker run --rm \
+            -e AWS_ACCESS_KEY_ID \
+            -e AWS_SECRET_ACCESS_KEY \
+            -v ${{ github.workspace }}:/z \
+            -w /z \
+            ${{ env.AWS_IMAGE }} \
+            aws s3 cp --only-show-errors "${ARTIFACT_TGZ}" "${S3_URI_BASE}/${ARTIFACT_TGZ}"
+          
+          # Upload rootless extras only if it exists (some archs might not produce it)
+          if [ -f "${ARTIFACT_ROOTLESS_TGZ}" ]; then
+            docker run --rm \
+              -e AWS_ACCESS_KEY_ID \
+              -e AWS_SECRET_ACCESS_KEY \
+              -v ${{ github.workspace }}:/z \
+              -w /z \
+              ${{ env.AWS_IMAGE }} \
+              aws s3 cp --only-show-errors "${ARTIFACT_ROOTLESS_TGZ}" "${S3_URI_BASE}/${ARTIFACT_ROOTLESS_TGZ}"
+          else
+            echo "Skipping upload of ${ARTIFACT_ROOTLESS_TGZ} as it does not exist."
+          fi
+
+  cross-mac-build:
+    name: Build Cross-Compile macOS
+    # TODO: use native macos-15
+    runs-on: ubuntu-24.04
+    env:
+      DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
+      DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
+      DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
+      DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
+      DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
+      DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
+      VERSION: ${{ github.event.inputs.VERSION }}
+      CONTAINERD_VERSION: ${{ github.event.inputs.CONTAINERD_VERSION }}
+      RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Checkout release-packaging repository
+        uses: actions/checkout@v4
+
+      - name: Docker Info
+        run: |
+          docker version
+          docker info
+          env
+
+      - name: Build
+        run: |
+          make clean
+          make cross-mac
+      
+      - name: Bundle
+        run: |
+          make bundles-ce-cross-darwin-amd64.tar.gz
+          make bundles-ce-cross-darwin-arm64.tar.gz
+          make docker-mac-amd64.tgz
+          make docker-mac-aarch64.tgz
+          
+      - name: Upload macOS Bundles to S3
+        run: |
+          S3_URI_BASE="s3://${AWS_S3_BUCKET}/${BUILD_TAG}"
+          ARTIFACTS=(
+            "bundles-ce-cross-darwin-amd64.tar.gz"
+            "bundles-ce-cross-darwin-arm64.tar.gz"
+            "docker-mac-amd64.tgz"
+            "docker-mac-aarch64.tgz"
+          )
+          for ARTIFACT_NAME in "${ARTIFACTS[@]}"; do
+            docker run --rm \
+              -e AWS_ACCESS_KEY_ID \
+              -e AWS_SECRET_ACCESS_KEY \
+              -v ${{ github.workspace }}:/z \
+              -w /z \
+              ${{ env.AWS_IMAGE }} \
+              aws s3 cp --only-show-errors "${ARTIFACT_NAME}" "${S3_URI_BASE}/${ARTIFACT_NAME}"
+          done
+
+  cross-win-build:
+    name: Build Cross-Compile Windows
+    # TODO: use native windows-2025
+    runs-on: ubuntu-24.04
+    env:
+      DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
+      DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
+      DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
+      DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
+      DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
+      DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
+      VERSION: ${{ github.event.inputs.VERSION }}
+      CONTAINERD_VERSION: ${{ github.event.inputs.CONTAINERD_VERSION }}
+      RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Checkout release-packaging repository
+        uses: actions/checkout@v4
+
+      - name: Docker Info
+        run: |
+          docker version
+          docker info
+          env
+
+      - name: Build
+        run: |
+          make clean
+          make cross-win
+      
+      - name: Bundle
+        run: |
+          make bundles-ce-cross-windows-amd64.tar.gz
+          make docker-win-amd64.zip
+          
+      - name: Upload Windows Bundles to S3
+        run: |
+          S3_URI_BASE="s3://${AWS_S3_BUCKET}/${BUILD_TAG}"
+          ARTIFACTS=(
+            "bundles-ce-cross-windows-amd64.tar.gz"
+            "docker-win-amd64.zip"
+          )
+          for ARTIFACT_NAME in "${ARTIFACTS[@]}"; do
+            docker run --rm \
+              -e AWS_ACCESS_KEY_ID \
+              -e AWS_SECRET_ACCESS_KEY \
+              -v ${{ github.workspace }}:/z \
+              -w /z \
+              ${{ env.AWS_IMAGE }} \
+              aws s3 cp --only-show-errors "${ARTIFACT_NAME}" "${S3_URI_BASE}/${ARTIFACT_NAME}"
+          done
+
+  shell-completion-build:
+    name: Build Shell Completion
+    runs-on: ubuntu-24.04
+    env:
+      DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
+      DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
+      DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
+      DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
+      DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
+      DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
+      VERSION: ${{ github.event.inputs.VERSION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Checkout release-packaging repository
+        uses: actions/checkout@v4
+      
+      - name: Build Shell Completion Bundle
+        run: |
+          make clean
+          make bundles-ce-shell-completion.tar.gz
+          
+      - name: Upload Shell Completion Bundle to S3
+        run: |
+          ARTIFACT_NAME="bundles-ce-shell-completion.tar.gz"
+          S3_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/${ARTIFACT_NAME}"
+          docker run --rm \
+            -e AWS_ACCESS_KEY_ID \
+            -e AWS_SECRET_ACCESS_KEY \
+            -v ${{ github.workspace }}:/z \
+            -w /z \
+            ${{ env.AWS_IMAGE }} \
+            aws s3 cp --only-show-errors "${ARTIFACT_NAME}" "${S3_URI}"
+
+  publish-results:
+    name: Publish Build Results
+    runs-on: ubuntu-24.04
+    needs: 
+      - linux-package-build
+      - static-linux-build
+      - cross-mac-build
+      - cross-win-build
+      - shell-completion-build
+    env:
+      DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
+      DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
+      DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
+      DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
+      VERSION: ${{ github.event.inputs.VERSION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    steps:
+      - name: Checkout release-packaging repository
+        uses: actions/checkout@v4
+
+      - name: Generate initial build-result.txt from S3 listing
+        run: |
+          S3_DEST_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/"
+          docker run --rm \
+            -e AWS_ACCESS_KEY_ID \
+            -e AWS_SECRET_ACCESS_KEY \
+            -v ${{ github.workspace }}:/z \
+            -w /z \
+            ${{ env.AWS_IMAGE }} \
+            aws s3 ls "${S3_DEST_URI}" > build-result.txt
+
+      - name: Append Git commit info to build-result.txt
+        run: |
+          make clean
+          make build-result.txt
+
+      - name: Upload build-result.txt to S3
+        run: |
+          S3_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/build-result.txt"
+          docker run --rm \
+            -e AWS_ACCESS_KEY_ID \
+            -e AWS_SECRET_ACCESS_KEY \
+            -v ${{ github.workspace }}:/z \
+            -w /z \
+            ${{ env.AWS_IMAGE }} \
+            aws s3 cp --only-show-errors "build-result.txt" "${S3_URI}"
+
+      - name: Generate VERSION file
+        run: |
+          # Ensure the docker/cli path is correct based on how make clones it.
+          # The Jenkinsfile implies it might be in packaging/src/github.com/docker/cli
+          # This path needs to exist with CLI sources for gen-static-ver to work.
+          # Assuming 'make' in previous steps populated this. If not, this step might fail or need adjustment.
+          # The script itself is in ./packaging/static/
+          mkdir -p packaging/src/github.com/docker # Ensure base dir exists
+          # If DOCKER_CLI_PATH is an env var set by make after cloning, use it. Otherwise, this is an assumption.
+          # For now, this relies on the makefiles having already cloned CLI to the expected path.
+          ./packaging/static/gen-static-ver packaging/src/github.com/docker/cli "${VERSION}" > VERSION
+
+      - name: Upload VERSION file to S3
+        run: |
+          S3_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/VERSION"
+          docker run --rm \
+            -e AWS_ACCESS_KEY_ID \
+            -e AWS_SECRET_ACCESS_KEY \
+            -v ${{ github.workspace }}:/z \
+            -w /z \
+            ${{ env.AWS_IMAGE }} \
+            aws s3 cp --only-show-errors "VERSION" "${S3_URI}" 
