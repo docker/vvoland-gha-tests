@@ -49,125 +49,48 @@ env:
   VERIFY_PACKAGE_REPO: prod
 
 jobs:
+  define-matrix:
+    name: Define matrix
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Define matrix
+        id: matrix
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const targets = [
+              {target: "centos-9",           image: "quay.io/centos/centos:stream9",       arches: ["amd64", "aarch64"]},
+              {target: "centos-10",          image: "quay.io/centos/centos:stream10",      arches: ["amd64", "aarch64"]},             // CentOS Stream 10 (EOL: 2030)
+              {target: "debian-bullseye",    image: "debian:bullseye",                     arches: ["amd64", "aarch64", "armhf"]},    // Debian 11 (oldstable)                                                                             
+              {target: "debian-bookworm",    image: "debian:bookworm",                     arches: ["amd64", "aarch64", "armhf"]},    // Debian 12 (stable)                                                                                
+              {target: "debian-trixie",      image: "debian:trixie",                       arches: ["amd64", "aarch64", "armhf"]},    // Debian 13 (Next stable)                                                                           
+              {target: "fedora-41",          image: "fedora:41",                           arches: ["amd64", "aarch64"]},             // EOL: November, 2025                                                                               
+              {target: "fedora-42",          image: "fedora:42",                           arches: ["amd64", "aarch64"]},             // EOL: November, 2025                                                                               
+              {target: "raspbian-bullseye",  image: "balenalib/rpi-raspbian:bullseye",     arches: ["armhf"]},                        // Debian/Raspbian 11 (stable)                                                                       
+              {target: "raspbian-bookworm",  image: "balenalib/rpi-raspbian:bookworm",     arches: ["armhf"]},                        // Debian/Raspbian 12 (next stable)                                                                  
+              {target: "ubuntu-jammy",       image: "ubuntu:jammy",                        arches: ["amd64", "aarch64", "armhf"]},    // Ubuntu 22.04 LTS (End of support: April, 2027. EOL: April, 2032)                                  
+              {target: "ubuntu-noble",       image: "ubuntu:noble",                        arches: ["amd64", "aarch64", "armhf"]},    // Ubuntu 24.04 LTS (End of support: June,  2029. EOL: April, 2034)                                  
+              {target: "ubuntu-oracular",    image: "ubuntu:oracular",                     arches: ["amd64", "aarch64", "armhf"]},    // Ubuntu 24.10 (EOL: July, 2025)                                                                    
+              {target: "ubuntu-plucky",      image: "ubuntu:plucky",                       arches: ["amd64", "aarch64", "armhf"]},    // Ubuntu 25.04 (EOL: January, 2026)                                                                 
+              {target: "rhel-8",             image: "registry.access.redhat.com/ubi8/ubi", arches: ["amd64", "aarch64"]},             // RHEL 8 (EOL: May, 2024)
+              {target: "rhel-9",             image: "registry.access.redhat.com/ubi9/ubi", arches: ["amd64", "aarch64"]}              // RHEL 9 (EOL: May, 2029)
+            ];
+            const matrix = targets.flatMap(target => 
+              target.arches.map(arch => ({ target: target.target, image: target.image, arch }))
+            );
+            console.log(matrix);
+            core.setOutput("matrix", JSON.stringify(matrix));
+
   linux-package-build:
-    name: Build Linux Pkg ${{ matrix.target }}-${{ matrix.arch }}
+    name: Build linux ${{ matrix.target }}-${{ matrix.arch }}
     runs-on: ${{ matrix.arch == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
+    needs: define-matrix
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # CentOS
-          - target: "centos-9"
-            image: "quay.io/centos/centos:stream9"
-            arch: "amd64"
-          - target: "centos-9"
-            image: "quay.io/centos/centos:stream9"
-            arch: "aarch64"
-          - target: "centos-10"
-            image: "quay.io/centos/centos:stream10"
-            arch: "amd64"
-          - target: "centos-10"
-            image: "quay.io/centos/centos:stream10"
-            arch: "aarch64"
-
-          # Debian
-          - target: "debian-bullseye"
-            image: "debian:bullseye"
-            arch: "amd64"
-          - target: "debian-bullseye"
-            image: "debian:bullseye"
-            arch: "aarch64"
-          - target: "debian-bullseye"
-            image: "debian:bullseye"
-            arch: "armhf"
-          - target: "debian-bookworm"
-            image: "debian:bookworm"
-            arch: "amd64"
-          - target: "debian-bookworm"
-            image: "debian:bookworm"
-            arch: "aarch64"
-          - target: "debian-bookworm"
-            image: "debian:bookworm"
-            arch: "armhf"
-          - target: "debian-trixie"
-            image: "debian:trixie"
-            arch: "amd64"
-          - target: "debian-trixie"
-            image: "debian:trixie"
-            arch: "aarch64"
-          - target: "debian-trixie"
-            image: "debian:trixie"
-            arch: "armhf"
-
-          # Fedora
-          - target: "fedora-41"
-            image: "fedora:41"
-            arch: "amd64"
-          - target: "fedora-41"
-            image: "fedora:41"
-            arch: "aarch64"
-          - target: "fedora-42"
-            image: "fedora:42"
-            arch: "amd64"
-          - target: "fedora-42"
-            image: "fedora:42"
-            arch: "aarch64"
-
-          # Raspbian
-          - target: "raspbian-bullseye"
-            image: "balenalib/rpi-raspbian:bullseye"
-            arch: "armhf"
-          - target: "raspbian-bookworm"
-            image: "balenalib/rpi-raspbian:bookworm"
-            arch: "armhf"
-
-          # Ubuntu
-          - target: "ubuntu-jammy"
-            image: "ubuntu:jammy"
-            arch: "amd64"
-          - target: "ubuntu-jammy"
-            image: "ubuntu:jammy"
-            arch: "aarch64"
-          - target: "ubuntu-jammy"
-            image: "ubuntu:jammy"
-            arch: "armhf"
-          - target: "ubuntu-noble"
-            image: "ubuntu:noble"
-            arch: "amd64"
-          - target: "ubuntu-noble"
-            image: "ubuntu:noble"
-            arch: "aarch64"
-          - target: "ubuntu-noble"
-            image: "ubuntu:noble"
-            arch: "armhf"
-          - target: "ubuntu-oracular"
-            image: "ubuntu:oracular"
-            arch: "amd64"
-          - target: "ubuntu-oracular"
-            image: "ubuntu:oracular"
-            arch: "aarch64"
-          - target: "ubuntu-oracular"
-            image: "ubuntu:oracular"
-            arch: "armhf"
-          - target: "ubuntu-plucky"
-            image: "ubuntu:plucky"
-            arch: "amd64"
-          - target: "ubuntu-plucky"
-            image: "ubuntu:plucky"
-            arch: "aarch64"
-          - target: "ubuntu-plucky"
-            image: "ubuntu:plucky"
-            arch: "armhf"
-
-          # RHEL
-          # Temporarily disabled
-          # See: https://docker.slack.com/archives/C06QC8Y0NMS/p1747421561805699?thread_ts=1747405473.865109&cid=C06QC8Y0NMS
-          # - target: "rhel-8"
-          #   image: "registry.access.redhat.com/ubi8/ubi"
-          #   arch: ["amd64", "aarch64"]
-          # - target: "rhel-9"
-          #   image: "registry.access.redhat.com/ubi9/ubi"
-          #   arch: ["amd64", "aarch64"]
+        include: ${{ fromJson(needs.define-matrix.outputs.matrix) }}
 
     env:
       DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
@@ -211,7 +134,14 @@ jobs:
             IMAGE=${{ matrix.image }} \
             verify
 
-      - name: Upload Bundle to S3
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundles-ce-${{ matrix.target }}-${{ matrix.arch }}.tar.gz
+          path: bundles-ce-${{ matrix.target }}-${{ matrix.arch }}.tar.gz
+          retention-days: 1
+
+      - name: Upload to S3
         run: |
           ARTIFACT_NAME="bundles-ce-${{ matrix.target }}-${{ matrix.arch }}.tar.gz"
           S3_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/${ARTIFACT_NAME}"
@@ -224,7 +154,7 @@ jobs:
             aws s3 cp --only-show-errors "${ARTIFACT_NAME}" "${S3_URI}"
 
   static-linux-build:
-    name: Build Static Linux ${{ matrix.arch_name }}
+    name: Build static linux ${{ matrix.arch_name }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -273,7 +203,14 @@ jobs:
           make clean
           make CGO_ENABLED=${{ matrix.cgo_enabled }} docker-${{ matrix.build_arch }}.tgz
 
-      - name: Upload Static Binaries to S3
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-${{ matrix.build_arch }}.tgz
+          path: docker-${{ matrix.build_arch }}.tgz
+          retention-days: 1
+
+      - name: Upload to S3
         run: |
           ARTIFACT_TGZ="docker-${{ matrix.build_arch }}.tgz"
           ARTIFACT_ROOTLESS_TGZ="docker-rootless-extras-${{ matrix.build_arch }}.tgz"
@@ -301,7 +238,7 @@ jobs:
           fi
 
   cross-mac-build:
-    name: Build Cross-Compile macOS
+    name: Build cross macOS
     # TODO: use native macos-15
     runs-on: ubuntu-24.04
     env:
@@ -341,7 +278,7 @@ jobs:
           make docker-mac-amd64.tgz
           make docker-mac-aarch64.tgz
           
-      - name: Upload macOS Bundles to S3
+      - name: Upload to S3
         run: |
           S3_URI_BASE="s3://${AWS_S3_BUCKET}/${BUILD_TAG}"
           ARTIFACTS=(
@@ -361,7 +298,7 @@ jobs:
           done
 
   cross-win-build:
-    name: Build Cross-Compile Windows
+    name: Build cross Windows
     # TODO: use native windows-2025
     runs-on: ubuntu-24.04
     env:
@@ -399,7 +336,7 @@ jobs:
           make bundles-ce-cross-windows-amd64.tar.gz
           make docker-win-amd64.zip
           
-      - name: Upload Windows Bundles to S3
+      - name: Upload to S3
         run: |
           S3_URI_BASE="s3://${AWS_S3_BUCKET}/${BUILD_TAG}"
           ARTIFACTS=(
@@ -417,7 +354,7 @@ jobs:
           done
 
   shell-completion-build:
-    name: Build Shell Completion
+    name: Build shell completion
     runs-on: ubuntu-24.04
     env:
       DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
@@ -441,7 +378,7 @@ jobs:
           make clean
           make bundles-ce-shell-completion.tar.gz
           
-      - name: Upload Shell Completion Bundle to S3
+      - name: Upload to S3
         run: |
           ARTIFACT_NAME="bundles-ce-shell-completion.tar.gz"
           S3_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/${ARTIFACT_NAME}"
