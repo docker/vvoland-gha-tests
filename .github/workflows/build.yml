@@ -45,6 +45,15 @@ env:
   BUILD_TAG: gha-release-packaging-${{ github.run_number }}
   SKIP_VERIFY: false
   VERIFY_PACKAGE_REPO: prod
+  DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
+  DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
+  DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
+  DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
+  DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
+  DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
+  VERSION: ${{ github.event.inputs.VERSION }}
+  CONTAINERD_VERSION: ${{ github.event.inputs.CONTAINERD_VERSION }}
+  RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
 
 jobs:
   define-matrix:
@@ -91,15 +100,6 @@ jobs:
         include: ${{ fromJson(needs.define-matrix.outputs.matrix) }}
 
     env:
-      DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
-      DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
-      DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
-      DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
-      DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
-      DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
-      VERSION: ${{ github.event.inputs.VERSION }}
-      CONTAINERD_VERSION: ${{ github.event.inputs.CONTAINERD_VERSION }}
-      RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
       RH_USER: ${{ secrets.RH_USER }}
       RH_PASS: ${{ secrets.RH_PASS }}
       TARGET_ARCH: ${{ matrix.arch }}
@@ -152,17 +152,6 @@ jobs:
             cgo_enabled: "0"
           - arch: "aarch64"
             cgo_enabled: ""
-    env:
-      DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
-      DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
-      DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
-      DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
-      DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
-      DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
-      VERSION: ${{ github.event.inputs.VERSION }}
-      CONTAINERD_VERSION: ${{ github.event.inputs.CONTAINERD_VERSION }}
-      RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
-
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -192,16 +181,6 @@ jobs:
     name: Build cross macOS
     # TODO: use native macos-15
     runs-on: ubuntu-24.04
-    env:
-      DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
-      DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
-      DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
-      DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
-      DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
-      DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
-      VERSION: ${{ github.event.inputs.VERSION }}
-      CONTAINERD_VERSION: ${{ github.event.inputs.CONTAINERD_VERSION }}
-      RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -242,16 +221,6 @@ jobs:
     name: Build cross Windows
     # TODO: use native windows-2025
     runs-on: ubuntu-24.04
-    env:
-      DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
-      DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
-      DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
-      DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
-      DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
-      DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
-      VERSION: ${{ github.event.inputs.VERSION }}
-      CONTAINERD_VERSION: ${{ github.event.inputs.CONTAINERD_VERSION }}
-      RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -287,14 +256,6 @@ jobs:
   shell-completion-build:
     name: Build shell completion
     runs-on: ubuntu-24.04
-    env:
-      DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
-      DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
-      DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
-      DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
-      DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
-      DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
-      VERSION: ${{ github.event.inputs.VERSION }}
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -324,13 +285,6 @@ jobs:
       - cross-mac-build
       - cross-win-build
       - shell-completion-build
-    env:
-      DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
-      DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
-      DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
-      DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
-      VERSION: ${{ github.event.inputs.VERSION }}
-
     steps:
       - name: Checkout release-packaging repository
         uses: actions/checkout@v4
