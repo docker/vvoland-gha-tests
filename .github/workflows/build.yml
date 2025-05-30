@@ -273,6 +273,17 @@ jobs:
           make bundles-ce-cross-darwin-arm64.tar.gz
           make docker-mac-amd64.tgz
           make docker-mac-aarch64.tgz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-mac
+          path: |
+            bundles-ce-cross-darwin-amd64.tar.gz
+            bundles-ce-cross-darwin-arm64.tar.gz
+            docker-mac-amd64.tgz
+            docker-mac-aarch64.tgz
+          retention-days: 1
           
       - name: Upload to S3
         run: |
@@ -331,6 +342,15 @@ jobs:
         run: |
           make bundles-ce-cross-windows-amd64.tar.gz
           make docker-win-amd64.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-win
+          path: |
+            bundles-ce-cross-windows-amd64.tar.gz
+            docker-win-amd64.zip
+          retention-days: 1
           
       - name: Upload to S3
         run: |
@@ -373,6 +393,14 @@ jobs:
         run: |
           make clean
           make bundles-ce-shell-completion.tar.gz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shell-completion
+          path: |
+            bundles-ce-shell-completion.tar.gz
+          retention-days: 1
           
       - name: Upload to S3
         run: |
@@ -424,6 +452,13 @@ jobs:
           make clean
           make build-result.txt
 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-result.txt
+          path: build-result.txt
+          retention-days: 1
+
       - name: Upload build-result.txt to S3
         run: |
           S3_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/build-result.txt"
@@ -446,6 +481,13 @@ jobs:
           # If DOCKER_CLI_PATH is an env var set by make after cloning, use it. Otherwise, this is an assumption.
           # For now, this relies on the makefiles having already cloned CLI to the expected path.
           ./packaging/static/gen-static-ver packaging/src/github.com/docker/cli "${VERSION}" > VERSION
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VERSION
+          path: VERSION
+          retention-days: 1
 
       - name: Upload VERSION file to S3
         run: |
