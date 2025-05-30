@@ -42,9 +42,7 @@ on:
 
 env:
   # TODO: use amazon/aws-cli:2.27.21
-  AWS_IMAGE: dockereng/awscli:1.16.156
   BUILD_TAG: gha-release-packaging-${{ github.run_number }}
-  AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
   SKIP_VERIFY: false
   VERIFY_PACKAGE_REPO: prod
 
@@ -104,8 +102,6 @@ jobs:
       RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
       RH_USER: ${{ secrets.RH_USER }}
       RH_PASS: ${{ secrets.RH_PASS }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       TARGET_ARCH: ${{ matrix.arch }}
 
     steps:
@@ -141,18 +137,6 @@ jobs:
           path: bundles-ce-${{ matrix.target }}-${{ matrix.arch }}.tar.gz
           retention-days: 1
 
-      - name: Upload to S3
-        run: |
-          ARTIFACT_NAME="bundles-ce-${{ matrix.target }}-${{ matrix.arch }}.tar.gz"
-          S3_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/${ARTIFACT_NAME}"
-          docker run --rm \
-            -e AWS_ACCESS_KEY_ID \
-            -e AWS_SECRET_ACCESS_KEY \
-            -v ${{ github.workspace }}:/z \
-            -w /z \
-            ${{ env.AWS_IMAGE }} \
-            aws s3 cp --only-show-errors "${ARTIFACT_NAME}" "${S3_URI}"
-
   static-linux-build:
     name: Build static linux ${{ matrix.arch }}
     runs-on: ${{ matrix.arch == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
@@ -178,8 +162,6 @@ jobs:
       VERSION: ${{ github.event.inputs.VERSION }}
       CONTAINERD_VERSION: ${{ github.event.inputs.CONTAINERD_VERSION }}
       RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     steps:
       - name: Set up QEMU
@@ -206,33 +188,6 @@ jobs:
           path: docker-${{ matrix.arch }}.tgz
           retention-days: 1
 
-      - name: Upload to S3
-        run: |
-          ARTIFACT_TGZ="docker-${{ matrix.arch }}.tgz"
-          ARTIFACT_ROOTLESS_TGZ="docker-rootless-extras-${{ matrix.arch }}.tgz"
-          S3_URI_BASE="s3://${AWS_S3_BUCKET}/${BUILD_TAG}"
-
-          docker run --rm \
-            -e AWS_ACCESS_KEY_ID \
-            -e AWS_SECRET_ACCESS_KEY \
-            -v ${{ github.workspace }}:/z \
-            -w /z \
-            ${{ env.AWS_IMAGE }} \
-            aws s3 cp --only-show-errors "${ARTIFACT_TGZ}" "${S3_URI_BASE}/${ARTIFACT_TGZ}"
-          
-          # Upload rootless extras only if it exists (some archs might not produce it)
-          if [ -f "${ARTIFACT_ROOTLESS_TGZ}" ]; then
-            docker run --rm \
-              -e AWS_ACCESS_KEY_ID \
-              -e AWS_SECRET_ACCESS_KEY \
-              -v ${{ github.workspace }}:/z \
-              -w /z \
-              ${{ env.AWS_IMAGE }} \
-              aws s3 cp --only-show-errors "${ARTIFACT_ROOTLESS_TGZ}" "${S3_URI_BASE}/${ARTIFACT_ROOTLESS_TGZ}"
-          else
-            echo "Skipping upload of ${ARTIFACT_ROOTLESS_TGZ} as it does not exist."
-          fi
-
   cross-mac-build:
     name: Build cross macOS
     # TODO: use native macos-15
@@ -247,8 +202,6 @@ jobs:
       VERSION: ${{ github.event.inputs.VERSION }}
       CONTAINERD_VERSION: ${{ github.event.inputs.CONTAINERD_VERSION }}
       RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -285,25 +238,6 @@ jobs:
             docker-mac-aarch64.tgz
           retention-days: 1
           
-      - name: Upload to S3
-        run: |
-          S3_URI_BASE="s3://${AWS_S3_BUCKET}/${BUILD_TAG}"
-          ARTIFACTS=(
-            "bundles-ce-cross-darwin-amd64.tar.gz"
-            "bundles-ce-cross-darwin-arm64.tar.gz"
-            "docker-mac-amd64.tgz"
-            "docker-mac-aarch64.tgz"
-          )
-          for ARTIFACT_NAME in "${ARTIFACTS[@]}"; do
-            docker run --rm \
-              -e AWS_ACCESS_KEY_ID \
-              -e AWS_SECRET_ACCESS_KEY \
-              -v ${{ github.workspace }}:/z \
-              -w /z \
-              ${{ env.AWS_IMAGE }} \
-              aws s3 cp --only-show-errors "${ARTIFACT_NAME}" "${S3_URI_BASE}/${ARTIFACT_NAME}"
-          done
-
   cross-win-build:
     name: Build cross Windows
     # TODO: use native windows-2025
@@ -318,8 +252,6 @@ jobs:
       VERSION: ${{ github.event.inputs.VERSION }}
       CONTAINERD_VERSION: ${{ github.event.inputs.CONTAINERD_VERSION }}
       RUNC_VERSION: ${{ github.event.inputs.RUNC_VERSION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -352,23 +284,6 @@ jobs:
             docker-win-amd64.zip
           retention-days: 1
           
-      - name: Upload to S3
-        run: |
-          S3_URI_BASE="s3://${AWS_S3_BUCKET}/${BUILD_TAG}"
-          ARTIFACTS=(
-            "bundles-ce-cross-windows-amd64.tar.gz"
-            "docker-win-amd64.zip"
-          )
-          for ARTIFACT_NAME in "${ARTIFACTS[@]}"; do
-            docker run --rm \
-              -e AWS_ACCESS_KEY_ID \
-              -e AWS_SECRET_ACCESS_KEY \
-              -v ${{ github.workspace }}:/z \
-              -w /z \
-              ${{ env.AWS_IMAGE }} \
-              aws s3 cp --only-show-errors "${ARTIFACT_NAME}" "${S3_URI_BASE}/${ARTIFACT_NAME}"
-          done
-
   shell-completion-build:
     name: Build shell completion
     runs-on: ubuntu-24.04
@@ -380,8 +295,6 @@ jobs:
       DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
       DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
       VERSION: ${{ github.event.inputs.VERSION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -402,18 +315,6 @@ jobs:
             bundles-ce-shell-completion.tar.gz
           retention-days: 1
           
-      - name: Upload to S3
-        run: |
-          ARTIFACT_NAME="bundles-ce-shell-completion.tar.gz"
-          S3_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/${ARTIFACT_NAME}"
-          docker run --rm \
-            -e AWS_ACCESS_KEY_ID \
-            -e AWS_SECRET_ACCESS_KEY \
-            -v ${{ github.workspace }}:/z \
-            -w /z \
-            ${{ env.AWS_IMAGE }} \
-            aws s3 cp --only-show-errors "${ARTIFACT_NAME}" "${S3_URI}"
-
   publish-results:
     name: Publish Build Results
     runs-on: ubuntu-24.04
@@ -429,23 +330,10 @@ jobs:
       DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
       DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
       VERSION: ${{ github.event.inputs.VERSION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     steps:
       - name: Checkout release-packaging repository
         uses: actions/checkout@v4
-
-      - name: Generate initial build-result.txt from S3 listing
-        run: |
-          S3_DEST_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/"
-          docker run --rm \
-            -e AWS_ACCESS_KEY_ID \
-            -e AWS_SECRET_ACCESS_KEY \
-            -v ${{ github.workspace }}:/z \
-            -w /z \
-            ${{ env.AWS_IMAGE }} \
-            aws s3 ls "${S3_DEST_URI}" > build-result.txt
 
       - name: Append Git commit info to build-result.txt
         run: |
@@ -459,43 +347,9 @@ jobs:
           path: build-result.txt
           retention-days: 1
 
-      - name: Upload build-result.txt to S3
-        run: |
-          S3_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/build-result.txt"
-          docker run --rm \
-            -e AWS_ACCESS_KEY_ID \
-            -e AWS_SECRET_ACCESS_KEY \
-            -v ${{ github.workspace }}:/z \
-            -w /z \
-            ${{ env.AWS_IMAGE }} \
-            aws s3 cp --only-show-errors "build-result.txt" "${S3_URI}"
-
-      - name: Generate VERSION file
-        run: |
-          # Ensure the docker/cli path is correct based on how make clones it.
-          # The Jenkinsfile implies it might be in packaging/src/github.com/docker/cli
-          # This path needs to exist with CLI sources for gen-static-ver to work.
-          # Assuming 'make' in previous steps populated this. If not, this step might fail or need adjustment.
-          # The script itself is in ./packaging/static/
-          mkdir -p packaging/src/github.com/docker # Ensure base dir exists
-          # If DOCKER_CLI_PATH is an env var set by make after cloning, use it. Otherwise, this is an assumption.
-          # For now, this relies on the makefiles having already cloned CLI to the expected path.
-          ./packaging/static/gen-static-ver packaging/src/github.com/docker/cli "${VERSION}" > VERSION
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: VERSION
           path: VERSION
-          retention-days: 1
-
-      - name: Upload VERSION file to S3
-        run: |
-          S3_URI="s3://${AWS_S3_BUCKET}/${BUILD_TAG}/VERSION"
-          docker run --rm \
-            -e AWS_ACCESS_KEY_ID \
-            -e AWS_SECRET_ACCESS_KEY \
-            -v ${{ github.workspace }}:/z \
-            -w /z \
-            ${{ env.AWS_IMAGE }} \
-            aws s3 cp --only-show-errors "VERSION" "${S3_URI}" 
+          retention-days: 1 
