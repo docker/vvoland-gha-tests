@@ -81,14 +81,16 @@ jobs:
               {target: "ubuntu-noble",       image: "ubuntu:noble",                        arches: ["amd64", "aarch64", "armhf"]},    // Ubuntu 24.04 LTS (End of support: June,  2029. EOL: April, 2034)                                  
               {target: "ubuntu-oracular",    image: "ubuntu:oracular",                     arches: ["amd64", "aarch64", "armhf"]},    // Ubuntu 24.10 (EOL: July, 2025)                                                                    
               {target: "ubuntu-plucky",      image: "ubuntu:plucky",                       arches: ["amd64", "aarch64", "armhf"]},    // Ubuntu 25.04 (EOL: January, 2026)                                                                 
-              {target: "rhel-8",             image: "registry.access.redhat.com/ubi8/ubi", arches: ["amd64", "aarch64"]},             // RHEL 8 (EOL: May, 2024)
-              {target: "rhel-9",             image: "registry.access.redhat.com/ubi9/ubi", arches: ["amd64", "aarch64"]}              // RHEL 9 (EOL: May, 2029)
             ];
             const matrix = targets.flatMap(target => 
               target.arches.map(arch => ({ target: target.target, image: target.image, arch }))
             );
             console.log(matrix);
             core.setOutput("matrix", JSON.stringify(matrix));
+
+
+  # {target: "rhel-8",             image: "registry.access.redhat.com/ubi8/ubi", arches: ["amd64", "aarch64"]},             // RHEL 8 (EOL: May, 2024)
+  # {target: "rhel-9",             image: "registry.access.redhat.com/ubi9/ubi", arches: ["amd64", "aarch64"]}              // RHEL 9 (EOL: May, 2029)
 
   linux-package-build:
     name: Build linux ${{ matrix.target }}-${{ matrix.arch }}
@@ -286,24 +288,30 @@ jobs:
       - cross-win-build
       - shell-completion-build
     steps:
-      - name: Checkout release-packaging repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Append Git commit info to build-result.txt
-        run: |
-          make clean
-          make build-result.txt
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: build-result.txt
-          path: build-result.txt
-          retention-days: 1
+          path: output/
+          merge-multiple: true
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
         with:
-          name: VERSION
-          path: VERSION
-          retention-days: 1 
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN}}
+
+      - name: Build and Push Artifact Image
+        uses: docker/build-push-action@v5
+        with:
+          context: output
+          file: output.Dockerfile
+          tags: pawelgronowski465/docker-ce-packaging:${{ github.run_number }}
+          push: true
+          labels: |
+            org.opencontainers.image.version=v${{ env.VERSION }}
+            com.docker.packaging.ce.gitref.engine=${{ env.DOCKER_ENGINE_REF }}
+            com.docker.packaging.ce.gitref.cli=${{ env.DOCKER_CLI_REF }}
+            com.docker.packaging.ce.gitref.packaging=${{ env.DOCKER_PACKAGING_REF }}
