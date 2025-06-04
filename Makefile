@@ -86,6 +86,36 @@ packaging/src: packaging
 	make -C packaging checkout
 	@echo checked out source
 
+DEB_IMAGES:=img-ubuntu-%.json img-debian-%.json img-raspbian-%.json
+.PHONY: $(DEB_IMAGES)
+$(DEB_IMAGES) : target=$(patsubst img-%.json,%,$@)
+$(DEB_IMAGES) : TAG?=$(target)-$(ARCH)
+$(DEB_IMAGES): packaging/src
+	make -C packaging/deb $(target)
+	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/$(target)/debbuild/" | \
+		docker build packaging/deb/debbuild/$(target) -f - \
+			--platform linux/$(ARCH) \
+			-t pawelgronowski465/docker-ce-packaging:$(TAG) \
+			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(TAG),push=true \
+			--metadata-file img-$(target).json
+
+RPM_IMAGES:=img-fedora-%.json img-centos-%.json img-rhel-%.json
+.PHONY: $(RPM_IMAGES)
+$(RPM_IMAGES) : target=$(patsubst img-%.json,%,$@)
+$(RPM_IMAGES) : TAG?=$(target)-$(ARCH)
+$(RPM_IMAGES): packaging/src
+	make -C packaging/rpm $(target)
+	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/$(target)/rpmbuild/" | \
+		docker build packaging/rpm/rpmbuild/$(target) -f - \
+			--platform linux/$(ARCH) \
+			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(TAG),push=true \
+			--metadata-file img-$(target).json
+
+.PHONY: $(RPM_BUNDLES)
+$(RPM_BUNDLES): packaging/src
+	make -C packaging/rpm rpmbuild/$@
+	mv packaging/rpm/rpmbuild/$@ .
+
 static-linux: packaging/src
 	make -C packaging DOCKER_BUILD_PKGS=static-linux static
 
