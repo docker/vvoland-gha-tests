@@ -146,19 +146,19 @@ jobs:
           name: img-${{ matrix.target }}-${{ matrix.arch }}.json
           retention-days: 1
 
-      - name: Export digest
-        run: |
-          mkdir -p /tmp/digests
-          digest=$(jq -r '."containerimage.digest"' img-${{ matrix.target }}.json)
-              touch "/tmp/digests/${digest#sha256:}"
+      #- name: Export digest
+      #  run: |
+      #    mkdir -p /tmp/digests
+      #    digest=$(jq -r '."containerimage.digest"' img-${{ matrix.target }}.json)
+      #        touch "/tmp/digests/${digest#sha256:}"
 
-      - name: Upload digest
-        uses: actions/upload-artifact@v4
-        with:
-          name: digests-${{ matrix.target }}-${{ matrix.arch }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
+      #- name: Upload digest
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: digests-${{ matrix.target }}-${{ matrix.arch }}
+      #    path: /tmp/digests/*
+      #    if-no-files-found: error
+      #    retention-days: 1
 
   static-linux-build:
     name: Build static linux ${{ matrix.arch }}
@@ -365,8 +365,11 @@ jobs:
       - name: Create image
         run: |
           ls -la output/
-          xargs jq -r '."image.name"' output/img-*.json | \
-            ./combine.sh pawelgronowski465/docker-ce-packaging:${{ github.run_number }} >output.Dockerfile
+          echo "FROM scratch" >output.Dockerfile
+          for image in $(xargs jq -r '."image.name"' output/img-*.json); do
+            echo "COPY --from=$image / /" >>output.Dockerfile;
+          done
+          cat output.Dockerfile
 
       - name: Login Docker Hub
         uses: docker/login-action@v3

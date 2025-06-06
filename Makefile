@@ -99,7 +99,7 @@ $(DEB_IMAGES): packaging/src
 			--platform linux/$(arch) \
 			-t pawelgronowski465/docker-ce-packaging:$(tag) \
 			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
-			--metadata-file img-$(target).json
+			--metadata-file img-$(target)-$(arch).json
 
 RPM_IMAGES:=img-fedora-%.json img-centos-%.json img-rhel-%.json
 .PHONY: $(RPM_IMAGES)
@@ -113,7 +113,7 @@ $(RPM_IMAGES): packaging/src
 		docker build packaging/rpm/rpmbuild/$(target) -f - \
 			--platform linux/$(arch) \
 			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
-			--metadata-file img-$(target).json
+			--metadata-file img-$(target)-$(arch).json
 
 .PHONY: $(RPM_BUNDLES)
 $(RPM_BUNDLES): packaging/src
