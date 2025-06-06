@@ -88,27 +88,31 @@ packaging/src: packaging
 
 DEB_IMAGES:=img-ubuntu-%.json img-debian-%.json img-raspbian-%.json
 .PHONY: $(DEB_IMAGES)
-$(DEB_IMAGES) : target=$(patsubst img-%.json,%,$@)
-$(DEB_IMAGES) : TAG?=$(target)-$(ARCH)
+$(DEB_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img fedora 42 x86_64	
+$(DEB_IMAGES) : target=$(word 2,$(parts))-$(word 3,$(parts))
+$(DEB_IMAGES) : arch=$(word 4,$(parts))
+$(DEB_IMAGES) : tag?=$(target)-$(arch)
 $(DEB_IMAGES): packaging/src
 	make -C packaging/deb $(target)
 	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/$(target)/debbuild/" | \
 		docker build packaging/deb/debbuild/$(target) -f - \
-			--platform linux/$(ARCH) \
-			-t pawelgronowski465/docker-ce-packaging:$(TAG) \
-			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(TAG),push=true \
+			--platform linux/$(arch) \
+			-t pawelgronowski465/docker-ce-packaging:$(tag) \
+			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
 			--metadata-file img-$(target).json
 
 RPM_IMAGES:=img-fedora-%.json img-centos-%.json img-rhel-%.json
 .PHONY: $(RPM_IMAGES)
-$(RPM_IMAGES) : target=$(patsubst img-%.json,%,$@)
-$(RPM_IMAGES) : TAG?=$(target)-$(ARCH)
+$(RPM_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img fedora 42 x86_64	
+$(RPM_IMAGES) : target=$(word 2,$(parts))-$(word 3,$(parts))
+$(RPM_IMAGES) : arch=$(word 4,$(parts))
+$(RPM_IMAGES) : tag?=$(target)-$(arch)
 $(RPM_IMAGES): packaging/src
 	make -C packaging/rpm $(target)
 	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/$(target)/rpmbuild/" | \
 		docker build packaging/rpm/rpmbuild/$(target) -f - \
-			--platform linux/$(ARCH) \
-			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(TAG),push=true \
+			--platform linux/$(arch) \
+			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
 			--metadata-file img-$(target).json
 
 .PHONY: $(RPM_BUNDLES)
