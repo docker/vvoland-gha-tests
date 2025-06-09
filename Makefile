@@ -88,13 +88,13 @@ packaging/src: packaging
 
 DEB_IMAGES:=img-ubuntu-%.json img-debian-%.json img-raspbian-%.json
 .PHONY: $(DEB_IMAGES)
-$(DEB_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img fedora 42 x86_64	
+$(DEB_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img debian bookworm amd64	
 $(DEB_IMAGES) : target=$(word 2,$(parts))-$(word 3,$(parts))
 $(DEB_IMAGES) : arch=$(word 4,$(parts))
 $(DEB_IMAGES) : tag?=$(target)-$(arch)
 $(DEB_IMAGES): packaging/src
 	make -C packaging/deb $(target)
-	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/$(target)/debbuild/" | \
+	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/$(target)/build-deb/" | \
 		docker build packaging/deb/debbuild/$(target) -f - \
 			--platform linux/$(arch) \
 			-t pawelgronowski465/docker-ce-packaging:$(tag) \
@@ -109,19 +109,54 @@ $(RPM_IMAGES) : arch=$(word 4,$(parts))
 $(RPM_IMAGES) : tag?=$(target)-$(arch)
 $(RPM_IMAGES): packaging/src
 	make -C packaging/rpm $(target)
-	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/$(target)/rpmbuild/" | \
+	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/$(target)/build-rpm/" | \
 		docker build packaging/rpm/rpmbuild/$(target) -f - \
 			--platform linux/$(arch) \
 			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
 			--metadata-file img-$(target)-$(arch).json
 
-.PHONY: $(RPM_BUNDLES)
-$(RPM_BUNDLES): packaging/src
-	make -C packaging/rpm rpmbuild/$@
-	mv packaging/rpm/rpmbuild/$@ .
+
+STATIC_IMAGES:=img-static-linux-%.json
+.PHONY: $(STATIC_IMAGES)
+$(STATIC_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img static linux amd64
+$(STATIC_IMAGES) : os=$(word 3,$(parts))
+$(STATIC_IMAGES) : arch=$(word 4,$(parts))
+$(STATIC_IMAGES) : tag?=static-$(os)-$(arch)
+$(STATIC_IMAGES): packaging/src
+	make -C packaging \
+		DOCKER_BUILD_PKGS=static-linux TARGETPLATFORM=linux/$(arch) \
+		static
+
+	printf "FROM scratch\n\
+COPY ./docker-$(VERSION).tgz /static/$(VERSION)/$(arch)/linux/\n\
+COPY ./docker-rootless-extras-$(VERSION).tgz /static/$(VERSION)/$(arch)/linux/" | \
+		docker build packaging/static/build/linux  -f - \
+			--platform linux/$(arch) \
+			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
+			--metadata-file img-static-linux-$(arch).json
 
 static-linux: packaging/src
 	make -C packaging DOCKER_BUILD_PKGS=static-linux static
+
+
+STATIC_IMAGES:=img-static-win-%.json img-static-mac-%.json
+.PHONY: $(STATIC_IMAGES)
+$(STATIC_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img static win|mac amd64
+$(STATIC_IMAGES) : os=$(word 3,$(parts))
+$(STATIC_IMAGES) : arch=$(word 4,$(parts))
+$(STATIC_IMAGES) : tag?=static-$(os)-$(arch)
+$(STATIC_IMAGES): packaging/src
+	make -C packaging \
+		DOCKER_BUILD_PKGS=cross-$(os) \
+		static
+
+	printf "FROM scratch\n\
+COPY ./docker-$(VERSION).tgz /static/$(VERSION)/$(arch)/$(os)/\n\
+COPY ./docker-rootless-extras-$(VERSION).tgz /static/$(VERSION)/$(arch)/$(os)/" | \
+		docker build packaging/static/build/$(os)  -f - \
+			--platform $(os)/$(arch) \
+			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
+			--metadata-file img-static-$(os)-$(arch).json
 
 # TODO cross-mac should only need the CLI source code, but also calls "static"?
 cross-mac: packaging/src

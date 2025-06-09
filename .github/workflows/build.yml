@@ -202,19 +202,25 @@ jobs:
       - name: Build
         run: |
           make clean
-          make CGO_ENABLED=${{ matrix.cgo_enabled }} docker-${{ matrix.arch }}.tgz
+          make CGO_ENABLED=${{ matrix.cgo_enabled }} img-static-linux-${{ matrix.arch }}.json
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: docker-${{ matrix.arch }}.tgz
-          path: docker-${{ matrix.arch }}.tgz
+          name: img-static-linux-${{ matrix.arch }}.json
+          path: img-static-linux-${{ matrix.arch }}.json
           retention-days: 1
 
   cross-mac-build:
     name: Build cross macOS
     # TODO: use native macos-15
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: "amd64"
+          - arch: "arm64"
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -242,30 +248,25 @@ jobs:
       - name: Build
         run: |
           make clean
-          make cross-mac
+          make img-static-mac-${{ matrix.arch }}.json
       
-      - name: Bundle
-        run: |
-          make bundles-ce-cross-darwin-amd64.tar.gz
-          make bundles-ce-cross-darwin-arm64.tar.gz
-          make docker-mac-amd64.tgz
-          make docker-mac-aarch64.tgz
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: docker-mac
-          path: |
-            bundles-ce-cross-darwin-amd64.tar.gz
-            bundles-ce-cross-darwin-arm64.tar.gz
-            docker-mac-amd64.tgz
-            docker-mac-aarch64.tgz
+          name: img-static-mac-${{ matrix.arch }}.json
+          path: img-static-mac-${{ matrix.arch }}.json
           retention-days: 1
           
   cross-win-build:
     name: Build cross Windows
     # TODO: use native windows-2025
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: "amd64"
+          - arch: "arm64"
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -293,56 +294,15 @@ jobs:
       - name: Build
         run: |
           make clean
-          make cross-win
+          make img-static-win-${{ matrix.arch }}.json
       
-      - name: Bundle
-        run: |
-          make bundles-ce-cross-windows-amd64.tar.gz
-          make docker-win-amd64.zip
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: docker-win
-          path: |
-            bundles-ce-cross-windows-amd64.tar.gz
-            docker-win-amd64.zip
+          name: img-static-win-${{ matrix.arch }}.json
+          path: img-static-win-${{ matrix.arch }}.json
           retention-days: 1
-          
-  shell-completion-build:
-    name: Build shell completion
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          buildkitd-flags: --debug
-
-      - name: Login Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN}}
-
-      - name: Checkout release-packaging repository
-        uses: actions/checkout@v4
-      
-      - name: Build Shell Completion Bundle
-        run: |
-          make clean
-          make bundles-ce-shell-completion.tar.gz
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: shell-completion
-          path: |
-            bundles-ce-shell-completion.tar.gz
-          retention-days: 1
-          
   publish-results:
     name: Publish Build Results
     runs-on: ubuntu-24.04
@@ -351,7 +311,6 @@ jobs:
       - static-linux-build
       - cross-mac-build
       - cross-win-build
-      - shell-completion-build
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -364,8 +323,12 @@ jobs:
 
       - name: Create image
         run: |
+          make build-result.txt
           ls -la output/
           echo "FROM scratch" >output.Dockerfile
+          echo "LABEL com.docker.ce-packaging.packaging.gitref=$(sed -n '1p' build-result.txt)" >>output.Dockerfile
+          echo "LABEL com.docker.ce-packaging.docker.gitref=$(sed -n '2p' build-result.txt)" >>output.Dockerfile
+          echo "LABEL com.docker.ce-packaging.cli.gitref=$(sed -n '3p' build-result.txt)" >>output.Dockerfile
           for image in $(xargs jq -r '."image.name"' output/img-*.json); do
             echo "COPY --from=$image / /" >>output.Dockerfile;
           done
@@ -386,6 +349,3 @@ jobs:
           push: true
           labels: |
             org.opencontainers.image.version=v${{ env.VERSION }}
-            com.docker.packaging.ce.gitref.engine=${{ env.DOCKER_ENGINE_REF }}
-            com.docker.packaging.ce.gitref.cli=${{ env.DOCKER_CLI_REF }}
-            com.docker.packaging.ce.gitref.packaging=${{ env.DOCKER_PACKAGING_REF }}
