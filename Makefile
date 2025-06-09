@@ -139,24 +139,20 @@ static-linux: packaging/src
 	make -C packaging DOCKER_BUILD_PKGS=static-linux static
 
 
-STATIC_IMAGES:=img-static-win-%.json img-static-mac-%.json
+STATIC_IMAGES:=img-static-win.json img-static-mac.json
 .PHONY: $(STATIC_IMAGES)
-$(STATIC_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img static win|mac amd64
+$(STATIC_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img static win|mac
 $(STATIC_IMAGES) : os=$(word 3,$(parts))
-$(STATIC_IMAGES) : arch=$(word 4,$(parts))
-$(STATIC_IMAGES) : tag?=static-$(os)-$(arch)
+$(STATIC_IMAGES) : tag?=static-$(os)
 $(STATIC_IMAGES): packaging/src
 	make -C packaging \
 		DOCKER_BUILD_PKGS=cross-$(os) \
 		static
 
-	printf "FROM scratch\n\
-COPY ./docker-$(VERSION).tgz /static/$(VERSION)/$(arch)/$(os)/\n\
-COPY ./docker-rootless-extras-$(VERSION).tgz /static/$(VERSION)/$(arch)/$(os)/" | \
-		docker build packaging/static/build/$(os)  -f - \
-			--platform $(os)/$(arch) \
-			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
-			--metadata-file img-static-$(os)-$(arch).json
+	docker build packaging/static/build/$(os)  -f static-$(os).Dockerfile \
+		--build-arg VERSION=$(VERSION) \
+		--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
+		--metadata-file img-static-$(os).json
 
 # TODO cross-mac should only need the CLI source code, but also calls "static"?
 cross-mac: packaging/src

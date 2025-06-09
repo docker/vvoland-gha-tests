@@ -215,12 +215,6 @@ jobs:
     name: Build cross macOS
     # TODO: use native macos-15
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: "amd64"
-          - arch: "arm64"
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -248,25 +242,19 @@ jobs:
       - name: Build
         run: |
           make clean
-          make img-static-mac-${{ matrix.arch }}.json
+          make img-static-mac.json
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: img-static-mac-${{ matrix.arch }}.json
-          path: img-static-mac-${{ matrix.arch }}.json
+          name: img-static-mac.json
+          path: img-static-mac.json
           retention-days: 1
           
   cross-win-build:
     name: Build cross Windows
     # TODO: use native windows-2025
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: "amd64"
-          - arch: "arm64"
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -294,13 +282,13 @@ jobs:
       - name: Build
         run: |
           make clean
-          make img-static-win-${{ matrix.arch }}.json
+          make img-static-win.json
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: img-static-win-${{ matrix.arch }}.json
-          path: img-static-win-${{ matrix.arch }}.json
+          name: img-static-win.json
+          path: img-static-win.json
           retention-days: 1
 
   publish-results:
