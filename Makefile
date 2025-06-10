@@ -94,7 +94,7 @@ $(DEB_IMAGES) : arch=$(word 4,$(parts))
 $(DEB_IMAGES) : tag?=$(target)-$(arch)
 $(DEB_IMAGES): packaging/src
 	make -C packaging/deb $(target)
-	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/$(target)/build-deb/" | \
+	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/build-deb/$(target)/" | \
 		docker build packaging/deb/debbuild/$(target) -f - \
 			--platform linux/$(arch) \
 			-t pawelgronowski465/docker-ce-packaging:$(tag) \
@@ -109,7 +109,7 @@ $(RPM_IMAGES) : arch=$(word 4,$(parts))
 $(RPM_IMAGES) : tag?=$(target)-$(arch)
 $(RPM_IMAGES): packaging/src
 	make -C packaging/rpm $(target)
-	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/$(target)/build-rpm/" | \
+	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/build-rpm/$(target)/" | \
 		docker build packaging/rpm/rpmbuild/$(target) -f - \
 			--platform linux/$(arch) \
 			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
@@ -127,11 +127,8 @@ $(STATIC_IMAGES): packaging/src
 		DOCKER_BUILD_PKGS=static-linux TARGETPLATFORM=linux/$(arch) \
 		static
 
-	printf "FROM scratch\n\
-COPY ./docker-$(VERSION).tgz /static/$(VERSION)/$(arch)/linux/\n\
-COPY ./docker-rootless-extras-$(VERSION).tgz /static/$(VERSION)/$(arch)/linux/" | \
-		docker build packaging/static/build/linux  -f - \
-			--platform linux/$(arch) \
+	docker build packaging/static/build/$(os)  -f static-$(os).Dockerfile \
+			--build-arg VERSION=$(VERSION) \
 			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
 			--metadata-file img-static-linux-$(arch).json
 
