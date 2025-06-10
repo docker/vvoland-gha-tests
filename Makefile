@@ -91,13 +91,12 @@ DEB_IMAGES:=img-ubuntu-%.json img-debian-%.json img-raspbian-%.json
 $(DEB_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img debian bookworm amd64	
 $(DEB_IMAGES) : target=$(word 2,$(parts))-$(word 3,$(parts))
 $(DEB_IMAGES) : arch=$(word 4,$(parts))
-$(DEB_IMAGES) : tag?=$(target)-$(arch)
+$(DEB_IMAGES) : tag?=$(BUILD_TAG)-$(target)-$(arch)
 $(DEB_IMAGES): packaging/src
 	make -C packaging/deb $(target)
 	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/build-deb/$(target)/" | \
 		docker build packaging/deb/debbuild/$(target) -f - \
 			--platform linux/$(arch) \
-			-t pawelgronowski465/docker-ce-packaging:$(tag) \
 			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
 			--metadata-file img-$(target)-$(arch).json
 
@@ -106,7 +105,7 @@ RPM_IMAGES:=img-fedora-%.json img-centos-%.json img-rhel-%.json
 $(RPM_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img fedora 42 x86_64	
 $(RPM_IMAGES) : target=$(word 2,$(parts))-$(word 3,$(parts))
 $(RPM_IMAGES) : arch=$(word 4,$(parts))
-$(RPM_IMAGES) : tag?=$(target)-$(arch)
+$(RPM_IMAGES) : tag?=$(BUILD_TAG)-$(target)-$(arch)
 $(RPM_IMAGES): packaging/src
 	make -C packaging/rpm $(target)
 	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/build-rpm/$(target)/" | \
@@ -121,14 +120,17 @@ STATIC_IMAGES:=img-static-linux-%.json
 $(STATIC_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img static linux amd64
 $(STATIC_IMAGES) : os=$(word 3,$(parts))
 $(STATIC_IMAGES) : arch=$(word 4,$(parts))
-$(STATIC_IMAGES) : tag?=static-$(os)-$(arch)
+$(STATIC_IMAGES) : tag?=$(BUILD_TAG)-static-$(os)-$(arch)
 $(STATIC_IMAGES): packaging/src
 	make -C packaging \
 		DOCKER_BUILD_PKGS=static-linux TARGETPLATFORM=linux/$(arch) \
 		static
 
+	find packaging/static/build/$(os)
 	docker build packaging/static/build/$(os)  -f static-$(os).Dockerfile \
 			--build-arg VERSION=$(VERSION) \
+			--build-arg ARCH=$(arch) \
+			--target linux-$(arch) \
 			--output type=image,name=pawelgronowski465/docker-ce-packaging:$(tag),push=true \
 			--metadata-file img-static-linux-$(arch).json
 
@@ -140,7 +142,7 @@ STATIC_IMAGES:=img-static-win.json img-static-mac.json
 .PHONY: $(STATIC_IMAGES)
 $(STATIC_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img static win|mac
 $(STATIC_IMAGES) : os=$(word 3,$(parts))
-$(STATIC_IMAGES) : tag?=static-$(os)
+$(STATIC_IMAGES) : tag?=$(BUILD_TAG)-static-$(os)
 $(STATIC_IMAGES): packaging/src
 	make -C packaging \
 		DOCKER_BUILD_PKGS=cross-$(os) \

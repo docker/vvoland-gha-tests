@@ -41,8 +41,7 @@ on:
         default: ''
 
 env:
-  # TODO: use amazon/aws-cli:2.27.21
-  BUILD_TAG: gha-release-packaging-${{ github.run_number }}
+  BUILD_TAG: ${{ github.run_number }}
   SKIP_VERIFY: false
   VERIFY_PACKAGE_REPO: prod
   DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
