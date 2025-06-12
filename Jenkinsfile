@@ -113,8 +113,12 @@ def pkgs = [
     [target: "ubuntu-noble",             image: "ubuntu:noble",                           arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 24.04 LTS (End of support: June,  2029. EOL: April, 2034)
     [target: "ubuntu-oracular",          image: "ubuntu:oracular",                        arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 24.10 (EOL: July, 2025)
     [target: "ubuntu-plucky",            image: "ubuntu:plucky",                          arches: ["amd64", "aarch64", "armhf"]], // Ubuntu 25.04 (EOL: January, 2026)
-    [target: "rhel-8",                   image: "registry.access.redhat.com/ubi8/ubi",    arches: ["amd64", "aarch64"]],
-    [target: "rhel-9",                   image: "registry.access.redhat.com/ubi9/ubi",    arches: ["amd64", "aarch64"]],
+
+    // ARM64 builds are temporarily unavailable due to missing license
+    // [target: "rhel-8",                   image: "registry.access.redhat.com/ubi8/ubi",    arches: ["amd64", "aarch64"]],
+    // [target: "rhel-9",                   image: "registry.access.redhat.com/ubi9/ubi",    arches: ["amd64", "aarch64"]],
+    [target: "rhel-8",                   image: "registry.access.redhat.com/ubi8/ubi",    arches: ["amd64"]],
+    [target: "rhel-9",                   image: "registry.access.redhat.com/ubi9/ubi",    arches: ["amd64"]],
 
 ]
 
