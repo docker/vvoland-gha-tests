@@ -1,8 +1,7 @@
 FROM scratch AS linux-amd64
 ARG VERSION
-ARG ARCH
 
-COPY ./docker-${VERSION}.tgz /static/${VERSION}/docker-$(ARCH).tgz
+COPY ./docker-${VERSION}.tgz /static/${VERSION}/docker.tgz
 COPY ./docker-rootless-extras-${VERSION}.tgz /static/${VERSION}/docker-rootless-extras.tgz
 
 FROM scratch AS linux-other
