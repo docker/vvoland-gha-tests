@@ -1,0 +1,321 @@
+name: Build packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      DOCKER_CLI_REPO:
+        description: 'Docker CLI git source repository.'
+        required: true
+        default: 'https://github.com/docker/cli.git'
+      DOCKER_CLI_REF:
+        description: 'Docker CLI reference to build from (usually a branch).'
+        required: true
+        default: 'master'
+      DOCKER_ENGINE_REPO:
+        description: 'Docker Engine git source repository.'
+        required: true
+        default: 'https://github.com/moby/moby.git'
+      DOCKER_ENGINE_REF:
+        description: 'Docker Engine reference to build from (usually a branch).'
+        required: true
+        default: 'master'
+      DOCKER_PACKAGING_REPO:
+        description: 'Packaging scripts git source repository.'
+        required: true
+        default: 'https://github.com/docker/docker-ce-packaging.git'
+      DOCKER_PACKAGING_REF:
+        description: 'Packaging scripts reference to build from (usually a branch).'
+        required: true
+        default: 'master'
+      VERSION:
+        description: 'Version used to build binaries and to tag repositories, e.g. "20.10.6" (no v-prefix).'
+        required: true
+        default: '0.0.0-dev'
+      PACKAGING_REPO:
+        description: 'Registry repository to push the artifacts to.'
+        required: true
+        default: 'dockereng/docker-ce-packaging'
+
+env:
+  BUILD_TAG: ${{ github.run_number }}
+  SKIP_VERIFY: false
+  VERIFY_PACKAGE_REPO: prod
+  DOCKER_CLI_REPO: ${{ github.event.inputs.DOCKER_CLI_REPO }}
+  DOCKER_CLI_REF: ${{ github.event.inputs.DOCKER_CLI_REF }}
+  DOCKER_ENGINE_REPO: ${{ github.event.inputs.DOCKER_ENGINE_REPO }}
+  DOCKER_ENGINE_REF: ${{ github.event.inputs.DOCKER_ENGINE_REF }}
+  DOCKER_PACKAGING_REPO: ${{ github.event.inputs.DOCKER_PACKAGING_REPO }}
+  DOCKER_PACKAGING_REF: ${{ github.event.inputs.DOCKER_PACKAGING_REF }}
+  VERSION: ${{ github.event.inputs.VERSION }}
+  PACKAGING_REPO: ${{ github.event.inputs.PACKAGING_REPO }}
+
+jobs:
+  define-matrix:
+    name: Define matrix
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Define matrix
+        id: matrix
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const targets = [
+              {target: "centos-9",           image: "quay.io/centos/centos:stream9",       arches: ["amd64", "aarch64"]},
+              {target: "centos-10",          image: "quay.io/centos/centos:stream10",      arches: ["amd64", "aarch64"]},             // CentOS Stream 10 (EOL: 2030)
+              {target: "debian-bullseye",    image: "debian:bullseye",                     arches: ["amd64", "aarch64", "armhf"]},    // Debian 11 (oldstable)
+              {target: "debian-bookworm",    image: "debian:bookworm",                     arches: ["amd64", "aarch64", "armhf"]},    // Debian 12 (stable)
+              {target: "debian-trixie",      image: "debian:trixie",                       arches: ["amd64", "aarch64", "armhf"]},    // Debian 13 (Next stable)
+              {target: "fedora-41",          image: "fedora:41",                           arches: ["amd64", "aarch64"]},             // EOL: November, 2025
+              {target: "fedora-42",          image: "fedora:42",                           arches: ["amd64", "aarch64"]},             // EOL: November, 2025
+              {target: "raspbian-bullseye",  image: "balenalib/rpi-raspbian:bullseye",     arches: ["armhf"]},                        // Debian/Raspbian 11 (stable)
+              {target: "raspbian-bookworm",  image: "balenalib/rpi-raspbian:bookworm",     arches: ["armhf"]},                        // Debian/Raspbian 12 (next stable)
+              {target: "ubuntu-jammy",       image: "ubuntu:jammy",                        arches: ["amd64", "aarch64", "armhf"]},    // Ubuntu 22.04 LTS (End of support: April, 2027. EOL: April, 2032)
+              {target: "ubuntu-noble",       image: "ubuntu:noble",                        arches: ["amd64", "aarch64", "armhf"]},    // Ubuntu 24.04 LTS (End of support: June,  2029. EOL: April, 2034)
+              {target: "ubuntu-oracular",    image: "ubuntu:oracular",                     arches: ["amd64", "aarch64", "armhf"]},    // Ubuntu 24.10 (EOL: July, 2025)
+              {target: "ubuntu-plucky",      image: "ubuntu:plucky",                       arches: ["amd64", "aarch64", "armhf"]},    // Ubuntu 25.04 (EOL: January, 2026)
+            ];
+            const matrix = targets.flatMap(target =>
+              target.arches.map(arch => ({ target: target.target, image: target.image, arch }))
+            );
+            console.log(matrix);
+            core.setOutput("matrix", JSON.stringify(matrix));
+
+
+  # {target: "rhel-8",             image: "registry.access.redhat.com/ubi8/ubi", arches: ["amd64", "aarch64"]},             // RHEL 8 (EOL: May, 2024)
+  # {target: "rhel-9",             image: "registry.access.redhat.com/ubi9/ubi", arches: ["amd64", "aarch64"]}              // RHEL 9 (EOL: May, 2029)
+
+  linux-package-build:
+    name: Build linux ${{ matrix.target }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.arch == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
+    needs: define-matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.define-matrix.outputs.matrix) }}
+
+    env:
+      RH_USER: ${{ secrets.RH_USER }}
+      RH_PASS: ${{ secrets.RH_PASS }}
+      TARGET_ARCH: ${{ matrix.arch }}
+      TAG: ${{ github.run_number }}-${{ matrix.target }}-${{ matrix.arch }}
+
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN}}
+
+      - name: Checkout release-packaging repository
+        uses: actions/checkout@v4
+
+      - name: Docker Info
+        run: |
+          docker version
+          docker info
+          env
+
+      - name: Build
+        run: |
+          make clean
+          make TAG=${{ env.TAG }} ARCH=${{ matrix.arch }} img-${{ matrix.target }}-${{ matrix.arch }}.json
+
+      - name: Verify Package
+        if: env.SKIP_VERIFY == 'false'
+        run: |
+          make -C packaging \
+            VERIFY_PLATFORM=--platform=linux/${{ env.TARGET_ARCH }} \
+            IMAGE=${{ matrix.image }} \
+            verify
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          path: img-${{ matrix.target }}-${{ matrix.arch }}.json
+          name: img-${{ matrix.target }}-${{ matrix.arch }}.json
+          retention-days: 1
+
+  static-linux-build:
+    name: Build static linux ${{ matrix.arch }}
+    # NOTE: We can't use ubuntu-24.04-arm because it's only available in the public repos
+    # Instead we use a Docker-hosted custom runner
+    runs-on: ${{ matrix.arch == 'amd64' && 'ubuntu-24.04' || 'ubuntu24_arm64_4cores_16gb' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: "amd64"
+            cgo_enabled: ""
+          - arch: "armel" # from Jenkins armv6l
+            cgo_enabled: "0"
+          - arch: "armhf" # from Jenkins armv7l
+            cgo_enabled: "0"
+          - arch: "aarch64"
+            cgo_enabled: ""
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN}}
+
+      - name: Checkout release-packaging repository
+        uses: actions/checkout@v4
+
+      - name: Docker Info
+        run: |
+          docker version
+          docker info
+          env
+
+      - name: Build
+        run: |
+          make clean
+          make CGO_ENABLED=${{ matrix.cgo_enabled }} img-static-linux-${{ matrix.arch }}.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: img-static-linux-${{ matrix.arch }}.json
+          path: img-static-linux-${{ matrix.arch }}.json
+          retention-days: 1
+
+  cross-mac-build:
+    name: Build cross macOS
+    # TODO: use native macos-15
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN}}
+
+      - name: Checkout release-packaging repository
+        uses: actions/checkout@v4
+
+      - name: Docker Info
+        run: |
+          docker version
+          docker info
+          env
+
+      - name: Build
+        run: |
+          make clean
+          make img-static-mac.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: img-static-mac.json
+          path: img-static-mac.json
+          retention-days: 1
+
+  cross-win-build:
+    name: Build cross Windows
+    # TODO: use native windows-2025
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN}}
+
+      - name: Checkout release-packaging repository
+        uses: actions/checkout@v4
+
+      - name: Docker Info
+        run: |
+          docker version
+          docker info
+          env
+
+      - name: Build
+        run: |
+          make clean
+          make img-static-win.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: img-static-win.json
+          path: img-static-win.json
+          retention-days: 1
+
+  publish-results:
+    name: Publish Build Results
+    runs-on: ubuntu-24.04
+    needs:
+      - linux-package-build
+      - static-linux-build
+      - cross-mac-build
+      - cross-win-build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: output/
+          merge-multiple: true
+
+      - name: Create image
+        run: |
+          make build-result.txt
+          ls -la output/
+          echo "FROM scratch" >output.Dockerfile
+          echo "LABEL com.docker.ce-packaging.packaging.gitref=$(sed -n '1p' build-result.txt)" >>output.Dockerfile
+          echo "LABEL com.docker.ce-packaging.docker.gitref=$(sed -n '2p' build-result.txt)" >>output.Dockerfile
+          echo "LABEL com.docker.ce-packaging.cli.gitref=$(sed -n '3p' build-result.txt)" >>output.Dockerfile
+          for image in $(xargs jq -r '."image.name"' output/img-*.json); do
+            echo "COPY --from=$image / /" >>output.Dockerfile;
+          done
+          cat output.Dockerfile
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN}}
+
+      - name: Build and Push Artifact Image
+        uses: docker/build-push-action@v5
+        with:
+          context: output
+          file: output.Dockerfile
+          tags: ${{ env.PACKAGING_REPO }}:${{ github.run_number }}
+          push: true
+          labels: |
+            org.opencontainers.image.version=v${{ env.VERSION }}

@@ -86,8 +86,72 @@ packaging/src: packaging
 	make -C packaging checkout
 	@echo checked out source
 
+DEB_IMAGES:=img-ubuntu-%.json img-debian-%.json img-raspbian-%.json
+.PHONY: $(DEB_IMAGES)
+$(DEB_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img debian bookworm amd64
+$(DEB_IMAGES) : target=$(word 2,$(parts))-$(word 3,$(parts))
+$(DEB_IMAGES) : arch=$(word 4,$(parts))
+$(DEB_IMAGES) : tag?=$(BUILD_TAG)-$(target)-$(arch)
+$(DEB_IMAGES): packaging/src
+	make -C packaging/deb $(target)
+	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/build-deb/$(target)/" | \
+		docker build packaging/deb/debbuild/$(target) -f - \
+			--platform linux/$(arch) \
+			--output type=image,name=$(PACKAGING_REPO):$(tag),push=true \
+			--metadata-file img-$(target)-$(arch).json
+
+RPM_IMAGES:=img-fedora-%.json img-centos-%.json img-rhel-%.json
+.PHONY: $(RPM_IMAGES)
+$(RPM_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img fedora 42 x86_64
+$(RPM_IMAGES) : target=$(word 2,$(parts))-$(word 3,$(parts))
+$(RPM_IMAGES) : arch=$(word 4,$(parts))
+$(RPM_IMAGES) : tag?=$(BUILD_TAG)-$(target)-$(arch)
+$(RPM_IMAGES): packaging/src
+	make -C packaging/rpm $(target)
+	printf "FROM scratch\nCOPY . /bundles/$(VERSION)/build-rpm/$(target)/" | \
+		docker build packaging/rpm/rpmbuild/$(target) -f - \
+			--platform linux/$(arch) \
+			--output type=image,name=$(PACKAGING_REPO):$(tag),push=true \
+			--metadata-file img-$(target)-$(arch).json
+
+
+STATIC_IMAGES:=img-static-linux-%.json
+.PHONY: $(STATIC_IMAGES)
+$(STATIC_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img static linux amd64
+$(STATIC_IMAGES) : os=$(word 3,$(parts))
+$(STATIC_IMAGES) : arch=$(word 4,$(parts))
+$(STATIC_IMAGES) : tag?=$(BUILD_TAG)-static-$(os)-$(arch)
+$(STATIC_IMAGES): packaging/src
+	make -C packaging \
+		DOCKER_BUILD_PKGS=static-linux TARGETPLATFORM=linux/$(arch) \
+		static
+
+	find packaging/static/build/$(os)
+	docker build packaging/static/build/$(os)  -f static-$(os).Dockerfile \
+			--build-arg VERSION=$(VERSION) \
+			--build-arg ARCH=$(arch) \
+			--target linux-$(arch) \
+			--output type=image,name=$(PACKAGING_REPO):$(tag),push=true \
+			--metadata-file img-static-linux-$(arch).json
+
 static-linux: packaging/src
 	make -C packaging DOCKER_BUILD_PKGS=static-linux static
+
+
+STATIC_IMAGES:=img-static-win.json img-static-mac.json
+.PHONY: $(STATIC_IMAGES)
+$(STATIC_IMAGES) : parts=$(subst -, ,$(basename $@)) # splits into: img static win|mac
+$(STATIC_IMAGES) : os=$(word 3,$(parts))
+$(STATIC_IMAGES) : tag?=$(BUILD_TAG)-static-$(os)
+$(STATIC_IMAGES): packaging/src
+	make -C packaging \
+		DOCKER_BUILD_PKGS=cross-$(os) \
+		static
+
+	docker build packaging/static/build/$(os)  -f static-$(os).Dockerfile \
+		--build-arg VERSION=$(VERSION) \
+		--output type=image,name=$(PACKAGING_REPO):$(tag),push=true \
+		--metadata-file img-static-$(os).json
 
 # TODO cross-mac should only need the CLI source code, but also calls "static"?
 cross-mac: packaging/src
